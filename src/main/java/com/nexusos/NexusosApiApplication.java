@@ -1,4 +1,4 @@
-package nexusos_api;
+package com.nexusos;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class NexusosApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(NexusosApiApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(NexusosApiApplication.class, args);
+    }
 }
