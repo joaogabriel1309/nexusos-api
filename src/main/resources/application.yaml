@@ -1,3 +1,63 @@
 spring:
   application:
     name: nexusos-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nexusos}
+    username: ${DATABASE_USERNAME:nexusos}
+    password: ${DATABASE_PASSWORD:nexusos}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+nexusos:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-this-secret-change-this-secret-change-this-secret}
+      access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:60}
+      refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+  storage:
+    uploads-path: ${UPLOADS_PATH:uploads}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+
+logging:
+  level:
+    org.springframework.security: info
