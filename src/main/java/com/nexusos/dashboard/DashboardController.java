@@ -1,0 +1,37 @@
+package com.nexusos.dashboard;
+
+import com.nexusos.dashboard.dto.DashboardResumoResponse;
+import com.nexusos.dashboard.dto.ProdutividadeResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/dashboard")
+@RequiredArgsConstructor
+public class DashboardController {
+
+    private final DashboardService dashboardService;
+
+    @Operation(summary = "Retorna resumo geral do dashboard")
+    @GetMapping("/resumo")
+    public ResponseEntity<DashboardResumoResponse> resumo() {
+        return ResponseEntity.ok(dashboardService.resumo());
+    }
+
+    @Operation(summary = "Retorna quantidade de OS por status")
+    @GetMapping("/os-por-status")
+    public ResponseEntity<Map<String, Long>> osPorStatus() {
+        return ResponseEntity.ok(dashboardService.osPorStatus());
+    }
+
+    @Operation(summary = "Retorna metricas simples de produtividade")
+    @GetMapping("/produtividade")
+    public ResponseEntity<ProdutividadeResponse> produtividade() {
+        return ResponseEntity.ok(dashboardService.produtividade());
+    }
+}
