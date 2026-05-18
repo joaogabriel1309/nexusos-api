@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Loader2, Lock, Mail } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -9,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { loginSchema, type LoginFormData } from "@/schemas/login-schema";
-import { authService } from "@/services/auth-service";
+import { loginSchema, type LoginFormData } from "@/schemas/auth-schema";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -24,11 +26,11 @@ export default function LoginPage() {
 
   async function onSubmit(values: LoginFormData) {
     try {
-      await authService.login(values.email, values.senha);
+      await login(values.email, values.senha);
       toast.success("Login realizado com sucesso");
       router.push("/dashboard");
     } catch {
-      toast.error("Não foi possível entrar com essas credenciais");
+      toast.error("Nao foi possivel entrar com essas credenciais");
     }
   }
 
@@ -42,7 +44,7 @@ export default function LoginPage() {
             </div>
             <div>
               <CardTitle>NexusOS</CardTitle>
-              <CardDescription>Entre para gerenciar o workflow técnico</CardDescription>
+              <CardDescription>Acesse o painel de workflow tecnico</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -56,7 +58,10 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>E-mail</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="admin@nexusos.com" {...field} />
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input type="email" placeholder="admin@nexusos.com" className="pl-9" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -69,17 +74,27 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Senha</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input type="password" placeholder="******" className="pl-9" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Entrar
               </Button>
             </form>
           </Form>
+          <div className="mt-5 text-center text-sm text-muted-foreground">
+            Primeiro acesso?{" "}
+            <Link href="/cadastro" className="font-medium text-primary hover:underline">
+              Criar admin inicial
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </main>
