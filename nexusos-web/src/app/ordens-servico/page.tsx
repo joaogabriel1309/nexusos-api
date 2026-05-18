@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { ordemServicoService } from "@/services/ordem-servico-service";
+import { useAuth } from "@/providers/auth-provider";
 
 const clientesMock = [
   { id: "1", nome: "Acme Sistemas" },
@@ -127,6 +128,7 @@ function criarOrdemLocal(data: OrdemServicoFormData, total: number): OrdemServic
 export default function OrdensServicoPage() {
   const [open, setOpen] = useState(false);
   const [ordens, setOrdens] = useState<OrdemServico[]>(ordensMock);
+  const { isAuthenticated } = useAuth();
 
   const criarMutation = useMutation({
     mutationFn: ordemServicoService.criar,
@@ -141,9 +143,7 @@ export default function OrdensServicoPage() {
   });
 
   function handleCreate(data: OrdemServicoFormData) {
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("nexusos.accessToken") : null;
-
-    if (!token) {
+    if (!isAuthenticated) {
       setOrdens((current) => [criarOrdemLocal(data, current.length), ...current]);
       setOpen(false);
       toast.success("OS adicionada à lista local");
