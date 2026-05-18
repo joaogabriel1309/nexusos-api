@@ -1,8 +1,9 @@
 import axios from "axios";
-import type { AuthResponse } from "@/types";
+import type { AuthResponse, LoginRequest } from "@/types/auth";
 
 const TOKEN_KEY = "nexusos.accessToken";
 const REFRESH_TOKEN_KEY = "nexusos.refreshToken";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
 function canUseStorage() {
   return typeof window !== "undefined";
@@ -10,13 +11,11 @@ function canUseStorage() {
 
 export const authService = {
   async login(email: string, senha: string) {
-    const { data } = await axios.post<AuthResponse>(
-      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1"}/auth/login`,
-      { email, senha }
-    );
+    const payload: LoginRequest = { email, senha };
+    const { data } = await axios.post<AuthResponse>(`${API_URL}/auth/login`, payload);
     this.setToken(data.accessToken);
 
-    if (canUseStorage()) {
+    if (canUseStorage() && data.refreshToken) {
       window.localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
     }
 
@@ -44,5 +43,9 @@ export const authService = {
     if (canUseStorage()) {
       window.localStorage.setItem(TOKEN_KEY, token);
     }
+  },
+
+  isAuthenticated() {
+    return Boolean(this.getToken());
   }
 };

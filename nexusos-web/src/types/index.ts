@@ -48,8 +48,4 @@ export type OrdemServico = {
   finalizadoEm?: string;
 };
 
-export type AuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: "Bearer";
-};
+export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";
