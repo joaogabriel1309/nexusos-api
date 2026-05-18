@@ -29,6 +29,8 @@ export type Cliente = {
   email: string;
   telefone?: string;
   ativo: boolean;
+  criadoEm?: string;
+  atualizadoEm?: string;
 };
 
 export type OrdemServico = {
