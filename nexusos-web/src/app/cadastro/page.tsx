@@ -1,17 +1,17 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardCheck, Loader2, Lock, Mail, User } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cadastroInicialSchema, type CadastroInicialFormData } from "@/schemas/auth-schema";
 import { usuarioService } from "@/services/usuario-service";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ClipboardCheck, Loader2, Lock, Mail, User } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 export default function CadastroInicialPage() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function CadastroInicialPage() {
             </div>
             <div>
               <CardTitle>Cadastro inicial</CardTitle>
-              <CardDescription>Crie o primeiro usuario ADMIN do NexusOS.</CardDescription>
+              <CardDescription>Preencha os campos abaixo para criar o usuario administrador.</CardDescription>
             </div>
           </div>
         </CardHeader>

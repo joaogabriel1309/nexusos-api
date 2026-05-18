@@ -1,17 +1,17 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/providers/auth-provider";
+import { loginSchema, type LoginFormData } from "@/schemas/auth-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClipboardCheck, Loader2, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { loginSchema, type LoginFormData } from "@/schemas/auth-schema";
-import { useAuth } from "@/providers/auth-provider";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -92,7 +92,7 @@ export default function LoginPage() {
           <div className="mt-5 text-center text-sm text-muted-foreground">
             Primeiro acesso?{" "}
             <Link href="/cadastro" className="font-medium text-primary hover:underline">
-              Criar admin inicial
+              Cadastre-se
             </Link>
           </div>
         </CardContent>
