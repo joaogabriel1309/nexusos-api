@@ -2,8 +2,10 @@ package com.nexusos.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -70,8 +72,8 @@ public class JwtService {
     private byte[] normalizeSecret(String secret) {
         try {
             return Decoders.BASE64.decode(secret);
-        } catch (IllegalArgumentException ex) {
-            return secret.getBytes();
+        } catch (DecodingException ex) {
+            return secret.getBytes(StandardCharsets.UTF_8);
         }
     }
 }
