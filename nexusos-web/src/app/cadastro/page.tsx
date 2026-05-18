@@ -7,11 +7,17 @@ import { Input } from "@/components/ui/input";
 import { cadastroInicialSchema, type CadastroInicialFormData } from "@/schemas/auth-schema";
 import { usuarioService } from "@/services/usuario-service";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
 import { ClipboardCheck, Loader2, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+
+type ApiErrorResponse = {
+  mensagem?: string;
+  message?: string;
+};
 
 export default function CadastroInicialPage() {
   const router = useRouter();
@@ -30,8 +36,13 @@ export default function CadastroInicialPage() {
       await usuarioService.criarUsuarioInicial(values);
       toast.success("Usuario administrador criado com sucesso");
       router.push("/login");
-    } catch {
-      toast.error("Nao foi possivel criar o usuario. Verifique se o e-mail ja existe.");
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      const message =
+        axiosError.response?.data?.mensagem ??
+        axiosError.response?.data?.message ??
+        "Nao foi possivel criar o usuario. Verifique se a API esta rodando.";
+      toast.error(message);
     }
   }
 
