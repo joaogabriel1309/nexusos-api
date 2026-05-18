@@ -119,7 +119,6 @@ function criarOrdemLocal(data: OrdemServicoFormData, total: number): OrdemServic
     status: "RECEBIDA",
     prioridade: data.prioridade,
     prazo: data.prazo,
-    estimativaHoras: data.estimativaHoras,
     criadoEm: agora,
     atualizadoEm: agora
   };

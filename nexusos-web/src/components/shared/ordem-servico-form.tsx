@@ -34,8 +34,7 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
       clienteId: "",
       responsavelId: "",
       prioridade: "MEDIA",
-      prazo: "",
-      estimativaHoras: undefined
+      prazo: ""
     }
   });
 
@@ -136,19 +135,6 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
                 <FormLabel>Prazo</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="estimativaHoras"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estimativa de horas</FormLabel>
-                <FormControl>
-                  <Input type="number" min="0" step="0.5" placeholder="0" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -7,8 +7,7 @@ export const ordemServicoService = {
     const request = {
       ...payload,
       responsavelId: payload.responsavelId || null,
-      prazo: payload.prazo || null,
-      estimativaHoras: payload.estimativaHoras ?? null
+      prazo: payload.prazo || null
     };
 
     const { data } = await api.post<OrdemServico>("/ordens-servico", request);
