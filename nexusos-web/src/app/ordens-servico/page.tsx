@@ -1,14 +1,35 @@
+"use client";
+
+import { useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
+import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
+import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
+import { ordemServicoService } from "@/services/ordem-servico-service";
 
-const ordens: OrdemServico[] = [
+const clientesMock = [
+  { id: "1", nome: "Acme Sistemas" },
+  { id: "2", nome: "Norte Tech" },
+  { id: "3", nome: "Studio Core" }
+];
+
+const responsaveisMock = [
+  { id: "101", nome: "Marina Costa" },
+  { id: "102", nome: "João Lima" },
+  { id: "103", nome: "Ana Reis" }
+];
+
+const ordensMock: OrdemServico[] = [
   {
     id: "OS-1024",
     titulo: "Ajuste no fluxo de validação fiscal",
@@ -82,17 +103,83 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   return "outline";
 }
 
+function criarOrdemLocal(data: OrdemServicoFormData, total: number): OrdemServico {
+  const cliente = clientesMock.find((item) => item.id === data.clienteId);
+  const responsavel = responsaveisMock.find((item) => item.id === data.responsavelId);
+  const agora = new Date().toISOString();
+
+  return {
+    id: `OS-${1030 + total}`,
+    titulo: data.titulo,
+    descricao: data.descricao,
+    clienteId: data.clienteId,
+    clienteNome: cliente?.nome ?? "Cliente não informado",
+    responsavelId: data.responsavelId,
+    responsavelNome: responsavel?.nome ?? "A definir",
+    status: "RECEBIDA",
+    prioridade: data.prioridade,
+    prazo: data.prazo,
+    estimativaHoras: data.estimativaHoras,
+    criadoEm: agora,
+    atualizadoEm: agora
+  };
+}
+
 export default function OrdensServicoPage() {
+  const [open, setOpen] = useState(false);
+  const [ordens, setOrdens] = useState<OrdemServico[]>(ordensMock);
+
+  const criarMutation = useMutation({
+    mutationFn: ordemServicoService.criar,
+    onSuccess: (ordem) => {
+      setOrdens((current) => [ordem, ...current]);
+      setOpen(false);
+      toast.success("OS cadastrada com sucesso");
+    },
+    onError: () => {
+      toast.error("Não foi possível cadastrar a OS na API");
+    }
+  });
+
+  function handleCreate(data: OrdemServicoFormData) {
+    const token = typeof window !== "undefined" ? window.localStorage.getItem("nexusos.accessToken") : null;
+
+    if (!token) {
+      setOrdens((current) => [criarOrdemLocal(data, current.length), ...current]);
+      setOpen(false);
+      toast.success("OS adicionada à lista local");
+      return;
+    }
+
+    criarMutation.mutate(data);
+  }
+
   return (
     <AppShell>
       <PageHeader
         title="Ordens de Serviço"
         description="Acompanhe demandas técnicas por status, prioridade e responsável."
         actions={
-          <Button>
-            <Plus className="h-4 w-4" />
-            Nova OS
-          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nova OS
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Cadastrar OS</DialogTitle>
+                <DialogDescription>Registre a demanda inicial para análise e priorização técnica.</DialogDescription>
+              </DialogHeader>
+              <OrdemServicoForm
+                clientes={clientesMock}
+                responsaveis={responsaveisMock}
+                isSubmitting={criarMutation.isPending}
+                onSubmit={handleCreate}
+              />
+            </DialogContent>
+          </Dialog>
         }
       />
       <Card>
