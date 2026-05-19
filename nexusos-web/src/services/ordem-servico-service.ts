@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { OrdemServico, StatusOS } from "@/types";
+import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 
 type OrdemServicoUpdatePayload = OrdemServicoFormData & {
@@ -49,6 +50,16 @@ export const ordemServicoService = {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/status`, {
       status,
       descricao: "Status alterado pelo frontend."
+    });
+    return data;
+  },
+
+  async atualizarAnalise(id: string, payload: OrdemServicoAnaliseFormData) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/analise`, {
+      entendimento: payload.entendimento || null,
+      impacto: payload.impacto || null,
+      riscos: payload.riscos || null,
+      estimativaHoras: payload.estimativaHoras
     });
     return data;
   }

@@ -23,6 +23,7 @@ public record OrdemServicoResponse(
         String impacto,
         String riscos,
         BigDecimal estimativaHoras,
+        BigDecimal valorTotalEstimado,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm,
         OffsetDateTime finalizadoEm
@@ -44,6 +45,7 @@ public record OrdemServicoResponse(
                 os.getImpacto(),
                 os.getRiscos(),
                 os.getEstimativaHoras(),
+                os.getValorTotalEstimado(),
                 os.getCriadoEm(),
                 os.getAtualizadoEm(),
                 os.getFinalizadoEm()

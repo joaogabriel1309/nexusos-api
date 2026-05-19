@@ -28,6 +28,7 @@ export type Cliente = {
   documento: string;
   email: string;
   telefone?: string;
+  valorHora: number;
   ativo: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -48,6 +49,7 @@ export type OrdemServico = {
   impacto?: string;
   riscos?: string;
   estimativaHoras?: number;
+  valorTotalEstimado?: number;
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;

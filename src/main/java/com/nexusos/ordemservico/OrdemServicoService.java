@@ -12,6 +12,7 @@ import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
 import java.util.List;
@@ -68,6 +69,7 @@ public class OrdemServicoService {
                 .prazo(request.prazo())
                 .estimativaHoras(request.estimativaHoras())
                 .build();
+        recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
         return OrdemServicoResponse.from(salva);
@@ -86,6 +88,7 @@ public class OrdemServicoService {
         os.setImpacto(request.impacto());
         os.setRiscos(request.riscos());
         os.setEstimativaHoras(request.estimativaHoras());
+        recalcularValorTotalEstimado(os);
         return OrdemServicoResponse.from(ordemServicoRepository.save(os));
     }
 
@@ -122,6 +125,7 @@ public class OrdemServicoService {
         os.setImpacto(request.impacto());
         os.setRiscos(request.riscos());
         os.setEstimativaHoras(request.estimativaHoras());
+        recalcularValorTotalEstimado(os);
         auditoriaService.registrar(os, os.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, os.getStatus());
         return OrdemServicoResponse.from(ordemServicoRepository.save(os));
     }
@@ -148,5 +152,14 @@ public class OrdemServicoService {
         if (!TRANSICOES.getOrDefault(atual, Set.of()).contains(novo)) {
             throw new RegraNegocioException("Transicao de status invalida: " + atual + " para " + novo + ".");
         }
+    }
+
+    private void recalcularValorTotalEstimado(OrdemServico os) {
+        if (os.getEstimativaHoras() == null || os.getCliente() == null || os.getCliente().getValorHora() == null) {
+            os.setValorTotalEstimado(null);
+            return;
+        }
+
+        os.setValorTotalEstimado(os.getEstimativaHoras().multiply(os.getCliente().getValorHora()));
     }
 }

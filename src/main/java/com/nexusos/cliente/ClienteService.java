@@ -35,6 +35,7 @@ public class ClienteService {
                 .documento(request.documento())
                 .email(request.email().toLowerCase())
                 .telefone(request.telefone())
+                .valorHora(request.valorHora())
                 .build();
         return ClienteResponse.from(clienteRepository.save(cliente));
     }
@@ -47,6 +48,7 @@ public class ClienteService {
         cliente.setDocumento(request.documento());
         cliente.setEmail(request.email().toLowerCase());
         cliente.setTelefone(request.telefone());
+        cliente.setValorHora(request.valorHora());
         cliente.setAtivo(request.ativo());
         return ClienteResponse.from(clienteRepository.save(cliente));
     }

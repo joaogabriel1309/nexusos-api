@@ -70,6 +70,9 @@ public class OrdemServico {
 
     private BigDecimal estimativaHoras;
 
+    @Column(precision = 12, scale = 2)
+    private BigDecimal valorTotalEstimado;
+
     @Column(nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 

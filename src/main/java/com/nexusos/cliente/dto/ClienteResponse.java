@@ -1,6 +1,7 @@
 package com.nexusos.cliente.dto;
 
 import com.nexusos.cliente.Cliente;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -10,6 +11,7 @@ public record ClienteResponse(
         String documento,
         String email,
         String telefone,
+        BigDecimal valorHora,
         boolean ativo,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm
@@ -21,6 +23,7 @@ public record ClienteResponse(
                 cliente.getDocumento(),
                 cliente.getEmail(),
                 cliente.getTelefone(),
+                cliente.getValorHora(),
                 cliente.isAtivo(),
                 cliente.getCriadoEm(),
                 cliente.getAtualizadoEm()

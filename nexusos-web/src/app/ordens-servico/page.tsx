@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { ClipboardCheck, Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
+import { OrdemServicoAnaliseForm } from "@/components/shared/ordem-servico-analise-form";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
@@ -61,10 +63,14 @@ function formatarData(data?: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));
 }
 
+const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function OrdensServicoPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
   const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
+  const [ordemAnalise, setOrdemAnalise] = useState<OrdemServico | null>(null);
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
   const [osEmAcaoId, setOsEmAcaoId] = useState<string | null>(null);
@@ -97,6 +103,14 @@ export default function OrdensServicoPage() {
       return matchStatus && matchPrioridade;
     });
   }, [ordensQuery.data, prioridadeFiltro, statusFiltro]);
+
+  const valorHoraAnalise = useMemo(() => {
+    if (!ordemAnalise) {
+      return 0;
+    }
+
+    return clientes.find((cliente) => cliente.id === ordemAnalise.clienteId)?.valorHora ?? 0;
+  }, [clientes, ordemAnalise]);
 
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
@@ -149,6 +163,25 @@ export default function OrdensServicoPage() {
     onSettled: () => setOsEmAcaoId(null)
   });
 
+  const analiseMutation = useMutation({
+    mutationFn: (data: OrdemServicoAnaliseFormData) => {
+      if (!ordemAnalise) {
+        throw new Error("Selecione uma OS para analisar.");
+      }
+
+      return ordemServicoService.atualizarAnalise(ordemAnalise.id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      setAnaliseDialogOpen(false);
+      setOrdemAnalise(null);
+      toast.success("Analise da OS salva com sucesso.");
+    },
+    onError: () => {
+      toast.error("Nao foi possivel salvar a analise da OS.");
+    }
+  });
+
   const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || usuariosQuery.isLoading;
   const isError = ordensQuery.isError || clientesQuery.isError || usuariosQuery.isError;
 
@@ -160,6 +193,11 @@ export default function OrdensServicoPage() {
   function abrirEdicao(ordem: OrdemServico) {
     setOrdemSelecionada(ordem);
     setDialogOpen(true);
+  }
+
+  function abrirAnalise(ordem: OrdemServico) {
+    setOrdemAnalise(ordem);
+    setAnaliseDialogOpen(true);
   }
 
   function excluirOrdem(ordem: OrdemServico) {
@@ -254,8 +292,10 @@ export default function OrdensServicoPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead>Responsavel</TableHead>
+                  <TableHead>Horas</TableHead>
+                  <TableHead>Valor previsto</TableHead>
                   <TableHead>Prazo</TableHead>
-                  <TableHead className="w-[140px] text-right">Acoes</TableHead>
+                  <TableHead className="w-[190px] text-right">Acoes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -285,9 +325,14 @@ export default function OrdensServicoPage() {
                       <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
                     </TableCell>
                     <TableCell>{ordem.responsavelNome || "A definir"}</TableCell>
+                    <TableCell>{ordem.estimativaHoras ?? "-"}</TableCell>
+                    <TableCell>{ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}</TableCell>
                     <TableCell>{formatarData(ordem.prazo)}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="icon" onClick={() => abrirAnalise(ordem)} aria-label="Analisar OS">
+                          <ClipboardCheck className="h-4 w-4" />
+                        </Button>
                         <Button variant="outline" size="icon" onClick={() => abrirEdicao(ordem)} aria-label="Editar OS">
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -337,6 +382,31 @@ export default function OrdensServicoPage() {
             isSubmitting={salvarMutation.isPending}
             onSubmit={(data) => salvarMutation.mutate(data)}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={analiseDialogOpen}
+        onOpenChange={(open) => {
+          setAnaliseDialogOpen(open);
+          if (!open) {
+            setOrdemAnalise(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Analisar OS</DialogTitle>
+            <DialogDescription>Informe a estimativa de horas para calcular o valor previsto da ordem de servico.</DialogDescription>
+          </DialogHeader>
+          {ordemAnalise ? (
+            <OrdemServicoAnaliseForm
+              ordem={ordemAnalise}
+              valorHora={valorHoraAnalise}
+              isSubmitting={analiseMutation.isPending}
+              onSubmit={(data) => analiseMutation.mutate(data)}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
     </AppShell>

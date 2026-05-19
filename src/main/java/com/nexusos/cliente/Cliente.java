@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -37,6 +38,9 @@ public class Cliente {
 
     private String telefone;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal valorHora;
+
     @Column(nullable = false)
     private boolean ativo;
 
@@ -50,6 +54,7 @@ public class Cliente {
     void prePersist() {
         id = id == null ? UUID.randomUUID() : id;
         ativo = true;
+        valorHora = valorHora == null ? BigDecimal.ZERO : valorHora;
         criadoEm = OffsetDateTime.now();
         atualizadoEm = criadoEm;
     }

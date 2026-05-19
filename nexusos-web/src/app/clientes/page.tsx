@@ -130,6 +130,7 @@ export default function ClientesPage() {
                     <TableHead>Documento</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Telefone</TableHead>
+                    <TableHead>Valor/hora</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[140px] text-right">Acoes</TableHead>
                   </TableRow>
@@ -141,6 +142,9 @@ export default function ClientesPage() {
                       <TableCell>{cliente.documento}</TableCell>
                       <TableCell>{cliente.email}</TableCell>
                       <TableCell>{cliente.telefone || "-"}</TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={cliente.ativo ? "default" : "secondary"}>
                           {cliente.ativo ? "Ativo" : "Inativo"}

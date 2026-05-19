@@ -23,7 +23,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       nome: "",
       documento: "",
       email: "",
-      telefone: ""
+      telefone: "",
+      valorHora: 0
     }
   });
 
@@ -32,7 +33,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       nome: cliente?.nome ?? "",
       documento: cliente?.documento ?? "",
       email: cliente?.email ?? "",
-      telefone: cliente?.telefone ?? ""
+      telefone: cliente?.telefone ?? "",
+      valorHora: cliente?.valorHora ?? 0
     });
   }, [cliente, form]);
 
@@ -87,6 +89,19 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
                 <FormLabel>Telefone</FormLabel>
                 <FormControl>
                   <Input placeholder="(00) 00000-0000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="valorHora"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Valor da hora</FormLabel>
+                <FormControl>
+                  <Input type="number" min="0" step="0.01" placeholder="0,00" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
