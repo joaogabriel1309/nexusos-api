@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ClipboardCheck, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { navigationItems } from "@/components/layout/navigation";
+import { getActiveNavigationHref, navigationItems } from "@/components/layout/navigation";
+import { cn } from "@/lib/utils";
 
 export function MobileNav() {
+  const pathname = usePathname();
+  const activeHref = getActiveNavigationHref(pathname);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -28,8 +33,16 @@ export function MobileNav() {
         <nav className="space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
+            const active = activeHref === item.href;
             return (
-              <Link key={item.href} href={item.href} className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground">
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  active && "bg-secondary text-foreground"
+                )}
+              >
                 <Icon className="h-4 w-4" />
                 {item.title}
               </Link>

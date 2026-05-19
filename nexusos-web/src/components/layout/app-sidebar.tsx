@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
-import { navigationItems } from "@/components/layout/navigation";
+import { getActiveNavigationHref, navigationItems } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const activeHref = getActiveNavigationHref(pathname);
 
   return (
     <aside className="hidden min-h-screen w-64 border-r bg-white lg:block">
@@ -23,7 +24,7 @@ export function AppSidebar() {
       <nav className="space-y-1 p-3">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = activeHref === item.href;
 
           return (
             <Link

@@ -8,3 +8,9 @@ export const navigationItems = [
   { title: "Usuarios", href: "/usuarios", icon: Users },
   { title: "Configuracoes", href: "/configuracoes", icon: Settings }
 ];
+
+export function getActiveNavigationHref(pathname: string) {
+  return navigationItems
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+}
