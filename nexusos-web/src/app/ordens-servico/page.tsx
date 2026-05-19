@@ -12,6 +12,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +29,7 @@ const clientesQueryKey = ["clientes"];
 const usuariosQueryKey = ["usuarios"];
 const todosOption = "__todos__";
 const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
+const todosClientesOption = "__todos_clientes__";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -52,8 +54,11 @@ export default function OrdensServicoPage() {
   const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
   const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
   const [ordemAnalise, setOrdemAnalise] = useState<OrdemServico | null>(null);
+  const [clienteFiltro, setClienteFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [osEmAcaoId, setOsEmAcaoId] = useState<string | null>(null);
 
   const ordensQuery = useQuery({
@@ -83,11 +88,19 @@ export default function OrdensServicoPage() {
         return false;
       }
 
+      const prazo = ordem.prazo ? new Date(`${ordem.prazo}T00:00:00`) : null;
+      const inicio = dataInicio ? new Date(`${dataInicio}T00:00:00`) : null;
+      const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
+
+      const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
       const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
       const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
-      return matchStatus && matchPrioridade;
+      const matchInicio = inicio && prazo ? prazo >= inicio : true;
+      const matchFim = fim && prazo ? prazo <= fim : true;
+
+      return matchCliente && matchStatus && matchPrioridade && matchInicio && matchFim;
     });
-  }, [ordensQuery.data, prioridadeFiltro, statusFiltro]);
+  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, prioridadeFiltro, statusFiltro]);
 
   const valorHoraAnalise = useMemo(() => {
     if (!ordemAnalise) {
@@ -220,6 +233,14 @@ export default function OrdensServicoPage() {
     usuariosQuery.refetch();
   }
 
+  function limparFiltros() {
+    setClienteFiltro("");
+    setStatusFiltro("");
+    setPrioridadeFiltro("");
+    setDataInicio("");
+    setDataFim("");
+  }
+
   return (
     <AppShell>
       <PageHeader
@@ -235,7 +256,23 @@ export default function OrdensServicoPage() {
 
       <Card>
         <CardContent className="p-5">
-          <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
+            <Select
+              value={clienteFiltro || todosClientesOption}
+              onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={todosClientesOption}>Todos os clientes</SelectItem>
+                {clientes.map((cliente) => (
+                  <SelectItem key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusOS))}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
@@ -265,6 +302,11 @@ export default function OrdensServicoPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Input type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
+            <Input type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
+            <Button variant="outline" onClick={limparFiltros}>
+              Limpar
+            </Button>
           </div>
 
           {isLoading ? (
