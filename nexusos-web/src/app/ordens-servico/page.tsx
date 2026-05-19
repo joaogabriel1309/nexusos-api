@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { prioridadeLabels, prioridadeOptions, statusLabels, statusOptions } from "@/lib/os-labels";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
@@ -26,27 +27,7 @@ const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
 const usuariosQueryKey = ["usuarios"];
 const todosOption = "__todos__";
-
-const statusLabels: Record<StatusOS, string> = {
-  RECEBIDA: "Recebida",
-  EM_ANALISE: "Em analise",
-  APROVADA: "Aprovada",
-  EM_DESENVOLVIMENTO: "Em desenvolvimento",
-  EM_TESTES: "Em testes",
-  AGUARDANDO_VALIDACAO: "Aguardando validacao",
-  FINALIZADA: "Finalizada",
-  CANCELADA: "Cancelada"
-};
-
-const prioridadeLabels: Record<PrioridadeOS, string> = {
-  BAIXA: "Baixa",
-  MEDIA: "Media",
-  ALTA: "Alta",
-  CRITICA: "Critica"
-};
-
-const statusOptions = Object.keys(statusLabels) as StatusOS[];
-const prioridadeOptions = Object.keys(prioridadeLabels) as PrioridadeOS[];
+const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -98,6 +79,10 @@ export default function OrdensServicoPage() {
 
   const ordensFiltradas = useMemo(() => {
     return (ordensQuery.data ?? []).filter((ordem) => {
+      if (ordem.status === "FINALIZADA") {
+        return false;
+      }
+
       const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
       const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
       return matchStatus && matchPrioridade;
@@ -151,7 +136,8 @@ export default function OrdensServicoPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: StatusOS }) => ordemServicoService.atualizarStatus(id, status),
+    mutationFn: ({ id, status, descricao }: { id: string; status: StatusOS; descricao?: string }) =>
+      ordemServicoService.atualizarStatus(id, status, descricao),
     onMutate: ({ id }) => setOsEmAcaoId(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
@@ -208,6 +194,26 @@ export default function OrdensServicoPage() {
     excluirMutation.mutate(ordem.id);
   }
 
+  function atualizarStatus(ordem: OrdemServico, status: StatusOS) {
+    if (status === ordem.status) {
+      return;
+    }
+
+    if (status === "FINALIZADA") {
+      const descricao = window.prompt("Informe o que foi feito para finalizar a OS:");
+
+      if (!descricao?.trim()) {
+        toast.error("Informe o que foi feito antes de finalizar a OS.");
+        return;
+      }
+
+      statusMutation.mutate({ id: ordem.id, status, descricao: descricao.trim() });
+      return;
+    }
+
+    statusMutation.mutate({ id: ordem.id, status });
+  }
+
   function recarregar() {
     ordensQuery.refetch();
     clientesQuery.refetch();
@@ -236,7 +242,7 @@ export default function OrdensServicoPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={todosOption}>Todos os status</SelectItem>
-                {statusOptions.map((status) => (
+                {statusFiltroOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {statusLabels[status]}
                   </SelectItem>
@@ -307,7 +313,7 @@ export default function OrdensServicoPage() {
                       <Select
                         value={ordem.status}
                         disabled={osEmAcaoId === ordem.id}
-                        onValueChange={(status) => statusMutation.mutate({ id: ordem.id, status: status as StatusOS })}
+                        onValueChange={(status) => atualizarStatus(ordem, status as StatusOS)}
                       >
                         <SelectTrigger className="h-8 w-[210px]">
                           <SelectValue />

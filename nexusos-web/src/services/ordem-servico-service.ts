@@ -46,10 +46,10 @@ export const ordemServicoService = {
     await api.delete(`/ordens-servico/${id}`);
   },
 
-  async atualizarStatus(id: string, status: StatusOS) {
+  async atualizarStatus(id: string, status: StatusOS, descricao?: string) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/status`, {
       status,
-      descricao: "Status alterado pelo frontend."
+      descricao: descricao || "Status alterado pelo frontend."
     });
     return data;
   },

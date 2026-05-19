@@ -35,7 +35,8 @@ public class OrdemServicoService {
         TRANSICOES.put(StatusOS.APROVADA, Set.of(StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
         TRANSICOES.put(StatusOS.EM_DESENVOLVIMENTO, Set.of(StatusOS.EM_TESTES, StatusOS.CANCELADA));
         TRANSICOES.put(StatusOS.EM_TESTES, Set.of(StatusOS.AGUARDANDO_VALIDACAO, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.AGUARDANDO_VALIDACAO, Set.of(StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
+        TRANSICOES.put(StatusOS.AGUARDANDO_VALIDACAO, Set.of(StatusOS.AGUARDANDO_PAGAMENTO, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
+        TRANSICOES.put(StatusOS.AGUARDANDO_PAGAMENTO, Set.of(StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
         TRANSICOES.put(StatusOS.FINALIZADA, Set.of());
         TRANSICOES.put(StatusOS.CANCELADA, Set.of());
     }
@@ -106,9 +107,11 @@ public class OrdemServicoService {
         os.setStatus(request.status());
         if (request.status() == StatusOS.FINALIZADA) {
             os.setFinalizadoEm(OffsetDateTime.now());
+            os.setDescricaoFinalizacao(request.descricao());
         }
         if (request.status() != StatusOS.FINALIZADA) {
             os.setFinalizadoEm(null);
+            os.setDescricaoFinalizacao(null);
         }
         var usuario = request.usuarioId() != null ? usuarioService.buscarEntidade(request.usuarioId()) : null;
         var salva = ordemServicoRepository.save(os);

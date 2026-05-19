@@ -7,6 +7,7 @@ export type StatusOS =
   | "EM_DESENVOLVIMENTO"
   | "EM_TESTES"
   | "AGUARDANDO_VALIDACAO"
+  | "AGUARDANDO_PAGAMENTO"
   | "FINALIZADA"
   | "CANCELADA";
 
@@ -50,6 +51,7 @@ export type OrdemServico = {
   riscos?: string;
   estimativaHoras?: number;
   valorTotalEstimado?: number;
+  descricaoFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;

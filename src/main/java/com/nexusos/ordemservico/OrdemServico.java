@@ -73,6 +73,9 @@ public class OrdemServico {
     @Column(precision = 12, scale = 2)
     private BigDecimal valorTotalEstimado;
 
+    @Column(columnDefinition = "text")
+    private String descricaoFinalizacao;
+
     @Column(nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
