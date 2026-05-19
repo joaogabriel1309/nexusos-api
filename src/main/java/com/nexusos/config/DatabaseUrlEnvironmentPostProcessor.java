@@ -20,7 +20,13 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         String databaseUrl = environment.getProperty("DATABASE_URL");
 
-        if (!StringUtils.hasText(databaseUrl) || databaseUrl.startsWith("jdbc:")) {
+        if (!StringUtils.hasText(databaseUrl)) {
+            return;
+        }
+
+        if (databaseUrl.startsWith("jdbc:")) {
+            environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE_NAME,
+                    Map.of("spring.datasource.url", databaseUrl)));
             return;
         }
 
