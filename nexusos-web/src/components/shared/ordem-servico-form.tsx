@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -9,23 +10,26 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoSchema, type OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
-import type { Cliente, PrioridadeOS, Usuario } from "@/types";
+import type { Cliente, OrdemServico, PrioridadeOS, Usuario } from "@/types";
+
+const responsavelNaoAtribuido = "__none__";
 
 const prioridades: { value: PrioridadeOS; label: string }[] = [
   { value: "BAIXA", label: "Baixa" },
-  { value: "MEDIA", label: "Média" },
+  { value: "MEDIA", label: "Media" },
   { value: "ALTA", label: "Alta" },
-  { value: "CRITICA", label: "Crítica" }
+  { value: "CRITICA", label: "Critica" }
 ];
 
 type OrdemServicoFormProps = {
   clientes: Pick<Cliente, "id" | "nome">[];
   responsaveis: Pick<Usuario, "id" | "nome">[];
+  ordem?: OrdemServico | null;
   isSubmitting?: boolean;
   onSubmit: (data: OrdemServicoFormData) => void;
 };
 
-export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false, onSubmit }: OrdemServicoFormProps) {
+export function OrdemServicoForm({ clientes, responsaveis, ordem, isSubmitting = false, onSubmit }: OrdemServicoFormProps) {
   const form = useForm<OrdemServicoFormData>({
     resolver: zodResolver(ordemServicoSchema),
     defaultValues: {
@@ -38,6 +42,17 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
     }
   });
 
+  useEffect(() => {
+    form.reset({
+      titulo: ordem?.titulo ?? "",
+      descricao: ordem?.descricao ?? "",
+      clienteId: ordem?.clienteId ?? "",
+      responsavelId: ordem?.responsavelId ?? "",
+      prioridade: ordem?.prioridade ?? "MEDIA",
+      prazo: ordem?.prazo ?? ""
+    });
+  }, [form, ordem]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -47,7 +62,7 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
             name="titulo"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Título</FormLabel>
+                <FormLabel>Titulo</FormLabel>
                 <FormControl>
                   <Input placeholder="Resumo objetivo da demanda" {...field} />
                 </FormControl>
@@ -84,14 +99,18 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
             name="responsavelId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Responsável</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <FormLabel>Responsavel</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(value === responsavelNaoAtribuido ? "" : value)}
+                  value={field.value || responsavelNaoAtribuido}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Atribuir depois" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value={responsavelNaoAtribuido}>Atribuir depois</SelectItem>
                     {responsaveis.map((responsavel) => (
                       <SelectItem key={responsavel.id} value={responsavel.id}>
                         {responsavel.nome}
@@ -145,7 +164,7 @@ export function OrdemServicoForm({ clientes, responsaveis, isSubmitting = false,
             name="descricao"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Descrição</FormLabel>
+                <FormLabel>Descricao</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
                 </FormControl>

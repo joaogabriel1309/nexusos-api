@@ -1,8 +1,8 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
@@ -10,92 +10,41 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
+import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
-import { useAuth } from "@/providers/auth-provider";
+import { usuarioService } from "@/services/usuario-service";
+import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 
-const clientesMock = [
-  { id: "1", nome: "Acme Sistemas" },
-  { id: "2", nome: "Norte Tech" },
-  { id: "3", nome: "Studio Core" }
-];
-
-const responsaveisMock = [
-  { id: "101", nome: "Marina Costa" },
-  { id: "102", nome: "João Lima" },
-  { id: "103", nome: "Ana Reis" }
-];
-
-const ordensMock: OrdemServico[] = [
-  {
-    id: "OS-1024",
-    titulo: "Ajuste no fluxo de validação fiscal",
-    descricao: "Correção em etapa de validação",
-    clienteId: "1",
-    clienteNome: "Acme Sistemas",
-    responsavelNome: "Marina Costa",
-    status: "EM_DESENVOLVIMENTO",
-    prioridade: "ALTA",
-    prazo: "2026-05-22",
-    criadoEm: "2026-05-13T10:00:00",
-    atualizadoEm: "2026-05-15T12:00:00"
-  },
-  {
-    id: "OS-1025",
-    titulo: "Nova integração de anexos",
-    descricao: "Preparar upload local",
-    clienteId: "2",
-    clienteNome: "Norte Tech",
-    responsavelNome: "João Lima",
-    status: "EM_TESTES",
-    prioridade: "MEDIA",
-    prazo: "2026-05-24",
-    criadoEm: "2026-05-14T10:00:00",
-    atualizadoEm: "2026-05-15T12:00:00"
-  },
-  {
-    id: "OS-1026",
-    titulo: "Correção de cálculo de apontamentos",
-    descricao: "Revisar duração",
-    clienteId: "3",
-    clienteNome: "Studio Core",
-    responsavelNome: "Ana Reis",
-    status: "RECEBIDA",
-    prioridade: "CRITICA",
-    prazo: "2026-05-18",
-    criadoEm: "2026-05-15T10:00:00",
-    atualizadoEm: "2026-05-15T12:00:00"
-  }
-];
+const ordensQueryKey = ["ordens-servico"];
+const clientesQueryKey = ["clientes"];
+const usuariosQueryKey = ["usuarios"];
+const todosOption = "__todos__";
 
 const statusLabels: Record<StatusOS, string> = {
   RECEBIDA: "Recebida",
-  EM_ANALISE: "Em análise",
+  EM_ANALISE: "Em analise",
   APROVADA: "Aprovada",
   EM_DESENVOLVIMENTO: "Em desenvolvimento",
   EM_TESTES: "Em testes",
-  AGUARDANDO_VALIDACAO: "Aguardando validação",
+  AGUARDANDO_VALIDACAO: "Aguardando validacao",
   FINALIZADA: "Finalizada",
   CANCELADA: "Cancelada"
 };
 
 const prioridadeLabels: Record<PrioridadeOS, string> = {
   BAIXA: "Baixa",
-  MEDIA: "Média",
+  MEDIA: "Media",
   ALTA: "Alta",
-  CRITICA: "Crítica"
+  CRITICA: "Critica"
 };
 
-function statusVariant(status: StatusOS): BadgeProps["variant"] {
-  if (status === "FINALIZADA") return "success";
-  if (status === "CANCELADA") return "danger";
-  if (status === "EM_DESENVOLVIMENTO" || status === "EM_TESTES") return "warning";
-  return "secondary";
-}
+const statusOptions = Object.keys(statusLabels) as StatusOS[];
+const prioridadeOptions = Object.keys(prioridadeLabels) as PrioridadeOS[];
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -104,143 +53,292 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   return "outline";
 }
 
-function criarOrdemLocal(data: OrdemServicoFormData, total: number): OrdemServico {
-  const cliente = clientesMock.find((item) => item.id === data.clienteId);
-  const responsavel = responsaveisMock.find((item) => item.id === data.responsavelId);
-  const agora = new Date().toISOString();
+function formatarData(data?: string) {
+  if (!data) {
+    return "-";
+  }
 
-  return {
-    id: `OS-${1030 + total}`,
-    titulo: data.titulo,
-    descricao: data.descricao,
-    clienteId: data.clienteId,
-    clienteNome: cliente?.nome ?? "Cliente não informado",
-    responsavelId: data.responsavelId,
-    responsavelNome: responsavel?.nome ?? "A definir",
-    status: "RECEBIDA",
-    prioridade: data.prioridade,
-    prazo: data.prazo,
-    criadoEm: agora,
-    atualizadoEm: agora
-  };
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));
 }
 
 export default function OrdensServicoPage() {
-  const [open, setOpen] = useState(false);
-  const [ordens, setOrdens] = useState<OrdemServico[]>(ordensMock);
-  const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
+  const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
+  const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
+  const [osEmAcaoId, setOsEmAcaoId] = useState<string | null>(null);
 
-  const criarMutation = useMutation({
-    mutationFn: ordemServicoService.criar,
-    onSuccess: (ordem) => {
-      setOrdens((current) => [ordem, ...current]);
-      setOpen(false);
-      toast.success("OS cadastrada com sucesso");
+  const ordensQuery = useQuery({
+    queryKey: ordensQueryKey,
+    queryFn: ordemServicoService.listar
+  });
+
+  const clientesQuery = useQuery({
+    queryKey: clientesQueryKey,
+    queryFn: clienteService.listar
+  });
+
+  const usuariosQuery = useQuery({
+    queryKey: usuariosQueryKey,
+    queryFn: usuarioService.listar
+  });
+
+  const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
+  const responsaveis = useMemo(
+    () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo && usuario.perfil !== "CLIENTE"),
+    [usuariosQuery.data]
+  );
+
+  const ordensFiltradas = useMemo(() => {
+    return (ordensQuery.data ?? []).filter((ordem) => {
+      const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
+      const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
+      return matchStatus && matchPrioridade;
+    });
+  }, [ordensQuery.data, prioridadeFiltro, statusFiltro]);
+
+  const salvarMutation = useMutation({
+    mutationFn: (data: OrdemServicoFormData) => {
+      if (ordemSelecionada) {
+        return ordemServicoService.atualizar(ordemSelecionada.id, {
+          ...data,
+          entendimento: ordemSelecionada.entendimento,
+          impacto: ordemSelecionada.impacto,
+          riscos: ordemSelecionada.riscos,
+          estimativaHoras: ordemSelecionada.estimativaHoras ?? null
+        });
+      }
+
+      return ordemServicoService.criar(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      setDialogOpen(false);
+      setOrdemSelecionada(null);
+      toast.success(ordemSelecionada ? "OS atualizada com sucesso." : "OS cadastrada com sucesso.");
     },
     onError: () => {
-      toast.error("Não foi possível cadastrar a OS na API");
+      toast.error("Nao foi possivel salvar a OS.");
     }
   });
 
-  function handleCreate(data: OrdemServicoFormData) {
-    if (!isAuthenticated) {
-      setOrdens((current) => [criarOrdemLocal(data, current.length), ...current]);
-      setOpen(false);
-      toast.success("OS adicionada à lista local");
+  const excluirMutation = useMutation({
+    mutationFn: ordemServicoService.excluir,
+    onMutate: (id) => setOsEmAcaoId(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      toast.success("OS excluida com sucesso.");
+    },
+    onError: () => {
+      toast.error("Nao foi possivel excluir a OS.");
+    },
+    onSettled: () => setOsEmAcaoId(null)
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: StatusOS }) => ordemServicoService.atualizarStatus(id, status),
+    onMutate: ({ id }) => setOsEmAcaoId(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      toast.success("Status da OS atualizado.");
+    },
+    onError: () => {
+      toast.error("Transicao de status invalida ou nao permitida.");
+    },
+    onSettled: () => setOsEmAcaoId(null)
+  });
+
+  const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || usuariosQuery.isLoading;
+  const isError = ordensQuery.isError || clientesQuery.isError || usuariosQuery.isError;
+
+  function abrirCadastro() {
+    setOrdemSelecionada(null);
+    setDialogOpen(true);
+  }
+
+  function abrirEdicao(ordem: OrdemServico) {
+    setOrdemSelecionada(ordem);
+    setDialogOpen(true);
+  }
+
+  function excluirOrdem(ordem: OrdemServico) {
+    if (!window.confirm(`Excluir a OS ${ordem.titulo}?`)) {
       return;
     }
 
-    criarMutation.mutate(data);
+    excluirMutation.mutate(ordem.id);
+  }
+
+  function recarregar() {
+    ordensQuery.refetch();
+    clientesQuery.refetch();
+    usuariosQuery.refetch();
   }
 
   return (
     <AppShell>
       <PageHeader
-        title="Ordens de Serviço"
-        description="Acompanhe demandas técnicas por status, prioridade e responsável."
+        title="Ordens de Servico"
+        description="Acompanhe demandas tecnicas por status, prioridade e responsavel."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4" />
-                Nova OS
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Cadastrar OS</DialogTitle>
-                <DialogDescription>Registre a demanda inicial para análise e priorização técnica.</DialogDescription>
-              </DialogHeader>
-              <OrdemServicoForm
-                clientes={clientesMock}
-                responsaveis={responsaveisMock}
-                isSubmitting={criarMutation.isPending}
-                onSubmit={handleCreate}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button onClick={abrirCadastro} disabled={clientes.length === 0 || isLoading}>
+            <Plus className="h-4 w-4" />
+            Nova OS
+          </Button>
         }
       />
+
       <Card>
         <CardContent className="p-5">
           <div className="mb-4 grid gap-3 md:grid-cols-3">
-            <Select>
+            <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusOS))}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                <SelectItem value={todosOption}>Todos os status</SelectItem>
+                {statusOptions.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {statusLabels[status]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select>
+            <Select
+              value={prioridadeFiltro || todosOption}
+              onValueChange={(value) => setPrioridadeFiltro(value === todosOption ? "" : (value as PrioridadeOS))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Prioridade" />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(prioridadeLabels).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
+                <SelectItem value={todosOption}>Todas as prioridades</SelectItem>
+                {prioridadeOptions.map((prioridade) => (
+                  <SelectItem key={prioridade} value={prioridade}>
+                    {prioridadeLabels[prioridade]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>OS</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Prazo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ordens.map((ordem) => (
-                <TableRow key={ordem.id}>
-                  <TableCell className="font-medium">{ordem.id}</TableCell>
-                  <TableCell>{ordem.titulo}</TableCell>
-                  <TableCell>{ordem.clienteNome}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(ordem.status)}>{statusLabels[ordem.status]}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
-                  </TableCell>
-                  <TableCell>{ordem.responsavelNome}</TableCell>
-                  <TableCell>{ordem.prazo}</TableCell>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <span>Nao foi possivel carregar as ordens de servico.</span>
+              <Button variant="outline" size="sm" onClick={recarregar}>
+                <RefreshCcw className="h-4 w-4" />
+                Tentar novamente
+              </Button>
+            </div>
+          ) : ordensFiltradas.length === 0 ? (
+            <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <span>Nenhuma OS encontrada.</span>
+              <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
+                <Plus className="h-4 w-4" />
+                Cadastrar OS
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Titulo</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Prioridade</TableHead>
+                  <TableHead>Responsavel</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead className="w-[140px] text-right">Acoes</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {ordensFiltradas.map((ordem) => (
+                  <TableRow key={ordem.id}>
+                    <TableCell className="font-medium">{ordem.titulo}</TableCell>
+                    <TableCell>{ordem.clienteNome}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={ordem.status}
+                        disabled={osEmAcaoId === ordem.id}
+                        onValueChange={(status) => statusMutation.mutate({ id: ordem.id, status: status as StatusOS })}
+                      >
+                        <SelectTrigger className="h-8 w-[210px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {statusLabels[status]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
+                    </TableCell>
+                    <TableCell>{ordem.responsavelNome || "A definir"}</TableCell>
+                    <TableCell>{formatarData(ordem.prazo)}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="icon" onClick={() => abrirEdicao(ordem)} aria-label="Editar OS">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          disabled={osEmAcaoId === ordem.id}
+                          onClick={() => excluirOrdem(ordem)}
+                          aria-label="Excluir OS"
+                        >
+                          {osEmAcaoId === ordem.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setOrdemSelecionada(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{ordemSelecionada ? "Editar OS" : "Cadastrar OS"}</DialogTitle>
+            <DialogDescription>
+              {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise tecnica."}
+            </DialogDescription>
+          </DialogHeader>
+          <OrdemServicoForm
+            clientes={clientes}
+            responsaveis={responsaveis}
+            ordem={ordemSelecionada}
+            isSubmitting={salvarMutation.isPending}
+            onSubmit={(data) => salvarMutation.mutate(data)}
+          />
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

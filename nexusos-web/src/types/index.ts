@@ -44,6 +44,9 @@ export type OrdemServico = {
   status: StatusOS;
   prioridade: PrioridadeOS;
   prazo?: string;
+  entendimento?: string;
+  impacto?: string;
+  riscos?: string;
   estimativaHoras?: number;
   criadoEm: string;
   atualizadoEm: string;
