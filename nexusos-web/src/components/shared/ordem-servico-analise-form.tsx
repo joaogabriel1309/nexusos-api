@@ -15,12 +15,19 @@ type OrdemServicoAnaliseFormProps = {
   ordem: OrdemServico;
   valorHora: number;
   isSubmitting?: boolean;
+  readOnly?: boolean;
   onSubmit: (data: OrdemServicoAnaliseFormData) => void;
 };
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export function OrdemServicoAnaliseForm({ ordem, valorHora, isSubmitting = false, onSubmit }: OrdemServicoAnaliseFormProps) {
+export function OrdemServicoAnaliseForm({
+  ordem,
+  valorHora,
+  isSubmitting = false,
+  readOnly = false,
+  onSubmit
+}: OrdemServicoAnaliseFormProps) {
   const form = useForm<OrdemServicoAnaliseFormData>({
     resolver: zodResolver(ordemServicoAnaliseSchema),
     defaultValues: {
@@ -53,7 +60,7 @@ export function OrdemServicoAnaliseForm({ ordem, valorHora, isSubmitting = false
               <FormItem>
                 <FormLabel>Horas estimadas</FormLabel>
                 <FormControl>
-                  <Input type="number" min="0" step="0.25" placeholder="0" {...field} />
+                  <Input type="number" min="0" step="0.25" placeholder="0" disabled={readOnly} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -74,7 +81,7 @@ export function OrdemServicoAnaliseForm({ ordem, valorHora, isSubmitting = false
               <FormItem className="md:col-span-2">
                 <FormLabel>Entendimento</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Resumo do entendimento tecnico" {...field} />
+                  <Textarea placeholder="Resumo do entendimento tecnico" disabled={readOnly} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -87,7 +94,7 @@ export function OrdemServicoAnaliseForm({ ordem, valorHora, isSubmitting = false
               <FormItem className="md:col-span-2">
                 <FormLabel>Impacto</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Impactos esperados para negocio, sistema ou operacao" {...field} />
+                  <Textarea placeholder="Impactos esperados para negocio, sistema ou operacao" disabled={readOnly} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -100,19 +107,21 @@ export function OrdemServicoAnaliseForm({ ordem, valorHora, isSubmitting = false
               <FormItem className="md:col-span-2">
                 <FormLabel>Riscos</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Riscos, dependencias e pontos de atencao" {...field} />
+                  <Textarea placeholder="Riscos, dependencias e pontos de atencao" disabled={readOnly} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            <Save className="h-4 w-4" />
-            Salvar analise
-          </Button>
-        </div>
+        {!readOnly ? (
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSubmitting}>
+              <Save className="h-4 w-4" />
+              Salvar analise
+            </Button>
+          </div>
+        ) : null}
       </form>
     </Form>
   );

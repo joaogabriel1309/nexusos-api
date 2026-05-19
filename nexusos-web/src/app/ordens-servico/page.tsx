@@ -457,14 +457,19 @@ export default function OrdensServicoPage() {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Analisar OS</DialogTitle>
-            <DialogDescription>Informe a estimativa de horas para calcular o valor previsto da ordem de servico.</DialogDescription>
+            <DialogTitle>{ordemAnalise?.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}</DialogTitle>
+            <DialogDescription>
+              {ordemAnalise?.status === "EM_ANALISE"
+                ? "Informe a estimativa de horas para calcular o valor previsto da ordem de servico."
+                : "Consulte os dados de analise registrados para esta ordem de servico."}
+            </DialogDescription>
           </DialogHeader>
           {ordemAnalise ? (
             <OrdemServicoAnaliseForm
               ordem={ordemAnalise}
               valorHora={valorHoraAnalise}
               isSubmitting={analiseMutation.isPending}
+              readOnly={ordemAnalise.status !== "EM_ANALISE"}
               onSubmit={(data) => analiseMutation.mutate(data)}
             />
           ) : null}
