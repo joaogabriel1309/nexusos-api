@@ -51,6 +51,10 @@ function formatarData(data?: string) {
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+function formatarValor(valor?: number) {
+  return valor != null ? moeda.format(valor) : "-";
+}
+
 export default function OrdensServicoPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -345,24 +349,39 @@ export default function OrdensServicoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Titulo</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Projeto</TableHead>
+                  <TableHead className="min-w-[280px]">OS</TableHead>
+                  <TableHead className="min-w-[220px]">Cliente / Projeto</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Prioridade</TableHead>
-                  <TableHead>Responsavel</TableHead>
-                  <TableHead>Horas</TableHead>
-                  <TableHead>Valor previsto</TableHead>
-                  <TableHead>Prazo</TableHead>
+                  <TableHead className="min-w-[170px]">Responsavel</TableHead>
+                  <TableHead className="min-w-[150px]">Prazo</TableHead>
+                  <TableHead className="min-w-[150px] text-right">Valor</TableHead>
                   <TableHead className="w-[190px] text-right">Acoes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ordensFiltradas.map((ordem) => (
                   <TableRow key={ordem.id}>
-                    <TableCell className="font-medium">{ordem.titulo}</TableCell>
-                    <TableCell>{ordem.clienteNome}</TableCell>
-                    <TableCell>{ordem.projetoNome || "-"}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[360px]">
+                        <div className="truncate font-medium" title={ordem.titulo}>
+                          {ordem.titulo}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
+                          {ordem.descricao}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[280px]">
+                        <div className="truncate text-sm" title={ordem.clienteNome}>
+                          {ordem.clienteNome}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground" title={ordem.projetoNome || "Sem projeto"}>
+                          {ordem.projetoNome || "Sem projeto"}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={ordem.status}
@@ -384,10 +403,18 @@ export default function OrdensServicoPage() {
                     <TableCell>
                       <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
                     </TableCell>
-                    <TableCell>{ordem.responsavelNome || "A definir"}</TableCell>
-                    <TableCell>{ordem.estimativaHoras ?? "-"}</TableCell>
-                    <TableCell>{ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}</TableCell>
-                    <TableCell>{formatarData(ordem.prazo)}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[190px] truncate" title={ordem.responsavelNome || "A definir"}>
+                        {ordem.responsavelNome || "A definir"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>{formatarData(ordem.prazo)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h previstas` : "Sem estimativa"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatarValor(ordem.valorTotalEstimado)}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="icon" onClick={() => abrirAnalise(ordem)} aria-label="Analisar OS">
