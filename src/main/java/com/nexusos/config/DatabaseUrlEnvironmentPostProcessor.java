@@ -32,16 +32,14 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         Map<String, Object> properties = new HashMap<>();
         properties.put("spring.datasource.url", toJdbcUrl(uri));
 
-        if (!StringUtils.hasText(environment.getProperty("DATABASE_USERNAME"))
-                && !StringUtils.hasText(environment.getProperty("SPRING_DATASOURCE_USERNAME"))) {
+        if (!StringUtils.hasText(environment.getProperty("SPRING_DATASOURCE_USERNAME"))) {
             String username = extractUsername(uri);
             if (StringUtils.hasText(username)) {
                 properties.put("spring.datasource.username", username);
             }
         }
 
-        if (!StringUtils.hasText(environment.getProperty("DATABASE_PASSWORD"))
-                && !StringUtils.hasText(environment.getProperty("SPRING_DATASOURCE_PASSWORD"))) {
+        if (!StringUtils.hasText(environment.getProperty("SPRING_DATASOURCE_PASSWORD"))) {
             String password = extractPassword(uri);
             if (StringUtils.hasText(password)) {
                 properties.put("spring.datasource.password", password);

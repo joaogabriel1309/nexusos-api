@@ -2,7 +2,7 @@ spring:
   application:
     name: nexusos-api
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nexusos}
     username: ${DATABASE_USERNAME:nexusos}
@@ -21,7 +21,7 @@ spring:
     locations: classpath:db/migration
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:${SERVER_PORT:8080}}
 
 springdoc:
   swagger-ui:

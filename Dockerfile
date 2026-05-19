@@ -11,6 +11,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S nexusos && adduser -S nexusos -G nexusos
 COPY --from=build /app/target/nexusos-api-0.0.1-SNAPSHOT.jar app.jar
+ENV SPRING_PROFILES_ACTIVE=prod
 USER nexusos
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
