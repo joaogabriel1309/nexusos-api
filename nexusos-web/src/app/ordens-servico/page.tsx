@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { prioridadeLabels, prioridadeOptions, statusLabels, statusOptions } from "@/lib/os-labels";
+import { prioridadeLabels, statusLabels, statusOptions } from "@/lib/os-labels";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
@@ -60,7 +60,6 @@ export default function OrdensServicoPage() {
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
-  const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [osEmAcaoId, setOsEmAcaoId] = useState<string | null>(null);
@@ -105,13 +104,12 @@ export default function OrdensServicoPage() {
       const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
       const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
       const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
-      const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
       const matchInicio = inicio && prazo ? prazo >= inicio : true;
       const matchFim = fim && prazo ? prazo <= fim : true;
 
-      return matchCliente && matchProjeto && matchStatus && matchPrioridade && matchInicio && matchFim;
+      return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim;
     });
-  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, prioridadeFiltro, projetoFiltro, statusFiltro]);
+  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
 
   const valorHoraAnalise = useMemo(() => {
     if (!ordemAnalise) {
@@ -249,7 +247,6 @@ export default function OrdensServicoPage() {
     setClienteFiltro("");
     setProjetoFiltro("");
     setStatusFiltro("");
-    setPrioridadeFiltro("");
     setDataInicio("");
     setDataFim("");
   }
@@ -269,7 +266,7 @@ export default function OrdensServicoPage() {
 
       <Card>
         <CardContent className="p-5">
-          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
             <Select
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -311,22 +308,6 @@ export default function OrdensServicoPage() {
                 {statusFiltroOptions.map((status) => (
                   <SelectItem key={status} value={status}>
                     {statusLabels[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={prioridadeFiltro || todosOption}
-              onValueChange={(value) => setPrioridadeFiltro(value === todosOption ? "" : (value as PrioridadeOS))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Prioridade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={todosOption}>Todas as prioridades</SelectItem>
-                {prioridadeOptions.map((prioridade) => (
-                  <SelectItem key={prioridade} value={prioridade}>
-                    {prioridadeLabels[prioridade]}
                   </SelectItem>
                 ))}
               </SelectContent>
