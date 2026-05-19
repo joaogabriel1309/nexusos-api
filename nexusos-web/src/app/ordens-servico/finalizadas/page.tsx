@@ -2,11 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCcw } from "lucide-react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { prioridadeLabels } from "@/lib/os-labels";
@@ -15,6 +18,7 @@ import type { PrioridadeOS } from "@/types";
 
 const ordensFinalizadasQueryKey = ["ordens-servico", "finalizadas"];
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const todosClientesOption = "__todos__";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -35,13 +39,46 @@ function formatarDataHora(data?: string) {
 }
 
 export default function OrdensServicoFinalizadasPage() {
+  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+
   const ordensQuery = useQuery({
     queryKey: ordensFinalizadasQueryKey,
     queryFn: ordemServicoService.listar,
     select: (ordens) => ordens.filter((ordem) => ordem.status === "FINALIZADA")
   });
 
-  const ordens = ordensQuery.data ?? [];
+  const ordens = useMemo(() => ordensQuery.data ?? [], [ordensQuery.data]);
+  const clientes = useMemo(() => {
+    return Array.from(new Map(ordens.map((ordem) => [ordem.clienteId, ordem.clienteNome])).entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [ordens]);
+
+  const ordensFiltradas = useMemo(() => {
+    return ordens.filter((ordem) => {
+      const finalizadoEm = ordem.finalizadoEm ? new Date(ordem.finalizadoEm) : null;
+      const inicio = dataInicio ? new Date(`${dataInicio}T00:00:00`) : null;
+      const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
+
+      const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
+      const matchInicio = inicio && finalizadoEm ? finalizadoEm >= inicio : true;
+      const matchFim = fim && finalizadoEm ? finalizadoEm <= fim : true;
+
+      return matchCliente && matchInicio && matchFim;
+    });
+  }, [clienteFiltro, dataFim, dataInicio, ordens]);
+
+  const totalValor = useMemo(() => {
+    return ordensFiltradas.reduce((total, ordem) => total + (ordem.valorTotalEstimado ?? 0), 0);
+  }, [ordensFiltradas]);
+
+  function limparFiltros() {
+    setClienteFiltro("");
+    setDataInicio("");
+    setDataFim("");
+  }
 
   return (
     <AppShell>
@@ -69,36 +106,77 @@ export default function OrdensServicoFinalizadasPage() {
           ) : ordens.length === 0 ? (
             <div className="text-sm text-muted-foreground">Nenhuma OS finalizada.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Titulo</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Prioridade</TableHead>
-                  <TableHead>Finalizada em</TableHead>
-                  <TableHead>Horas</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>O que foi feito</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordens.map((ordem) => (
-                  <TableRow key={ordem.id}>
-                    <TableCell className="font-medium">{ordem.titulo}</TableCell>
-                    <TableCell>{ordem.clienteNome}</TableCell>
-                    <TableCell>
-                      <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
-                    </TableCell>
-                    <TableCell>{formatarDataHora(ordem.finalizadoEm)}</TableCell>
-                    <TableCell>{ordem.estimativaHoras ?? "-"}</TableCell>
-                    <TableCell>{ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}</TableCell>
-                    <TableCell className="max-w-[360px] whitespace-normal text-muted-foreground">
-                      {ordem.descricaoFinalizacao || "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-5">
+              <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto]">
+                <Select
+                  value={clienteFiltro || todosClientesOption}
+                  onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={todosClientesOption}>Todos os clientes</SelectItem>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
+                <Input type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
+                <Button variant="outline" onClick={limparFiltros}>
+                  Limpar filtros
+                </Button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-md border bg-secondary/40 p-4">
+                  <div className="text-sm text-muted-foreground">OS filtradas</div>
+                  <div className="mt-1 text-2xl font-semibold">{ordensFiltradas.length}</div>
+                </div>
+                <div className="rounded-md border bg-secondary/40 p-4 sm:col-span-2">
+                  <div className="text-sm text-muted-foreground">Valor total filtrado</div>
+                  <div className="mt-1 text-2xl font-semibold">{moeda.format(totalValor)}</div>
+                </div>
+              </div>
+
+              {ordensFiltradas.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Nenhuma OS encontrada para os filtros informados.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Titulo</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Prioridade</TableHead>
+                      <TableHead>Finalizada em</TableHead>
+                      <TableHead>Horas</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>O que foi feito</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ordensFiltradas.map((ordem) => (
+                      <TableRow key={ordem.id}>
+                        <TableCell className="font-medium">{ordem.titulo}</TableCell>
+                        <TableCell>{ordem.clienteNome}</TableCell>
+                        <TableCell>
+                          <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
+                        </TableCell>
+                        <TableCell>{formatarDataHora(ordem.finalizadoEm)}</TableCell>
+                        <TableCell>{ordem.estimativaHoras ?? "-"}</TableCell>
+                        <TableCell>{ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}</TableCell>
+                        <TableCell className="max-w-[360px] whitespace-normal text-muted-foreground">
+                          {ordem.descricaoFinalizacao || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
