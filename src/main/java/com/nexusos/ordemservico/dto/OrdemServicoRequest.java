@@ -14,6 +14,7 @@ public record OrdemServicoRequest(
         @NotBlank String descricao,
         @NotNull UUID clienteId,
         UUID responsavelId,
+        UUID projetoId,
         @NotNull PrioridadeOS prioridade,
         LocalDate prazo,
         @PositiveOrZero BigDecimal estimativaHoras

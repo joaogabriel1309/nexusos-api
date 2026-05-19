@@ -16,6 +16,8 @@ public record OrdemServicoResponse(
         String clienteNome,
         UUID responsavelId,
         String responsavelNome,
+        UUID projetoId,
+        String projetoNome,
         StatusOS status,
         PrioridadeOS prioridade,
         LocalDate prazo,
@@ -31,6 +33,7 @@ public record OrdemServicoResponse(
 ) {
     public static OrdemServicoResponse from(OrdemServico os) {
         var responsavel = os.getResponsavel();
+        var projeto = os.getProjeto();
         return new OrdemServicoResponse(
                 os.getId(),
                 os.getTitulo(),
@@ -39,6 +42,8 @@ public record OrdemServicoResponse(
                 os.getCliente().getNome(),
                 responsavel != null ? responsavel.getId() : null,
                 responsavel != null ? responsavel.getNome() : null,
+                projeto != null ? projeto.getId() : null,
+                projeto != null ? projeto.getNome() : null,
                 os.getStatus(),
                 os.getPrioridade(),
                 os.getPrazo(),

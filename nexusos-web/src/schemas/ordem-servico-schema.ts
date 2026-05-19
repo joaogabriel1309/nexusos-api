@@ -5,6 +5,7 @@ export const ordemServicoSchema = z.object({
   descricao: z.string().min(10, "Descreva a demanda com pelo menos 10 caracteres"),
   clienteId: z.string().min(1, "Selecione um cliente"),
   responsavelId: z.string().optional(),
+  projetoId: z.string().optional(),
   prioridade: z.enum(["BAIXA", "MEDIA", "ALTA", "CRITICA"], {
     required_error: "Selecione a prioridade"
   }),

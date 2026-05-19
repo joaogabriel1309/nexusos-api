@@ -35,6 +35,15 @@ export type Cliente = {
   atualizadoEm?: string;
 };
 
+export type Projeto = {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+  criadoEm?: string;
+  atualizadoEm?: string;
+};
+
 export type OrdemServico = {
   id: string;
   titulo: string;
@@ -43,6 +52,8 @@ export type OrdemServico = {
   clienteNome: string;
   responsavelId?: string;
   responsavelNome?: string;
+  projetoId?: string;
+  projetoNome?: string;
   status: StatusOS;
   prioridade: PrioridadeOS;
   prazo?: string;

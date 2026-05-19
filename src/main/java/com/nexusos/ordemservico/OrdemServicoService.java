@@ -10,6 +10,7 @@ import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
+import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
 import java.math.BigDecimal;
@@ -43,6 +44,7 @@ public class OrdemServicoService {
 
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteService clienteService;
+    private final ProjetoService projetoService;
     private final UsuarioService usuarioService;
     private final AuditoriaService auditoriaService;
 
@@ -60,11 +62,13 @@ public class OrdemServicoService {
     public OrdemServicoResponse criar(OrdemServicoRequest request) {
         var cliente = clienteService.buscarEntidade(request.clienteId());
         var responsavel = request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null;
+        var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         var os = OrdemServico.builder()
                 .titulo(request.titulo())
                 .descricao(request.descricao())
                 .cliente(cliente)
                 .responsavel(responsavel)
+                .projeto(projeto)
                 .status(StatusOS.RECEBIDA)
                 .prioridade(request.prioridade())
                 .prazo(request.prazo())
@@ -83,6 +87,7 @@ public class OrdemServicoService {
         os.setDescricao(request.descricao());
         os.setCliente(clienteService.buscarEntidade(request.clienteId()));
         os.setResponsavel(request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null);
+        os.setProjeto(request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null);
         os.setPrioridade(request.prioridade());
         os.setPrazo(request.prazo());
         os.setEntendimento(request.entendimento());

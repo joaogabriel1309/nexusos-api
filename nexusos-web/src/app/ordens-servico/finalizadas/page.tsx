@@ -14,11 +14,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { prioridadeLabels } from "@/lib/os-labels";
 import { ordemServicoService } from "@/services/ordem-servico-service";
+import { projetoService } from "@/services/projeto-service";
 import type { PrioridadeOS } from "@/types";
 
 const ordensFinalizadasQueryKey = ["ordens-servico", "finalizadas"];
+const projetosQueryKey = ["projetos"];
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const todosClientesOption = "__todos__";
+const todosProjetosOption = "__todos_projetos__";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -40,6 +43,7 @@ function formatarDataHora(data?: string) {
 
 export default function OrdensServicoFinalizadasPage() {
   const [clienteFiltro, setClienteFiltro] = useState("");
+  const [projetoFiltro, setProjetoFiltro] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
@@ -49,7 +53,13 @@ export default function OrdensServicoFinalizadasPage() {
     select: (ordens) => ordens.filter((ordem) => ordem.status === "FINALIZADA")
   });
 
+  const projetosQuery = useQuery({
+    queryKey: projetosQueryKey,
+    queryFn: projetoService.listar
+  });
+
   const ordens = useMemo(() => ordensQuery.data ?? [], [ordensQuery.data]);
+  const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
   const clientes = useMemo(() => {
     return Array.from(new Map(ordens.map((ordem) => [ordem.clienteId, ordem.clienteNome])).entries())
       .map(([id, nome]) => ({ id, nome }))
@@ -63,12 +73,13 @@ export default function OrdensServicoFinalizadasPage() {
       const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
 
       const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
+      const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
       const matchInicio = inicio && finalizadoEm ? finalizadoEm >= inicio : true;
       const matchFim = fim && finalizadoEm ? finalizadoEm <= fim : true;
 
-      return matchCliente && matchInicio && matchFim;
+      return matchCliente && matchProjeto && matchInicio && matchFim;
     });
-  }, [clienteFiltro, dataFim, dataInicio, ordens]);
+  }, [clienteFiltro, dataFim, dataInicio, ordens, projetoFiltro]);
 
   const totalValor = useMemo(() => {
     return ordensFiltradas.reduce((total, ordem) => total + (ordem.valorTotalEstimado ?? 0), 0);
@@ -76,6 +87,7 @@ export default function OrdensServicoFinalizadasPage() {
 
   function limparFiltros() {
     setClienteFiltro("");
+    setProjetoFiltro("");
     setDataInicio("");
     setDataFim("");
   }
@@ -95,10 +107,17 @@ export default function OrdensServicoFinalizadasPage() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : ordensQuery.isError ? (
+          ) : ordensQuery.isError || projetosQuery.isError ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nao foi possivel carregar as OS finalizadas.</span>
-              <Button variant="outline" size="sm" onClick={() => ordensQuery.refetch()}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  ordensQuery.refetch();
+                  projetosQuery.refetch();
+                }}
+              >
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
               </Button>
@@ -107,7 +126,7 @@ export default function OrdensServicoFinalizadasPage() {
             <div className="text-sm text-muted-foreground">Nenhuma OS finalizada.</div>
           ) : (
             <div className="space-y-5">
-              <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto]">
+              <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_160px_160px_auto]">
                 <Select
                   value={clienteFiltro || todosClientesOption}
                   onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -120,6 +139,22 @@ export default function OrdensServicoFinalizadasPage() {
                     {clientes.map((cliente) => (
                       <SelectItem key={cliente.id} value={cliente.id}>
                         {cliente.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={projetoFiltro || todosProjetosOption}
+                  onValueChange={(value) => setProjetoFiltro(value === todosProjetosOption ? "" : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={todosProjetosOption}>Todos os projetos</SelectItem>
+                    {projetos.map((projeto) => (
+                      <SelectItem key={projeto.id} value={projeto.id}>
+                        {projeto.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -150,6 +185,7 @@ export default function OrdensServicoFinalizadasPage() {
                     <TableRow>
                       <TableHead>Titulo</TableHead>
                       <TableHead>Cliente</TableHead>
+                      <TableHead>Projeto</TableHead>
                       <TableHead>Prioridade</TableHead>
                       <TableHead>Finalizada em</TableHead>
                       <TableHead>Horas</TableHead>
@@ -162,6 +198,7 @@ export default function OrdensServicoFinalizadasPage() {
                       <TableRow key={ordem.id}>
                         <TableCell className="font-medium">{ordem.titulo}</TableCell>
                         <TableCell>{ordem.clienteNome}</TableCell>
+                        <TableCell>{ordem.projetoNome || "-"}</TableCell>
                         <TableCell>
                           <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
                         </TableCell>

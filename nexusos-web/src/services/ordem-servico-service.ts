@@ -14,6 +14,7 @@ function toRequest(payload: OrdemServicoFormData) {
   return {
     ...payload,
     responsavelId: payload.responsavelId || null,
+    projetoId: payload.projetoId || null,
     prazo: payload.prazo || null
   };
 }

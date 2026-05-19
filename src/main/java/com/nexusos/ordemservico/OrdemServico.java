@@ -1,6 +1,7 @@
 package com.nexusos.ordemservico;
 
 import com.nexusos.cliente.Cliente;
+import com.nexusos.projeto.Projeto;
 import com.nexusos.usuario.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,6 +49,10 @@ public class OrdemServico {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsavel_id")
     private Usuario responsavel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "projeto_id")
+    private Projeto projeto;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

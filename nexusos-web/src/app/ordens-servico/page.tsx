@@ -21,15 +21,18 @@ import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analis
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
+import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
 import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 
 const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
+const projetosQueryKey = ["projetos"];
 const usuariosQueryKey = ["usuarios"];
 const todosOption = "__todos__";
 const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
 const todosClientesOption = "__todos_clientes__";
+const todosProjetosOption = "__todos_projetos__";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -55,6 +58,7 @@ export default function OrdensServicoPage() {
   const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
   const [ordemAnalise, setOrdemAnalise] = useState<OrdemServico | null>(null);
   const [clienteFiltro, setClienteFiltro] = useState("");
+  const [projetoFiltro, setProjetoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
   const [dataInicio, setDataInicio] = useState("");
@@ -71,12 +75,18 @@ export default function OrdensServicoPage() {
     queryFn: clienteService.listar
   });
 
+  const projetosQuery = useQuery({
+    queryKey: projetosQueryKey,
+    queryFn: projetoService.listar
+  });
+
   const usuariosQuery = useQuery({
     queryKey: usuariosQueryKey,
     queryFn: usuarioService.listar
   });
 
   const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
+  const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
   const responsaveis = useMemo(
     () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo && usuario.perfil !== "CLIENTE"),
     [usuariosQuery.data]
@@ -93,14 +103,15 @@ export default function OrdensServicoPage() {
       const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
 
       const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
+      const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
       const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
       const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
       const matchInicio = inicio && prazo ? prazo >= inicio : true;
       const matchFim = fim && prazo ? prazo <= fim : true;
 
-      return matchCliente && matchStatus && matchPrioridade && matchInicio && matchFim;
+      return matchCliente && matchProjeto && matchStatus && matchPrioridade && matchInicio && matchFim;
     });
-  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, prioridadeFiltro, statusFiltro]);
+  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, prioridadeFiltro, projetoFiltro, statusFiltro]);
 
   const valorHoraAnalise = useMemo(() => {
     if (!ordemAnalise) {
@@ -181,8 +192,8 @@ export default function OrdensServicoPage() {
     }
   });
 
-  const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || usuariosQuery.isLoading;
-  const isError = ordensQuery.isError || clientesQuery.isError || usuariosQuery.isError;
+  const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading;
+  const isError = ordensQuery.isError || clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError;
 
   function abrirCadastro() {
     setOrdemSelecionada(null);
@@ -230,11 +241,13 @@ export default function OrdensServicoPage() {
   function recarregar() {
     ordensQuery.refetch();
     clientesQuery.refetch();
+    projetosQuery.refetch();
     usuariosQuery.refetch();
   }
 
   function limparFiltros() {
     setClienteFiltro("");
+    setProjetoFiltro("");
     setStatusFiltro("");
     setPrioridadeFiltro("");
     setDataInicio("");
@@ -256,7 +269,7 @@ export default function OrdensServicoPage() {
 
       <Card>
         <CardContent className="p-5">
-          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
+          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
             <Select
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -269,6 +282,22 @@ export default function OrdensServicoPage() {
                 {clientes.map((cliente) => (
                   <SelectItem key={cliente.id} value={cliente.id}>
                     {cliente.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={projetoFiltro || todosProjetosOption}
+              onValueChange={(value) => setProjetoFiltro(value === todosProjetosOption ? "" : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Projeto" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={todosProjetosOption}>Todos os projetos</SelectItem>
+                {projetos.map((projeto) => (
+                  <SelectItem key={projeto.id} value={projeto.id}>
+                    {projeto.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -337,6 +366,7 @@ export default function OrdensServicoPage() {
                 <TableRow>
                   <TableHead>Titulo</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Projeto</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead>Responsavel</TableHead>
@@ -351,6 +381,7 @@ export default function OrdensServicoPage() {
                   <TableRow key={ordem.id}>
                     <TableCell className="font-medium">{ordem.titulo}</TableCell>
                     <TableCell>{ordem.clienteNome}</TableCell>
+                    <TableCell>{ordem.projetoNome || "-"}</TableCell>
                     <TableCell>
                       <Select
                         value={ordem.status}
@@ -426,6 +457,7 @@ export default function OrdensServicoPage() {
           <OrdemServicoForm
             clientes={clientes}
             responsaveis={responsaveis}
+            projetos={projetos}
             ordem={ordemSelecionada}
             isSubmitting={salvarMutation.isPending}
             onSubmit={(data) => salvarMutation.mutate(data)}

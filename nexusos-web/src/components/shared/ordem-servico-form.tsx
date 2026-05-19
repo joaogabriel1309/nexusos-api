@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoSchema, type OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
-import type { Cliente, OrdemServico, PrioridadeOS, Usuario } from "@/types";
+import type { Cliente, OrdemServico, PrioridadeOS, Projeto, Usuario } from "@/types";
 
 const responsavelNaoAtribuido = "__none__";
+const projetoNaoVinculado = "__none__";
 
 const prioridades: { value: PrioridadeOS; label: string }[] = [
   { value: "BAIXA", label: "Baixa" },
@@ -24,12 +25,13 @@ const prioridades: { value: PrioridadeOS; label: string }[] = [
 type OrdemServicoFormProps = {
   clientes: Pick<Cliente, "id" | "nome">[];
   responsaveis: Pick<Usuario, "id" | "nome">[];
+  projetos: Pick<Projeto, "id" | "nome">[];
   ordem?: OrdemServico | null;
   isSubmitting?: boolean;
   onSubmit: (data: OrdemServicoFormData) => void;
 };
 
-export function OrdemServicoForm({ clientes, responsaveis, ordem, isSubmitting = false, onSubmit }: OrdemServicoFormProps) {
+export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSubmitting = false, onSubmit }: OrdemServicoFormProps) {
   const form = useForm<OrdemServicoFormData>({
     resolver: zodResolver(ordemServicoSchema),
     defaultValues: {
@@ -37,6 +39,7 @@ export function OrdemServicoForm({ clientes, responsaveis, ordem, isSubmitting =
       descricao: "",
       clienteId: "",
       responsavelId: "",
+      projetoId: "",
       prioridade: "MEDIA",
       prazo: ""
     }
@@ -48,6 +51,7 @@ export function OrdemServicoForm({ clientes, responsaveis, ordem, isSubmitting =
       descricao: ordem?.descricao ?? "",
       clienteId: ordem?.clienteId ?? "",
       responsavelId: ordem?.responsavelId ?? "",
+      projetoId: ordem?.projetoId ?? "",
       prioridade: ordem?.prioridade ?? "MEDIA",
       prazo: ordem?.prazo ?? ""
     });
@@ -114,6 +118,34 @@ export function OrdemServicoForm({ clientes, responsaveis, ordem, isSubmitting =
                     {responsaveis.map((responsavel) => (
                       <SelectItem key={responsavel.id} value={responsavel.id}>
                         {responsavel.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="projetoId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Projeto</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(value === projetoNaoVinculado ? "" : value)}
+                  value={field.value || projetoNaoVinculado}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem projeto" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={projetoNaoVinculado}>Sem projeto</SelectItem>
+                    {projetos.map((projeto) => (
+                      <SelectItem key={projeto.id} value={projeto.id}>
+                        {projeto.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
