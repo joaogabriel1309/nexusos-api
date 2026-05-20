@@ -330,10 +330,8 @@ export default function OrdemServicoDetalhePage() {
             <CardHeader>
               <CardTitle>Analise tecnica</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              <CampoDetalhe label="Entendimento" value={ordem.entendimento} />
-              <CampoDetalhe label="Impacto" value={ordem.impacto} />
-              <CampoDetalhe label="Riscos" value={ordem.riscos} />
+            <CardContent>
+              <CampoDetalhe label="Texto da Analise" value={ordem.entendimento} />
             </CardContent>
           </Card>
 

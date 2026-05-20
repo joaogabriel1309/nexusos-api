@@ -31,9 +31,7 @@ export function OrdemServicoAnaliseForm({
   const form = useForm<OrdemServicoAnaliseFormData>({
     resolver: zodResolver(ordemServicoAnaliseSchema),
     defaultValues: {
-      entendimento: "",
-      impacto: "",
-      riscos: "",
+      textoAnalise: "",
       estimativaHoras: 0
     }
   });
@@ -42,9 +40,7 @@ export function OrdemServicoAnaliseForm({
 
   useEffect(() => {
     form.reset({
-      entendimento: ordem.entendimento ?? "",
-      impacto: ordem.impacto ?? "",
-      riscos: ordem.riscos ?? "",
+      textoAnalise: ordem.entendimento ?? "",
       estimativaHoras: ordem.estimativaHoras ?? 0
     });
   }, [form, ordem]);
@@ -76,38 +72,17 @@ export function OrdemServicoAnaliseForm({
           </div>
           <FormField
             control={form.control}
-            name="entendimento"
+            name="textoAnalise"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Entendimento</FormLabel>
+                <FormLabel>Texto da Analise</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Resumo do entendimento tecnico" disabled={readOnly} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="impacto"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Impacto</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Impactos esperados para negocio, sistema ou operacao" disabled={readOnly} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="riscos"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Riscos</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Riscos, dependencias e pontos de atencao" disabled={readOnly} {...field} />
+                  <Textarea
+                    className="min-h-40"
+                    placeholder="Descreva a analise tecnica da OS"
+                    disabled={readOnly}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

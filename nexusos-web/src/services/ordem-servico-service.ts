@@ -62,9 +62,9 @@ export const ordemServicoService = {
 
   async atualizarAnalise(id: string, payload: OrdemServicoAnaliseFormData) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/analise`, {
-      entendimento: payload.entendimento || null,
-      impacto: payload.impacto || null,
-      riscos: payload.riscos || null,
+      entendimento: payload.textoAnalise || null,
+      impacto: null,
+      riscos: null,
       estimativaHoras: payload.estimativaHoras
     });
     return data;
