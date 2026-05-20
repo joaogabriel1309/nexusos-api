@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +33,14 @@ const todosOption = "__todos__";
 const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
+
+function statusVariant(status: StatusOS): BadgeProps["variant"] {
+  if (status === "CANCELADA") return "danger";
+  if (status === "AGUARDANDO_PAGAMENTO" || status === "AGUARDANDO_VALIDACAO") return "warning";
+  if (status === "FINALIZADA") return "success";
+  if (status === "EM_DESENVOLVIMENTO" || status === "EM_TESTES") return "secondary";
+  return "outline";
+}
 
 export default function OrdensServicoPage() {
   const router = useRouter();
@@ -235,6 +244,7 @@ export default function OrdensServicoPage() {
                 <TableRow>
                   <TableHead>OS</TableHead>
                   <TableHead>Cliente / Projeto</TableHead>
+                  <TableHead className="w-[190px]">Status</TableHead>
                   <TableHead className="w-[160px]">Prazo</TableHead>
                 </TableRow>
               </TableHeader>
@@ -264,6 +274,9 @@ export default function OrdensServicoPage() {
                           {ordem.projetoNome || "Sem projeto"}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(ordem.status)}>{statusLabels[ordem.status]}</Badge>
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
