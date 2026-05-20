@@ -65,7 +65,8 @@ export const ordemServicoService = {
       entendimento: payload.textoAnalise || null,
       impacto: null,
       riscos: null,
-      estimativaHoras: payload.estimativaHoras
+      estimativaHoras: payload.estimativaHoras,
+      cobrar: payload.cobrar
     });
     return data;
   }

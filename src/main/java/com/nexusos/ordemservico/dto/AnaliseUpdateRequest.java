@@ -7,6 +7,7 @@ public record AnaliseUpdateRequest(
         String entendimento,
         String impacto,
         String riscos,
-        @PositiveOrZero BigDecimal estimativaHoras
+        @PositiveOrZero BigDecimal estimativaHoras,
+        Boolean cobrar
 ) {
 }

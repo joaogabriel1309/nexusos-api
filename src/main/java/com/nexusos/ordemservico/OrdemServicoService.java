@@ -73,6 +73,7 @@ public class OrdemServicoService {
                 .prioridade(request.prioridade())
                 .prazo(request.prazo())
                 .estimativaHoras(request.estimativaHoras())
+                .cobrar(Boolean.TRUE)
                 .build();
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
@@ -133,6 +134,7 @@ public class OrdemServicoService {
         os.setImpacto(request.impacto());
         os.setRiscos(request.riscos());
         os.setEstimativaHoras(request.estimativaHoras());
+        os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
         recalcularValorTotalEstimado(os);
         auditoriaService.registrar(os, os.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, os.getStatus());
         return OrdemServicoResponse.from(ordemServicoRepository.save(os));
@@ -163,6 +165,11 @@ public class OrdemServicoService {
     }
 
     private void recalcularValorTotalEstimado(OrdemServico os) {
+        if (!Boolean.TRUE.equals(os.getCobrar())) {
+            os.setValorTotalEstimado(BigDecimal.ZERO);
+            return;
+        }
+
         if (os.getEstimativaHoras() == null || os.getCliente() == null || os.getCliente().getValorHora() == null) {
             os.setValorTotalEstimado(null);
             return;

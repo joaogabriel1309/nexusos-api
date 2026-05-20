@@ -78,6 +78,9 @@ public class OrdemServico {
     @Column(precision = 12, scale = 2)
     private BigDecimal valorTotalEstimado;
 
+    @Column(nullable = false)
+    private Boolean cobrar;
+
     @Column(columnDefinition = "text")
     private String descricaoFinalizacao;
 
@@ -93,6 +96,7 @@ public class OrdemServico {
     void prePersist() {
         id = id == null ? UUID.randomUUID() : id;
         status = status == null ? StatusOS.RECEBIDA : status;
+        cobrar = cobrar == null ? Boolean.TRUE : cobrar;
         criadoEm = OffsetDateTime.now();
         atualizadoEm = criadoEm;
     }

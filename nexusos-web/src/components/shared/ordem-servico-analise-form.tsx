@@ -32,16 +32,19 @@ export function OrdemServicoAnaliseForm({
     resolver: zodResolver(ordemServicoAnaliseSchema),
     defaultValues: {
       textoAnalise: "",
-      estimativaHoras: 0
+      estimativaHoras: 0,
+      cobrar: true
     }
   });
   const estimativaHoras = form.watch("estimativaHoras") || 0;
-  const valorTotal = estimativaHoras * valorHora;
+  const cobrar = form.watch("cobrar");
+  const valorTotal = cobrar ? estimativaHoras * valorHora : 0;
 
   useEffect(() => {
     form.reset({
       textoAnalise: ordem.entendimento ?? "",
-      estimativaHoras: ordem.estimativaHoras ?? 0
+      estimativaHoras: ordem.estimativaHoras ?? 0,
+      cobrar: ordem.cobrar ?? true
     });
   }, [form, ordem]);
 
@@ -68,8 +71,34 @@ export function OrdemServicoAnaliseForm({
               Valor previsto
             </div>
             <div className="mt-1 text-2xl font-semibold">{moeda.format(valorTotal)}</div>
-            <div className="text-xs text-muted-foreground">Base: {moeda.format(valorHora)} por hora</div>
+            <div className="text-xs text-muted-foreground">
+              {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS nao sera cobrada"}
+            </div>
           </div>
+          <FormField
+            control={form.control}
+            name="cobrar"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-primary"
+                    checked={field.value}
+                    disabled={readOnly}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium">Cobrar esta OS</span>
+                    <span className="block text-sm text-muted-foreground">
+                      Desmarque quando a ordem de servico nao deve gerar valor para o cliente.
+                    </span>
+                  </span>
+                </label>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="textoAnalise"

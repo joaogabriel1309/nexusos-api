@@ -62,6 +62,7 @@ export type OrdemServico = {
   riscos?: string;
   estimativaHoras?: number;
   valorTotalEstimado?: number;
+  cobrar?: boolean;
   descricaoFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;

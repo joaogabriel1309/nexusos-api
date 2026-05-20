@@ -321,6 +321,7 @@ export default function OrdemServicoDetalhePage() {
                   label="Horas estimadas"
                   value={ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h` : "Sem estimativa"}
                 />
+                <CampoDetalhe label="Cobranca" value={ordem.cobrar === false ? "Nao cobrar" : "Cobrar"} />
                 <CampoDetalhe label="Valor total estimado" value={formatarValor(ordem.valorTotalEstimado)} />
               </CardContent>
             </Card>
