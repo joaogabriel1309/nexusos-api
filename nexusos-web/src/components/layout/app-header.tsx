@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, LogOut, Search } from "lucide-react";
+import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -8,12 +8,22 @@ import { Input } from "@/components/ui/input";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useAuth } from "@/providers/auth-provider";
 
-export function AppHeader() {
+type AppHeaderProps = {
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+};
+
+export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHeaderProps) {
   const { logout } = useAuth();
+  const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-white/90 px-4 backdrop-blur lg:px-6">
       <MobileNav />
+      <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={onToggleSidebar}>
+        <SidebarIcon className="h-5 w-5" />
+        <span className="sr-only">{sidebarCollapsed ? "Abrir menu lateral" : "Esconder menu lateral"}</span>
+      </Button>
       <div className="relative hidden w-full max-w-md md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input className="pl-9" placeholder="Buscar OS, cliente ou responsável" />

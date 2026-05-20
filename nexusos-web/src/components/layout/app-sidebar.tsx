@@ -6,17 +6,21 @@ import { ClipboardCheck } from "lucide-react";
 import { getActiveNavigationHref, navigationItems } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  collapsed?: boolean;
+};
+
+export function AppSidebar({ collapsed = false }: AppSidebarProps) {
   const pathname = usePathname();
   const activeHref = getActiveNavigationHref(pathname);
 
   return (
-    <aside className="hidden min-h-screen w-64 border-r bg-white lg:block">
-      <div className="flex h-16 items-center gap-3 border-b px-5">
+    <aside className={cn("hidden min-h-screen border-r bg-white transition-all lg:block", collapsed ? "w-20" : "w-64")}>
+      <div className={cn("flex h-16 items-center gap-3 border-b px-5", collapsed && "justify-center px-3")}>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ClipboardCheck className="h-5 w-5" />
         </div>
-        <div>
+        <div className={cn(collapsed && "hidden")}>
           <p className="text-sm font-semibold leading-none">NexusOS</p>
           <p className="mt-1 text-xs text-muted-foreground">Workflow técnico</p>
         </div>
@@ -30,13 +34,15 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.title : undefined}
               className={cn(
                 "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                collapsed && "justify-center px-0",
                 active && "bg-secondary text-foreground"
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.title}
+              <span className={cn(collapsed && "sr-only")}>{item.title}</span>
             </Link>
           );
         })}
