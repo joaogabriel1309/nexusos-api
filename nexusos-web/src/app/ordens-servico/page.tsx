@@ -234,7 +234,7 @@ export default function OrdensServicoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>OS</TableHead>
+                  <TableHead className="min-w-0">OS</TableHead>
                   <TableHead>Cliente / Projeto</TableHead>
                   <TableHead className="w-[190px]">Status</TableHead>
                   <TableHead className="w-[160px]">Prazo</TableHead>
@@ -248,17 +248,17 @@ export default function OrdensServicoPage() {
                     onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
                   >
                     <TableCell>
-                      <div className="min-w-0">
+                      <div className="max-w-[420px] min-w-0">
                         <div className="truncate font-medium" title={ordem.titulo}>
                           {ordem.titulo}
                         </div>
-                        <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
+                        <div className="max-w-full truncate text-xs text-muted-foreground" title={ordem.descricao}>
                           {ordem.descricao}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="min-w-0">
+                      <div className="max-w-[260px] min-w-0">
                         <div className="truncate text-sm" title={ordem.clienteNome}>
                           {ordem.clienteNome}
                         </div>
