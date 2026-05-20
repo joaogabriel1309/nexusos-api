@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { statusLabels, statusOptions } from "@/lib/os-labels";
+import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
@@ -31,14 +32,6 @@ const todosOption = "__todos__";
 const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
-
-function formatarData(data?: string) {
-  if (!data) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));
-}
 
 export default function OrdensServicoPage() {
   const router = useRouter();
@@ -273,7 +266,9 @@ export default function OrdensServicoPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {formatarData(ordem.prazo)}
+                      <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
+                        {formatarDataPrazo(ordem.prazo)}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

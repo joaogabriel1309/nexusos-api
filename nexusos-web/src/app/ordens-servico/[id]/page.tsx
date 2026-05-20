@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { prioridadeLabels, statusLabels, statusOptions } from "@/lib/os-labels";
+import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
@@ -32,14 +33,6 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
 }
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-function formatarData(data?: string) {
-  if (!data) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));
-}
 
 function formatarDataHora(data?: string) {
   if (!data) {
@@ -61,6 +54,15 @@ function CampoDetalhe({ label, value }: { label: string; value?: string | number
     <div className="rounded-md border bg-secondary/30 p-4">
       <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
       <div className="mt-2 whitespace-pre-wrap text-sm font-medium">{value ?? "-"}</div>
+    </div>
+  );
+}
+
+function CampoPrazo({ prazo }: { prazo?: string }) {
+  return (
+    <div className={`rounded-md border p-4 ${prazoClasses(prazo)}`}>
+      <div className="text-xs font-medium uppercase">Prazo</div>
+      <div className="mt-2 text-sm font-semibold">{formatarDataPrazo(prazo)}</div>
     </div>
   );
 }
@@ -300,7 +302,7 @@ export default function OrdemServicoDetalhePage() {
                 <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
                 <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
                 <CampoDetalhe label="Responsavel" value={ordem.responsavelNome || "A definir"} />
-                <CampoDetalhe label="Prazo" value={formatarData(ordem.prazo)} />
+                <CampoPrazo prazo={ordem.prazo} />
                 <CampoDetalhe label="Criada em" value={formatarDataHora(ordem.criadoEm)} />
                 <CampoDetalhe label="Atualizada em" value={formatarDataHora(ordem.atualizadoEm)} />
                 <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
