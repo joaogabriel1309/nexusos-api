@@ -24,7 +24,7 @@ public class DashboardService {
         var finalizadas = ordemServicoRepository.countByStatus(StatusOS.FINALIZADA);
         return new DashboardResumoResponse(
                 total,
-                total - finalizadas - ordemServicoRepository.countByStatus(StatusOS.CANCELADA),
+                total - finalizadas,
                 finalizadas,
                 osPorPrioridade(),
                 ordemServicoRepository.calcularTempoMedioFinalizacaoHoras()

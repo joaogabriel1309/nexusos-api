@@ -31,15 +31,13 @@ public class OrdemServicoService {
     private static final Map<StatusOS, Set<StatusOS>> TRANSICOES = new EnumMap<>(StatusOS.class);
 
     static {
-        TRANSICOES.put(StatusOS.RECEBIDA, Set.of(StatusOS.EM_ANALISE, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.EM_ANALISE, Set.of(StatusOS.APROVADA, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.APROVADA, Set.of(StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.EM_DESENVOLVIMENTO, Set.of(StatusOS.EM_TESTES, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.EM_TESTES, Set.of(StatusOS.AGUARDANDO_VALIDACAO, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.AGUARDANDO_VALIDACAO, Set.of(StatusOS.AGUARDANDO_PAGAMENTO, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
-        TRANSICOES.put(StatusOS.AGUARDANDO_PAGAMENTO, Set.of(StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA));
+        TRANSICOES.put(StatusOS.RECEBIDA, Set.of(StatusOS.EM_ANALISE));
+        TRANSICOES.put(StatusOS.EM_ANALISE, Set.of(StatusOS.APROVADA));
+        TRANSICOES.put(StatusOS.APROVADA, Set.of(StatusOS.EM_DESENVOLVIMENTO));
+        TRANSICOES.put(StatusOS.EM_DESENVOLVIMENTO, Set.of(StatusOS.EM_TESTE));
+        TRANSICOES.put(StatusOS.EM_TESTE, Set.of(StatusOS.AGUARDANDO_PAGAMENTO, StatusOS.EM_DESENVOLVIMENTO));
+        TRANSICOES.put(StatusOS.AGUARDANDO_PAGAMENTO, Set.of(StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO));
         TRANSICOES.put(StatusOS.FINALIZADA, Set.of());
-        TRANSICOES.put(StatusOS.CANCELADA, Set.of());
     }
 
     private final OrdemServicoRepository ordemServicoRepository;

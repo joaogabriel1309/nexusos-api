@@ -5,11 +5,9 @@ export type StatusOS =
   | "EM_ANALISE"
   | "APROVADA"
   | "EM_DESENVOLVIMENTO"
-  | "EM_TESTES"
-  | "AGUARDANDO_VALIDACAO"
+  | "EM_TESTE"
   | "AGUARDANDO_PAGAMENTO"
-  | "FINALIZADA"
-  | "CANCELADA";
+  | "FINALIZADA";
 
 export type PrioridadeOS = "BAIXA" | "MEDIA" | "ALTA" | "CRITICA";
 

@@ -20,9 +20,9 @@ const statusFluxo: StatusOS[] = [
   "EM_ANALISE",
   "APROVADA",
   "EM_DESENVOLVIMENTO",
-  "EM_TESTES",
-  "AGUARDANDO_VALIDACAO",
-  "AGUARDANDO_PAGAMENTO"
+  "EM_TESTE",
+  "AGUARDANDO_PAGAMENTO",
+  "FINALIZADA"
 ];
 
 const prioridades: PrioridadeOS[] = ["CRITICA", "ALTA", "MEDIA", "BAIXA"];
