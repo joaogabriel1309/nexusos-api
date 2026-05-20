@@ -25,6 +25,11 @@ export const ordemServicoService = {
     return data;
   },
 
+  async buscarPorId(id: string) {
+    const { data } = await api.get<OrdemServico>(`/ordens-servico/${id}`);
+    return data;
+  },
+
   async criar(payload: OrdemServicoFormData) {
     const { data } = await api.post<OrdemServico>("/ordens-servico", toRequest(payload));
     return data;

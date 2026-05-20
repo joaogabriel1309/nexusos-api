@@ -1,14 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { Plus, RefreshCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { OrdemServicoAnaliseForm } from "@/components/shared/ordem-servico-analise-form";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,14 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { prioridadeLabels, statusLabels, statusOptions } from "@/lib/os-labels";
-import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
+import { statusLabels, statusOptions } from "@/lib/os-labels";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
-import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
+import type { OrdemServico, StatusOS } from "@/types";
 
 const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
@@ -34,13 +32,6 @@ const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZ
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
 
-function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
-  if (prioridade === "CRITICA") return "danger";
-  if (prioridade === "ALTA") return "warning";
-  if (prioridade === "MEDIA") return "secondary";
-  return "outline";
-}
-
 function formatarData(data?: string) {
   if (!data) {
     return "-";
@@ -49,24 +40,16 @@ function formatarData(data?: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));
 }
 
-const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-function formatarValor(valor?: number) {
-  return valor != null ? moeda.format(valor) : "-";
-}
-
 export default function OrdensServicoPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
   const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
-  const [ordemAnalise, setOrdemAnalise] = useState<OrdemServico | null>(null);
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
-  const [osEmAcaoId, setOsEmAcaoId] = useState<string | null>(null);
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
@@ -115,14 +98,6 @@ export default function OrdensServicoPage() {
     });
   }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
 
-  const valorHoraAnalise = useMemo(() => {
-    if (!ordemAnalise) {
-      return 0;
-    }
-
-    return clientes.find((cliente) => cliente.id === ordemAnalise.clienteId)?.valorHora ?? 0;
-  }, [clientes, ordemAnalise]);
-
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
       if (ordemSelecionada) {
@@ -148,96 +123,12 @@ export default function OrdensServicoPage() {
     }
   });
 
-  const excluirMutation = useMutation({
-    mutationFn: ordemServicoService.excluir,
-    onMutate: (id) => setOsEmAcaoId(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success("OS excluida com sucesso.");
-    },
-    onError: () => {
-      toast.error("Nao foi possivel excluir a OS.");
-    },
-    onSettled: () => setOsEmAcaoId(null)
-  });
-
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status, descricao }: { id: string; status: StatusOS; descricao?: string }) =>
-      ordemServicoService.atualizarStatus(id, status, descricao),
-    onMutate: ({ id }) => setOsEmAcaoId(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success("Status da OS atualizado.");
-    },
-    onError: () => {
-      toast.error("Transicao de status invalida ou nao permitida.");
-    },
-    onSettled: () => setOsEmAcaoId(null)
-  });
-
-  const analiseMutation = useMutation({
-    mutationFn: (data: OrdemServicoAnaliseFormData) => {
-      if (!ordemAnalise) {
-        throw new Error("Selecione uma OS para analisar.");
-      }
-
-      return ordemServicoService.atualizarAnalise(ordemAnalise.id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      setAnaliseDialogOpen(false);
-      setOrdemAnalise(null);
-      toast.success("Analise da OS salva com sucesso.");
-    },
-    onError: () => {
-      toast.error("Nao foi possivel salvar a analise da OS.");
-    }
-  });
-
   const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading;
   const isError = ordensQuery.isError || clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError;
 
   function abrirCadastro() {
     setOrdemSelecionada(null);
     setDialogOpen(true);
-  }
-
-  function abrirEdicao(ordem: OrdemServico) {
-    setOrdemSelecionada(ordem);
-    setDialogOpen(true);
-  }
-
-  function abrirAnalise(ordem: OrdemServico) {
-    setOrdemAnalise(ordem);
-    setAnaliseDialogOpen(true);
-  }
-
-  function excluirOrdem(ordem: OrdemServico) {
-    if (!window.confirm(`Excluir a OS ${ordem.titulo}?`)) {
-      return;
-    }
-
-    excluirMutation.mutate(ordem.id);
-  }
-
-  function atualizarStatus(ordem: OrdemServico, status: StatusOS) {
-    if (status === ordem.status) {
-      return;
-    }
-
-    if (status === "FINALIZADA") {
-      const descricao = window.prompt("Informe o que foi feito para finalizar a OS:");
-
-      if (!descricao?.trim()) {
-        toast.error("Informe o que foi feito antes de finalizar a OS.");
-        return;
-      }
-
-      statusMutation.mutate({ id: ordem.id, status, descricao: descricao.trim() });
-      return;
-    }
-
-    statusMutation.mutate({ id: ordem.id, status });
   }
 
   function recarregar() {
@@ -349,21 +240,20 @@ export default function OrdensServicoPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[280px]">OS</TableHead>
-                  <TableHead className="min-w-[220px]">Cliente / Projeto</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Prioridade</TableHead>
-                  <TableHead className="min-w-[170px]">Responsavel</TableHead>
-                  <TableHead className="min-w-[150px]">Prazo</TableHead>
-                  <TableHead className="min-w-[150px] text-right">Valor</TableHead>
-                  <TableHead className="w-[190px] text-right">Acoes</TableHead>
+                  <TableHead>OS</TableHead>
+                  <TableHead>Cliente / Projeto</TableHead>
+                  <TableHead className="w-[160px]">Prazo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ordensFiltradas.map((ordem) => (
-                  <TableRow key={ordem.id}>
+                  <TableRow
+                    key={ordem.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
+                  >
                     <TableCell>
-                      <div className="max-w-[360px]">
+                      <div className="min-w-0">
                         <div className="truncate font-medium" title={ordem.titulo}>
                           {ordem.titulo}
                         </div>
@@ -373,7 +263,7 @@ export default function OrdensServicoPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-[280px]">
+                      <div className="min-w-0">
                         <div className="truncate text-sm" title={ordem.clienteNome}>
                           {ordem.clienteNome}
                         </div>
@@ -383,60 +273,7 @@ export default function OrdensServicoPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={ordem.status}
-                        disabled={osEmAcaoId === ordem.id}
-                        onValueChange={(status) => atualizarStatus(ordem, status as StatusOS)}
-                      >
-                        <SelectTrigger className="h-8 w-[210px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {statusLabels[status]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[190px] truncate" title={ordem.responsavelNome || "A definir"}>
-                        {ordem.responsavelNome || "A definir"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>{formatarData(ordem.prazo)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h previstas` : "Sem estimativa"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{formatarValor(ordem.valorTotalEstimado)}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" onClick={() => abrirAnalise(ordem)} aria-label="Analisar OS">
-                          <ClipboardCheck className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => abrirEdicao(ordem)} aria-label="Editar OS">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          disabled={osEmAcaoId === ordem.id}
-                          onClick={() => excluirOrdem(ordem)}
-                          aria-label="Excluir OS"
-                        >
-                          {osEmAcaoId === ordem.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                      {formatarData(ordem.prazo)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -473,35 +310,6 @@ export default function OrdensServicoPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={analiseDialogOpen}
-        onOpenChange={(open) => {
-          setAnaliseDialogOpen(open);
-          if (!open) {
-            setOrdemAnalise(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{ordemAnalise?.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}</DialogTitle>
-            <DialogDescription>
-              {ordemAnalise?.status === "EM_ANALISE"
-                ? "Informe a estimativa de horas para calcular o valor previsto da ordem de servico."
-                : "Consulte os dados de analise registrados para esta ordem de servico."}
-            </DialogDescription>
-          </DialogHeader>
-          {ordemAnalise ? (
-            <OrdemServicoAnaliseForm
-              ordem={ordemAnalise}
-              valorHora={valorHoraAnalise}
-              isSubmitting={analiseMutation.isPending}
-              readOnly={ordemAnalise.status !== "EM_ANALISE"}
-              onSubmit={(data) => analiseMutation.mutate(data)}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </AppShell>
   );
 }
