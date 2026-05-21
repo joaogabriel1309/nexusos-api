@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,6 +48,7 @@ public class UsuarioController {
 
     @Operation(summary = "Atualiza usuario")
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UsuarioResponse> atualizar(@PathVariable UUID id,
             @Valid @RequestBody UsuarioUpdateRequest request) {
         return ResponseEntity.ok(usuarioService.atualizar(id, request));
@@ -54,6 +56,7 @@ public class UsuarioController {
 
     @Operation(summary = "Inativa usuario")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> inativar(@PathVariable UUID id) {
         usuarioService.inativar(id);
         return ResponseEntity.noContent().build();

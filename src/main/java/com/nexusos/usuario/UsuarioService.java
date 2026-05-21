@@ -8,6 +8,8 @@ import com.nexusos.usuario.dto.UsuarioUpdateRequest;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioResponse criar(UsuarioRequest request) {
+        validarCriacaoPermitida();
         validarEmailDisponivel(request.email(), null);
         var usuario = Usuario.builder()
                 .nome(request.nome())
@@ -74,5 +77,19 @@ public class UsuarioService {
                 .ifPresent(usuario -> {
                     throw new RegraNegocioException("E-mail ja cadastrado.");
                 });
+    }
+
+    private void validarCriacaoPermitida() {
+        if (usuarioRepository.count() == 0) {
+            return;
+        }
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var admin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+
+        if (!admin) {
+            throw new AccessDeniedException("Apenas administradores podem criar usuarios.");
+        }
     }
 }

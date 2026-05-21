@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +41,7 @@ public class ProjetoController {
 
     @Operation(summary = "Cria projeto")
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<ProjetoResponse> criar(@Valid @RequestBody ProjetoRequest request) {
         var response = projetoService.criar(request);
         return ResponseEntity.created(URI.create("/api/v1/projetos/" + response.id())).body(response);
@@ -47,6 +49,7 @@ public class ProjetoController {
 
     @Operation(summary = "Atualiza projeto")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<ProjetoResponse> atualizar(@PathVariable UUID id,
             @Valid @RequestBody ProjetoUpdateRequest request) {
         return ResponseEntity.ok(projetoService.atualizar(id, request));
@@ -54,6 +57,7 @@ public class ProjetoController {
 
     @Operation(summary = "Inativa projeto")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> inativar(@PathVariable UUID id) {
         projetoService.inativar(id);
         return ResponseEntity.noContent().build();

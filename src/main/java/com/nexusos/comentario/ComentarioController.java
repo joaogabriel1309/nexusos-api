@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,7 @@ public class ComentarioController {
 
     @Operation(summary = "Cria comentario na OS")
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
     public ResponseEntity<ComentarioResponse> criar(@PathVariable UUID ordemServicoId,
             @Valid @RequestBody ComentarioRequest request) {
         var response = comentarioService.criar(ordemServicoId, request);

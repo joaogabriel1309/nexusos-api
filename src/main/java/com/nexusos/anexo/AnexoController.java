@@ -6,6 +6,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ public class AnexoController {
 
     @Operation(summary = "Salva anexo local da OS")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
     public ResponseEntity<AnexoResponse> salvar(@PathVariable UUID ordemServicoId,
             @RequestParam("arquivo") MultipartFile arquivo,
             @RequestParam(value = "descricao", required = false) String descricao) {

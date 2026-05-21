@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,7 @@ public class ApontamentoTempoController {
 
     @Operation(summary = "Cria apontamento de tempo da OS")
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
     public ResponseEntity<ApontamentoTempoResponse> criar(@PathVariable UUID ordemServicoId,
             @Valid @RequestBody ApontamentoTempoRequest request) {
         var response = apontamentoTempoService.criar(ordemServicoId, request);
