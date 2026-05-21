@@ -70,10 +70,21 @@ public class JwtService {
     }
 
     private byte[] normalizeSecret(String secret) {
-        try {
-            return Decoders.BASE64.decode(secret);
-        } catch (DecodingException ex) {
-            return secret.getBytes(StandardCharsets.UTF_8);
+        if (secret == null || secret.isBlank() || secret.startsWith("change-this-secret")) {
+            throw new IllegalStateException("JWT_SECRET deve ser configurado com um segredo forte.");
         }
+
+        byte[] normalized;
+        try {
+            normalized = Decoders.BASE64.decode(secret);
+        } catch (DecodingException ex) {
+            normalized = secret.getBytes(StandardCharsets.UTF_8);
+        }
+
+        if (normalized.length < 32) {
+            throw new IllegalStateException("JWT_SECRET deve ter pelo menos 256 bits.");
+        }
+
+        return normalized;
     }
 }
