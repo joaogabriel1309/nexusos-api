@@ -196,7 +196,7 @@ export default function OrdensServicoFinalizadasPage() {
                   <TableBody>
                     {ordensFiltradas.map((ordem) => (
                       <TableRow key={ordem.id}>
-                        <TableCell className="font-medium">OS #{ordem.codigo} - {ordem.titulo}</TableCell>
+                        <TableCell className="font-medium">n° {ordem.codigo} - {ordem.titulo}</TableCell>
                         <TableCell>{ordem.clienteNome}</TableCell>
                         <TableCell>{ordem.projetoNome || "-"}</TableCell>
                         <TableCell>

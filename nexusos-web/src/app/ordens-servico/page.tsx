@@ -250,7 +250,7 @@ export default function OrdensServicoPage() {
                     <TableCell>
                       <div className="max-w-[420px] min-w-0">
                         <div className="truncate font-medium" title={ordem.titulo}>
-                          OS #{ordem.codigo} - {ordem.titulo}
+                          n° {ordem.codigo} - {ordem.titulo}
                         </div>
                         <div className="max-w-full truncate text-xs text-muted-foreground" title={ordem.descricao}>
                           {ordem.descricao}
