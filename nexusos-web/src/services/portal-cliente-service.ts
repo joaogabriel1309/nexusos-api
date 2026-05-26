@@ -7,18 +7,18 @@ export const portalClienteService = {
     return response.data;
   },
 
-  async aprovar(token: string, ordemServicoId: string, observacao?: string) {
+  async aprovar(token: string, ordemServicoId: string) {
     const response = await api.patch<PortalOrdemServico>(
       `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/aprovar`,
-      { observacao: observacao || null }
+      {}
     );
     return response.data;
   },
 
-  async reprovar(token: string, ordemServicoId: string, observacao?: string) {
+  async reprovar(token: string, ordemServicoId: string) {
     const response = await api.patch<PortalOrdemServico>(
       `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/reprovar`,
-      { observacao: observacao || null }
+      {}
     );
     return response.data;
   }

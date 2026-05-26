@@ -44,17 +44,7 @@ public class PortalClienteService {
                 .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
 
-        var atualizada = ordemServicoService.registrarAprovacaoCliente(os.getId(), aprovado, observacao);
-        return new PortalOrdemServicoResponse(
-                atualizada.id(),
-                atualizada.titulo(),
-                atualizada.descricao(),
-                atualizada.status(),
-                atualizada.criadoEm(),
-                atualizada.atualizadoEm(),
-                atualizada.aprovadaPeloCliente(),
-                atualizada.aprovadoPeloClienteEm(),
-                atualizada.observacaoAprovacaoCliente()
-        );
+        ordemServicoService.registrarAprovacaoCliente(os.getId(), aprovado, observacao);
+        return PortalOrdemServicoResponse.from(os);
     }
 }

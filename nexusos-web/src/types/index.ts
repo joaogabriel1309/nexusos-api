@@ -74,11 +74,19 @@ export type PortalOrdemServico = {
   titulo: string;
   descricao: string;
   status: StatusOS;
+  prioridade: PrioridadeOS;
+  prazo?: string;
+  projetoNome?: string;
+  textoAnalise?: string;
+  estimativaHoras?: number;
+  valorTotalEstimado?: number;
+  cobrar?: boolean;
+  descricaoFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;
+  finalizadoEm?: string;
   aprovadaPeloCliente?: boolean;
   aprovadoPeloClienteEm?: string;
-  observacaoAprovacaoCliente?: string;
 };
 
 export type PortalCliente = {

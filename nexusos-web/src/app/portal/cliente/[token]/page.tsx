@@ -8,11 +8,11 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
+import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PortalOrdemServico, StatusOS } from "@/types";
 
@@ -33,12 +33,35 @@ function descricaoCurta(ordem: PortalOrdemServico) {
   return ordem.titulo || ordem.descricao || `OS ${ordem.id}`;
 }
 
+const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+function formatarData(data?: string) {
+  if (!data) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(data));
+}
+
+function formatarValor(valor?: number) {
+  return valor != null ? moeda.format(valor) : "-";
+}
+
+function CampoDetalhe({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div className="rounded-md border bg-secondary/30 p-4">
+      <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
+      <div className="mt-2 whitespace-pre-wrap text-sm font-medium">{value ?? "-"}</div>
+    </div>
+  );
+}
+
 export default function PortalClientePage() {
   const params = useParams<{ token: string }>();
   const token = params.token;
   const queryClient = useQueryClient();
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
-  const [observacoes, setObservacoes] = useState<Record<string, string>>({});
+  const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
 
   const queryKey = ["portal-cliente", token];
   const portalQuery = useQuery({
@@ -49,10 +72,7 @@ export default function PortalClientePage() {
 
   const decisaoMutation = useMutation({
     mutationFn: ({ ordemId, aprovado }: { ordemId: string; aprovado: boolean }) => {
-      const observacao = observacoes[ordemId]?.trim();
-      return aprovado
-        ? portalClienteService.aprovar(token, ordemId, observacao)
-        : portalClienteService.reprovar(token, ordemId, observacao);
+      return aprovado ? portalClienteService.aprovar(token, ordemId) : portalClienteService.reprovar(token, ordemId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -67,10 +87,6 @@ export default function PortalClientePage() {
     const ordens = portalQuery.data?.ordens ?? [];
     return ordens.filter((ordem) => (statusFiltro ? ordem.status === statusFiltro : true));
   }, [portalQuery.data?.ordens, statusFiltro]);
-
-  function atualizarObservacao(ordemId: string, observacao: string) {
-    setObservacoes((atuais) => ({ ...atuais, [ordemId]: observacao }));
-  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -141,7 +157,11 @@ export default function PortalClientePage() {
                     </TableHeader>
                     <TableBody>
                       {ordensFiltradas.map((ordem) => (
-                        <TableRow key={ordem.id}>
+                        <TableRow
+                          key={ordem.id}
+                          className="cursor-pointer"
+                          onClick={() => setOrdemSelecionada(ordem)}
+                        >
                           <TableCell>
                             <div className="max-w-[360px]">
                               <div className="truncate font-medium" title={ordem.id}>
@@ -161,31 +181,24 @@ export default function PortalClientePage() {
                           <TableCell>{formatarDataHora(ordem.atualizadoEm)}</TableCell>
                           <TableCell>
                             {ordem.status === "AGUARDANDO_APROVACAO" ? (
-                              <div className="space-y-2">
-                                <Textarea
-                                  placeholder="Observacao opcional"
-                                  value={observacoes[ordem.id] ?? ""}
-                                  onChange={(event) => atualizarObservacao(ordem.id, event.target.value)}
-                                />
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    disabled={decisaoMutation.isPending}
-                                    onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: true })}
-                                  >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    Aprovar OS
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={decisaoMutation.isPending}
-                                    onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: false })}
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                    Reprovar OS
-                                  </Button>
-                                </div>
+                              <div className="flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
+                                <Button
+                                  size="sm"
+                                  disabled={decisaoMutation.isPending}
+                                  onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: true })}
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Aprovar OS
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={decisaoMutation.isPending}
+                                  onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: false })}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Reprovar OS
+                                </Button>
                               </div>
                             ) : ordem.aprovadoPeloClienteEm ? (
                               <div className="text-sm text-muted-foreground">
@@ -205,6 +218,86 @@ export default function PortalClientePage() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={Boolean(ordemSelecionada)} onOpenChange={(open) => !open && setOrdemSelecionada(null)}>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{ordemSelecionada?.titulo ?? "Detalhes da OS"}</DialogTitle>
+              <DialogDescription>Dados completos da ordem de servico compartilhados com o cliente.</DialogDescription>
+            </DialogHeader>
+
+            {ordemSelecionada ? (
+              <div className="space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className={statusBadgeClasses[ordemSelecionada.status]}>
+                    {statusLabels[ordemSelecionada.status]}
+                  </Badge>
+                  <Badge variant="outline">{prioridadeLabels[ordemSelecionada.prioridade]}</Badge>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <CampoDetalhe label="Identificacao da OS" value={ordemSelecionada.id} />
+                  <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
+                  <CampoDetalhe label="Prazo" value={formatarData(ordemSelecionada.prazo)} />
+                  <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
+                  <CampoDetalhe label="Ultima atualizacao" value={formatarDataHora(ordemSelecionada.atualizadoEm)} />
+                  <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
+                  <div className="md:col-span-2">
+                    <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
+                  </div>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Valores</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 md:grid-cols-3">
+                    <CampoDetalhe
+                      label="Horas estimadas"
+                      value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
+                    />
+                    <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
+                    <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
+                  </CardContent>
+                </Card>
+
+                {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Finalizacao</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      disabled={decisaoMutation.isPending}
+                      onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Aprovar OS
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={decisaoMutation.isPending}
+                      onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: false })}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reprovar OS
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         <Card>
           <CardHeader>
