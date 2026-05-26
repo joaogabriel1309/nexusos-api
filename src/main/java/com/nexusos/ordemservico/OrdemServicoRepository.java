@@ -9,6 +9,9 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     List<OrdemServico> findByClienteIdOrderByAtualizadoEmDesc(UUID clienteId);
 
+    @Query(value = "select nextval('ordens_servico_codigo_seq')", nativeQuery = true)
+    Long proximoCodigo();
+
     long countByStatus(StatusOS status);
 
     long countByStatusNot(StatusOS status);

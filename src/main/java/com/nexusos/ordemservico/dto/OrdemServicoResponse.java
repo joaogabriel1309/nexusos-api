@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public record OrdemServicoResponse(
         UUID id,
+        Long codigo,
         String titulo,
         String descricao,
         UUID clienteId,
@@ -40,6 +41,7 @@ public record OrdemServicoResponse(
         var projeto = os.getProjeto();
         return new OrdemServicoResponse(
                 os.getId(),
+                os.getCodigo(),
                 os.getTitulo(),
                 os.getDescricao(),
                 os.getCliente().getId(),

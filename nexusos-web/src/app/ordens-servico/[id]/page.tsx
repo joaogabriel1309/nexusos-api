@@ -230,7 +230,7 @@ export default function OrdemServicoDetalhePage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem?.titulo ?? "Detalhes da OS"}
+        title={ordem ? `OS #${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
         description="Visualize os dados completos da ordem de servico e acompanhe sua evolucao."
         actions={
           <Button variant="outline" onClick={() => router.push("/ordens-servico")}>
@@ -300,7 +300,8 @@ export default function OrdemServicoDetalhePage() {
                 <CardTitle>Informacoes da OS</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <CampoDetalhe label="OS" value={ordem.titulo} />
+                <CampoDetalhe label="Codigo da OS" value={`OS #${ordem.codigo}`} />
+                <CampoDetalhe label="Titulo" value={ordem.titulo} />
                 <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
                 <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
                 <CampoDetalhe label="Responsavel" value={ordem.responsavelNome || "A definir"} />

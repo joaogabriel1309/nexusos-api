@@ -183,7 +183,7 @@ export default function OrdensServicoFinalizadasPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Titulo</TableHead>
+                      <TableHead>OS</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Projeto</TableHead>
                       <TableHead>Prioridade</TableHead>
@@ -196,7 +196,7 @@ export default function OrdensServicoFinalizadasPage() {
                   <TableBody>
                     {ordensFiltradas.map((ordem) => (
                       <TableRow key={ordem.id}>
-                        <TableCell className="font-medium">{ordem.titulo}</TableCell>
+                        <TableCell className="font-medium">OS #{ordem.codigo} - {ordem.titulo}</TableCell>
                         <TableCell>{ordem.clienteNome}</TableCell>
                         <TableCell>{ordem.projetoNome || "-"}</TableCell>
                         <TableCell>

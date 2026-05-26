@@ -63,6 +63,7 @@ public class OrdemServicoService {
         var responsavel = request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null;
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         var os = OrdemServico.builder()
+                .codigo(ordemServicoRepository.proximoCodigo())
                 .titulo(request.titulo())
                 .descricao(request.descricao())
                 .cliente(cliente)

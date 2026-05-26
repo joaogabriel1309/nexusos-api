@@ -46,6 +46,7 @@ export type Projeto = {
 
 export type OrdemServico = {
   id: string;
+  codigo: number;
   titulo: string;
   descricao: string;
   clienteId: string;
@@ -71,6 +72,7 @@ export type OrdemServico = {
 
 export type PortalOrdemServico = {
   id: string;
+  codigo: number;
   titulo: string;
   descricao: string;
   status: StatusOS;

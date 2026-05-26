@@ -36,6 +36,9 @@ public class OrdemServico {
     @Id
     private UUID id;
 
+    @Column(nullable = false, unique = true, updatable = false)
+    private Long codigo;
+
     @Column(nullable = false)
     private String titulo;
 

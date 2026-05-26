@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public record PortalOrdemServicoResponse(
         UUID id,
+        Long codigo,
         String titulo,
         String descricao,
         StatusOS status,
@@ -30,6 +31,7 @@ public record PortalOrdemServicoResponse(
     public static PortalOrdemServicoResponse from(OrdemServico os) {
         return new PortalOrdemServicoResponse(
                 os.getId(),
+                os.getCodigo(),
                 os.getTitulo(),
                 os.getDescricao(),
                 os.getStatus(),
