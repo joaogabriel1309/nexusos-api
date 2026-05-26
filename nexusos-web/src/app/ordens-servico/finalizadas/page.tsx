@@ -82,7 +82,7 @@ export default function OrdensServicoFinalizadasPage() {
   }, [clienteFiltro, dataFim, dataInicio, ordens, projetoFiltro]);
 
   const totalValor = useMemo(() => {
-    return ordensFiltradas.reduce((total, ordem) => total + (ordem.valorTotalEstimado ?? 0), 0);
+    return ordensFiltradas.reduce((total, ordem) => total + (ordem.paga ? ordem.valorTotalEstimado ?? 0 : 0), 0);
   }, [ordensFiltradas]);
 
   function limparFiltros() {
@@ -172,7 +172,7 @@ export default function OrdensServicoFinalizadasPage() {
                   <div className="mt-1 text-2xl font-semibold">{ordensFiltradas.length}</div>
                 </div>
                 <div className="rounded-md border bg-secondary/40 p-4 sm:col-span-2">
-                  <div className="text-sm text-muted-foreground">Valor total filtrado</div>
+                  <div className="text-sm text-muted-foreground">Valor pago filtrado</div>
                   <div className="mt-1 text-2xl font-semibold">{moeda.format(totalValor)}</div>
                 </div>
               </div>
@@ -190,6 +190,7 @@ export default function OrdensServicoFinalizadasPage() {
                       <TableHead>Finalizada em</TableHead>
                       <TableHead>Horas</TableHead>
                       <TableHead>Valor</TableHead>
+                      <TableHead>Pagamento</TableHead>
                       <TableHead>O que foi feito</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -205,6 +206,7 @@ export default function OrdensServicoFinalizadasPage() {
                         <TableCell>{formatarDataHora(ordem.finalizadoEm)}</TableCell>
                         <TableCell>{ordem.estimativaHoras ?? "-"}</TableCell>
                         <TableCell>{ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}</TableCell>
+                        <TableCell>{ordem.paga ? "Pago" : "A pagar"}</TableCell>
                         <TableCell className="max-w-[360px] whitespace-normal text-muted-foreground">
                           {ordem.descricaoFinalizacao || "-"}
                         </TableCell>

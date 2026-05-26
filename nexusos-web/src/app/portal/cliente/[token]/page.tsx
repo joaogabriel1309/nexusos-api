@@ -88,6 +88,23 @@ export default function PortalClientePage() {
     return ordens.filter((ordem) => (statusFiltro ? ordem.status === statusFiltro : true));
   }, [portalQuery.data?.ordens, statusFiltro]);
 
+  const totais = useMemo(() => {
+    return (portalQuery.data?.ordens ?? []).reduce(
+      (total, ordem) => {
+        const valor = ordem.valorTotalEstimado ?? 0;
+
+        if (ordem.paga) {
+          total.pago += valor;
+        } else {
+          total.aPagar += valor;
+        }
+
+        return total;
+      },
+      { aPagar: 0, pago: 0 }
+    );
+  }, [portalQuery.data?.ordens]);
+
   return (
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -138,6 +155,17 @@ export default function PortalClientePage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-md border bg-secondary/30 p-4">
+                    <div className="text-sm text-muted-foreground">Valor a pagar</div>
+                    <div className="mt-1 text-2xl font-semibold text-amber-700">{formatarValor(totais.aPagar)}</div>
+                  </div>
+                  <div className="rounded-md border bg-secondary/30 p-4">
+                    <div className="text-sm text-muted-foreground">Valor pago</div>
+                    <div className="mt-1 text-2xl font-semibold text-emerald-700">{formatarValor(totais.pago)}</div>
+                  </div>
                 </div>
 
                 {ordensFiltradas.length === 0 ? (
@@ -232,6 +260,7 @@ export default function PortalClientePage() {
                     />
                     <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
                     <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
+                    <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
                   </CardContent>
                 </Card>
 

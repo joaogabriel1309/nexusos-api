@@ -4,6 +4,7 @@ import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
+import com.nexusos.ordemservico.dto.PagamentoUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,5 +90,13 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> atualizarResponsavel(@PathVariable UUID id,
             @Valid @RequestBody ResponsavelUpdateRequest request) {
         return ResponseEntity.ok(ordemServicoService.atualizarResponsavel(id, request));
+    }
+
+    @Operation(summary = "Atualiza pagamento da ordem de servico")
+    @PatchMapping("/{id}/pagamento")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    public ResponseEntity<OrdemServicoResponse> atualizarPagamento(@PathVariable UUID id,
+            @Valid @RequestBody PagamentoUpdateRequest request) {
+        return ResponseEntity.ok(ordemServicoService.atualizarPagamento(id, request.paga()));
     }
 }

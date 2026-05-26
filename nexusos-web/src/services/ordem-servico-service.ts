@@ -69,5 +69,12 @@ export const ordemServicoService = {
       cobrar: payload.cobrar
     });
     return data;
+  },
+
+  async atualizarPagamento(id: string, paga: boolean) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/pagamento`, {
+      paga
+    });
+    return data;
   }
 };

@@ -74,6 +74,7 @@ public class OrdemServicoService {
                 .prazo(request.prazo())
                 .estimativaHoras(request.estimativaHoras())
                 .cobrar(Boolean.TRUE)
+                .paga(Boolean.FALSE)
                 .build();
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
@@ -169,6 +170,15 @@ public class OrdemServicoService {
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
         auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsavel da OS atualizado.", null, os.getStatus());
+        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+    }
+
+    @Transactional
+    public OrdemServicoResponse atualizarPagamento(UUID id, boolean paga) {
+        var os = buscarEntidade(id);
+        os.setPaga(paga);
+        auditoriaService.registrar(os, os.getResponsavel(), "PAGAMENTO",
+                paga ? "OS marcada como paga." : "OS marcada como nao paga.", null, os.getStatus());
         return OrdemServicoResponse.from(ordemServicoRepository.save(os));
     }
 

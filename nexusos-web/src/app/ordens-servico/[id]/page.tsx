@@ -179,6 +179,24 @@ export default function OrdemServicoDetalhePage() {
     }
   });
 
+  const pagamentoMutation = useMutation({
+    mutationFn: (paga: boolean) => {
+      if (!ordem) {
+        throw new Error("OS nao carregada.");
+      }
+
+      return ordemServicoService.atualizarPagamento(ordem.id, paga);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      toast.success("Pagamento da OS atualizado.");
+    },
+    onError: () => {
+      toast.error("Nao foi possivel atualizar o pagamento da OS.");
+    }
+  });
+
   const excluirMutation = useMutation({
     mutationFn: () => {
       if (!ordem) {
@@ -326,6 +344,21 @@ export default function OrdemServicoDetalhePage() {
                 />
                 <CampoDetalhe label="Cobranca" value={ordem.cobrar === false ? "Nao cobrar" : "Cobrar"} />
                 <CampoDetalhe label="Valor total estimado" value={formatarValor(ordem.valorTotalEstimado)} />
+                <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-primary"
+                    checked={Boolean(ordem.paga)}
+                    disabled={pagamentoMutation.isPending || ordem.cobrar === false}
+                    onChange={(event) => pagamentoMutation.mutate(event.target.checked)}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium">OS paga</span>
+                    <span className="block text-sm text-muted-foreground">
+                      Marque quando o pagamento desta ordem de servico ja tiver sido recebido.
+                    </span>
+                  </span>
+                </label>
               </CardContent>
             </Card>
           </div>

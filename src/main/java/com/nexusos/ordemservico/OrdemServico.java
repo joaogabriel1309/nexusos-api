@@ -84,6 +84,9 @@ public class OrdemServico {
     @Column(nullable = false)
     private Boolean cobrar;
 
+    @Column(nullable = false)
+    private Boolean paga;
+
     @Column(columnDefinition = "text")
     private String descricaoFinalizacao;
 
@@ -107,6 +110,7 @@ public class OrdemServico {
         id = id == null ? UUID.randomUUID() : id;
         status = status == null ? StatusOS.RECEBIDA : status;
         cobrar = cobrar == null ? Boolean.TRUE : cobrar;
+        paga = paga == null ? Boolean.FALSE : paga;
         criadoEm = OffsetDateTime.now();
         atualizadoEm = criadoEm;
     }
