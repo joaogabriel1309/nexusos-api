@@ -3,6 +3,7 @@ export type PerfilUsuario = "ADMIN" | "DESENVOLVEDOR" | "ANALISTA" | "CLIENTE";
 export type StatusOS =
   | "RECEBIDA"
   | "EM_ANALISE"
+  | "AGUARDANDO_APROVACAO"
   | "APROVADA"
   | "EM_DESENVOLVIMENTO"
   | "EM_TESTE"
@@ -28,6 +29,7 @@ export type Cliente = {
   email: string;
   telefone?: string;
   valorHora: number;
+  tokenAcesso?: string;
   ativo: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -65,6 +67,23 @@ export type OrdemServico = {
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
+};
+
+export type PortalOrdemServico = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  status: StatusOS;
+  criadoEm: string;
+  atualizadoEm: string;
+  aprovadaPeloCliente?: boolean;
+  aprovadoPeloClienteEm?: string;
+  observacaoAprovacaoCliente?: string;
+};
+
+export type PortalCliente = {
+  clienteNome: string;
+  ordens: PortalOrdemServico[];
 };
 
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

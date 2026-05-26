@@ -3,6 +3,7 @@ import type { PrioridadeOS, StatusOS } from "@/types";
 export const statusLabels: Record<StatusOS, string> = {
   RECEBIDA: "Recebida",
   EM_ANALISE: "Em analise",
+  AGUARDANDO_APROVACAO: "Aguardando aprovacao",
   APROVADA: "Aprovada",
   EM_DESENVOLVIMENTO: "Em desenvolvimento",
   EM_TESTE: "Em teste",
@@ -13,6 +14,7 @@ export const statusLabels: Record<StatusOS, string> = {
 export const statusBadgeClasses: Record<StatusOS, string> = {
   RECEBIDA: "border-slate-200 bg-slate-50 text-slate-700",
   EM_ANALISE: "border-sky-200 bg-sky-50 text-sky-700",
+  AGUARDANDO_APROVACAO: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700",
   APROVADA: "border-violet-200 bg-violet-50 text-violet-700",
   EM_DESENVOLVIMENTO: "border-indigo-200 bg-indigo-50 text-indigo-700",
   EM_TESTE: "border-amber-200 bg-amber-50 text-amber-800",

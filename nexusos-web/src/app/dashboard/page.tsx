@@ -18,6 +18,7 @@ const produtividadeQueryKey = ["dashboard", "produtividade"];
 const statusFluxo: StatusOS[] = [
   "RECEBIDA",
   "EM_ANALISE",
+  "AGUARDANDO_APROVACAO",
   "APROVADA",
   "EM_DESENVOLVIMENTO",
   "EM_TESTE",
