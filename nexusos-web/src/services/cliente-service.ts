@@ -22,6 +22,11 @@ export const clienteService = {
     return response.data;
   },
 
+  async gerarTokenAcesso(id: string) {
+    const response = await api.patch<Cliente>(`/clientes/${id}/token-acesso`);
+    return response.data;
+  },
+
   async inativar(id: string) {
     await api.delete(`/clientes/${id}`);
   }

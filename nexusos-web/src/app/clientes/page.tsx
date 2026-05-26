@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { Copy, Edit, Link2, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
@@ -64,6 +64,18 @@ export default function ClientesPage() {
     }
   });
 
+  const gerarTokenMutation = useMutation({
+    mutationFn: clienteService.gerarTokenAcesso,
+    onSuccess: (cliente) => {
+      queryClient.invalidateQueries({ queryKey: clientesQueryKey });
+      copiarLinkCliente(cliente);
+      toast.success("Link de acesso do cliente gerado.");
+    },
+    onError: () => {
+      toast.error("Nao foi possivel gerar o link do cliente.");
+    }
+  });
+
   const clientes = clientesQuery.data ?? [];
 
   function abrirCadastro() {
@@ -82,6 +94,24 @@ export default function ClientesPage() {
     }
 
     inativarClienteMutation.mutate(cliente.id);
+  }
+
+  function montarLinkCliente(cliente: Cliente) {
+    if (!cliente.tokenAcesso) {
+      return "";
+    }
+
+    return `${window.location.origin}/portal/cliente/${cliente.tokenAcesso}`;
+  }
+
+  async function copiarLinkCliente(cliente: Cliente) {
+    if (!cliente.tokenAcesso) {
+      gerarTokenMutation.mutate(cliente.id);
+      return;
+    }
+
+    await navigator.clipboard.writeText(montarLinkCliente(cliente));
+    toast.success("Link do cliente copiado.");
   }
 
   return (
@@ -132,7 +162,7 @@ export default function ClientesPage() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Valor/hora</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[140px] text-right">Acoes</TableHead>
+                    <TableHead className="w-[190px] text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -154,6 +184,16 @@ export default function ClientesPage() {
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente">
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            disabled={gerarTokenMutation.isPending}
+                            onClick={() => copiarLinkCliente(cliente)}
+                            aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                            title={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                          >
+                            {cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
                           </Button>
                           <Button
                             variant="destructive"
