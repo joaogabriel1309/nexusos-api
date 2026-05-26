@@ -152,7 +152,6 @@ export default function PortalClientePage() {
                         <TableHead>Status</TableHead>
                         <TableHead>Criada em</TableHead>
                         <TableHead>Atualizada em</TableHead>
-                        <TableHead className="min-w-[280px]">Aprovacao</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -179,36 +178,6 @@ export default function PortalClientePage() {
                           </TableCell>
                           <TableCell>{formatarDataHora(ordem.criadoEm)}</TableCell>
                           <TableCell>{formatarDataHora(ordem.atualizadoEm)}</TableCell>
-                          <TableCell>
-                            {ordem.status === "AGUARDANDO_APROVACAO" ? (
-                              <div className="flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
-                                <Button
-                                  size="sm"
-                                  disabled={decisaoMutation.isPending}
-                                  onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: true })}
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Aprovar OS
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={decisaoMutation.isPending}
-                                  onClick={() => decisaoMutation.mutate({ ordemId: ordem.id, aprovado: false })}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  Reprovar OS
-                                </Button>
-                              </div>
-                            ) : ordem.aprovadoPeloClienteEm ? (
-                              <div className="text-sm text-muted-foreground">
-                                {ordem.aprovadaPeloCliente ? "Aprovada" : "Reprovada"} em{" "}
-                                {formatarDataHora(ordem.aprovadoPeloClienteEm)}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Sem acao pendente</span>
-                            )}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
