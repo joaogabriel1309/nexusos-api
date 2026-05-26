@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Edit, Link2, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ClienteForm } from "@/components/shared/cliente-form";
@@ -15,9 +15,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clienteSchema, type ClienteFormData } from "@/schemas/cliente-schema";
 import { clienteService } from "@/services/cliente-service";
+import { ordemServicoService } from "@/services/ordem-servico-service";
 import type { Cliente } from "@/types";
 
 const clientesQueryKey = ["clientes"];
+const ordensQueryKey = ["ordens-servico"];
+const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function ClientesPage() {
   const queryClient = useQueryClient();
@@ -27,6 +30,11 @@ export default function ClientesPage() {
   const clientesQuery = useQuery({
     queryKey: clientesQueryKey,
     queryFn: clienteService.listar
+  });
+
+  const ordensQuery = useQuery({
+    queryKey: ordensQueryKey,
+    queryFn: ordemServicoService.listar
   });
 
   const salvarClienteMutation = useMutation({
@@ -76,7 +84,37 @@ export default function ClientesPage() {
     }
   });
 
-  const clientes = clientesQuery.data ?? [];
+  const clientes = useMemo(() => clientesQuery.data ?? [], [clientesQuery.data]);
+  const totaisPorCliente = useMemo(() => {
+    const totais = new Map<string, { aPagar: number; pago: number }>();
+
+    for (const ordem of ordensQuery.data ?? []) {
+      const atual = totais.get(ordem.clienteId) ?? { aPagar: 0, pago: 0 };
+      const valor = ordem.valorTotalEstimado ?? 0;
+
+      if (ordem.status === "FINALIZADA") {
+        atual.pago += valor;
+      } else {
+        atual.aPagar += valor;
+      }
+
+      totais.set(ordem.clienteId, atual);
+    }
+
+    return totais;
+  }, [ordensQuery.data]);
+
+  const totalizadores = useMemo(() => {
+    return clientes.reduce(
+      (total, cliente) => {
+        const valores = totaisPorCliente.get(cliente.id);
+        total.aPagar += valores?.aPagar ?? 0;
+        total.pago += valores?.pago ?? 0;
+        return total;
+      },
+      { aPagar: 0, pago: 0 }
+    );
+  }, [clientes, totaisPorCliente]);
 
   function abrirCadastro() {
     setClienteSelecionado(null);
@@ -130,16 +168,23 @@ export default function ClientesPage() {
 
         <Card>
           <CardContent className="p-0">
-            {clientesQuery.isLoading ? (
+            {clientesQuery.isLoading || ordensQuery.isLoading ? (
               <div className="space-y-3 p-5">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : clientesQuery.isError ? (
+            ) : clientesQuery.isError || ordensQuery.isError ? (
               <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Nao foi possivel carregar os clientes.</span>
-                <Button variant="outline" size="sm" onClick={() => clientesQuery.refetch()}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    clientesQuery.refetch();
+                    ordensQuery.refetch();
+                  }}
+                >
                   <RefreshCcw className="h-4 w-4" />
                   Tentar novamente
                 </Button>
@@ -161,62 +206,85 @@ export default function ClientesPage() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Valor/hora</TableHead>
+                    <TableHead className="text-right">A pagar</TableHead>
+                    <TableHead className="text-right">Pago</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[190px] text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clientes.map((cliente) => (
-                    <TableRow key={cliente.id}>
-                      <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell>{cliente.documento}</TableCell>
-                      <TableCell>{cliente.email}</TableCell>
-                      <TableCell>{cliente.telefone || "-"}</TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={cliente.ativo ? "default" : "secondary"}>
-                          {cliente.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            disabled={gerarTokenMutation.isPending}
-                            onClick={() => copiarLinkCliente(cliente)}
-                            aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
-                            title={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
-                          >
-                            {cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            disabled={!cliente.ativo || inativarClienteMutation.isPending}
-                            onClick={() => inativarCliente(cliente)}
-                            aria-label="Inativar cliente"
-                          >
-                            {inativarClienteMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {clientes.map((cliente) => {
+                    const valores = totaisPorCliente.get(cliente.id) ?? { aPagar: 0, pago: 0 };
+
+                    return (
+                      <TableRow key={cliente.id}>
+                        <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell>{cliente.documento}</TableCell>
+                        <TableCell>{cliente.email}</TableCell>
+                        <TableCell>{cliente.telefone || "-"}</TableCell>
+                        <TableCell>{moeda.format(cliente.valorHora)}</TableCell>
+                        <TableCell className="text-right font-medium text-amber-700">{moeda.format(valores.aPagar)}</TableCell>
+                        <TableCell className="text-right font-medium text-emerald-700">{moeda.format(valores.pago)}</TableCell>
+                        <TableCell>
+                          <Badge variant={cliente.ativo ? "default" : "secondary"}>
+                            {cliente.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              disabled={gerarTokenMutation.isPending}
+                              onClick={() => copiarLinkCliente(cliente)}
+                              aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                              title={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                            >
+                              {cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              disabled={!cliente.ativo || inativarClienteMutation.isPending}
+                              onClick={() => inativarCliente(cliente)}
+                              aria-label="Inativar cliente"
+                            >
+                              {inativarClienteMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
           </CardContent>
         </Card>
+
+        {!clientesQuery.isLoading && !ordensQuery.isLoading && !clientesQuery.isError && !ordensQuery.isError && clientes.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <Card>
+              <CardContent className="p-5">
+                <div className="text-sm text-muted-foreground">Total a pagar</div>
+                <div className="mt-1 text-2xl font-semibold text-amber-700">{moeda.format(totalizadores.aPagar)}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="text-sm text-muted-foreground">Total pago</div>
+                <div className="mt-1 text-2xl font-semibold text-emerald-700">{moeda.format(totalizadores.pago)}</div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
       </div>
 
       <Dialog
