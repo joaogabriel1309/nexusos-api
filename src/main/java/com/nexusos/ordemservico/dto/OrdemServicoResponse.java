@@ -28,6 +28,9 @@ public record OrdemServicoResponse(
         BigDecimal valorTotalEstimado,
         Boolean cobrar,
         String descricaoFinalizacao,
+        Boolean aprovadaPeloCliente,
+        OffsetDateTime aprovadoPeloClienteEm,
+        String observacaoAprovacaoCliente,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm,
         OffsetDateTime finalizadoEm
@@ -55,6 +58,9 @@ public record OrdemServicoResponse(
                 os.getValorTotalEstimado(),
                 os.getCobrar(),
                 os.getDescricaoFinalizacao(),
+                os.getAprovadaPeloCliente(),
+                os.getAprovadoPeloClienteEm(),
+                os.getObservacaoAprovacaoCliente(),
                 os.getCriadoEm(),
                 os.getAtualizadoEm(),
                 os.getFinalizadoEm()

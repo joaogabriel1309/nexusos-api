@@ -84,6 +84,13 @@ public class OrdemServico {
     @Column(columnDefinition = "text")
     private String descricaoFinalizacao;
 
+    private Boolean aprovadaPeloCliente;
+
+    private OffsetDateTime aprovadoPeloClienteEm;
+
+    @Column(columnDefinition = "text")
+    private String observacaoAprovacaoCliente;
+
     @Column(nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 

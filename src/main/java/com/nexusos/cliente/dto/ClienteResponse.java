@@ -12,6 +12,7 @@ public record ClienteResponse(
         String email,
         String telefone,
         BigDecimal valorHora,
+        String tokenAcesso,
         boolean ativo,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm
@@ -24,6 +25,7 @@ public record ClienteResponse(
                 cliente.getEmail(),
                 cliente.getTelefone(),
                 cliente.getValorHora(),
+                cliente.getTokenAcesso(),
                 cliente.isAtivo(),
                 cliente.getCriadoEm(),
                 cliente.getAtualizadoEm()

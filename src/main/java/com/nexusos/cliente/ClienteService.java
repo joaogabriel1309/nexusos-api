@@ -28,6 +28,20 @@ public class ClienteService {
     }
 
     @Transactional
+    public ClienteResponse gerarNovoTokenAcesso(UUID id) {
+        var cliente = buscarEntidade(id);
+        cliente.setTokenAcesso(UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""));
+        return ClienteResponse.from(clienteRepository.save(cliente));
+    }
+
+    @Transactional(readOnly = true)
+    public Cliente buscarPorTokenAcesso(String tokenAcesso) {
+        return clienteRepository.findByTokenAcesso(tokenAcesso)
+                .filter(Cliente::isAtivo)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Link de acesso invalido."));
+    }
+
+    @Transactional
     public ClienteResponse criar(ClienteRequest request) {
         validarDocumentoDisponivel(request.documento(), null);
         var cliente = Cliente.builder()

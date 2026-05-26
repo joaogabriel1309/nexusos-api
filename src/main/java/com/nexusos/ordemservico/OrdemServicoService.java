@@ -32,7 +32,8 @@ public class OrdemServicoService {
 
     static {
         TRANSICOES.put(StatusOS.RECEBIDA, Set.of(StatusOS.EM_ANALISE));
-        TRANSICOES.put(StatusOS.EM_ANALISE, Set.of(StatusOS.APROVADA));
+        TRANSICOES.put(StatusOS.EM_ANALISE, Set.of(StatusOS.AGUARDANDO_APROVACAO));
+        TRANSICOES.put(StatusOS.AGUARDANDO_APROVACAO, Set.of(StatusOS.APROVADA, StatusOS.EM_ANALISE));
         TRANSICOES.put(StatusOS.APROVADA, Set.of(StatusOS.EM_DESENVOLVIMENTO));
         TRANSICOES.put(StatusOS.EM_DESENVOLVIMENTO, Set.of(StatusOS.EM_TESTE));
         TRANSICOES.put(StatusOS.EM_TESTE, Set.of(StatusOS.AGUARDANDO_PAGAMENTO, StatusOS.EM_DESENVOLVIMENTO));
@@ -135,6 +136,29 @@ public class OrdemServicoService {
         os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
         recalcularValorTotalEstimado(os);
         auditoriaService.registrar(os, os.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, os.getStatus());
+        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrdemServicoResponse> listarPorCliente(UUID clienteId) {
+        return ordemServicoRepository.findByClienteIdOrderByAtualizadoEmDesc(clienteId).stream()
+                .map(OrdemServicoResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public OrdemServicoResponse registrarAprovacaoCliente(UUID id, boolean aprovado, String observacao) {
+        var os = buscarEntidade(id);
+        if (os.getStatus() != StatusOS.AGUARDANDO_APROVACAO) {
+            throw new RegraNegocioException("OS nao esta aguardando aprovacao do cliente.");
+        }
+
+        os.setAprovadaPeloCliente(aprovado);
+        os.setAprovadoPeloClienteEm(OffsetDateTime.now());
+        os.setObservacaoAprovacaoCliente(observacao);
+        os.setStatus(aprovado ? StatusOS.APROVADA : StatusOS.EM_ANALISE);
+        auditoriaService.registrar(os, os.getResponsavel(), aprovado ? "APROVACAO_CLIENTE" : "REPROVACAO_CLIENTE",
+                aprovado ? "OS aprovada pelo cliente." : "OS reprovada pelo cliente.", StatusOS.AGUARDANDO_APROVACAO, os.getStatus());
         return OrdemServicoResponse.from(ordemServicoRepository.save(os));
     }
 
