@@ -217,7 +217,7 @@ export default function PortalClientePage() {
                         <TableHead>OS</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Criada em</TableHead>
-                        <TableHead>Atualizada em</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -243,7 +243,9 @@ export default function PortalClientePage() {
                             </Badge>
                           </TableCell>
                           <TableCell>{formatarDataHora(ordem.criadoEm)}</TableCell>
-                          <TableCell>{formatarDataHora(ordem.atualizadoEm)}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatarValor(ordem.valorTotalEstimado)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
