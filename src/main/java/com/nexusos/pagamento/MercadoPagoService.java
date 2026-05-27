@@ -1,6 +1,7 @@
 package com.nexusos.pagamento;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.ordemservico.OrdemServico;
@@ -181,8 +182,15 @@ public class MercadoPagoService {
                 ),
                 apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",
                 os.getId().toString(),
-                "approved"
+                deveUsarAutoReturn() ? "approved" : null
         );
+    }
+
+    private boolean deveUsarAutoReturn() {
+        return frontendBaseUrl != null
+                && frontendBaseUrl.startsWith("https://")
+                && !frontendBaseUrl.contains("localhost")
+                && !frontendBaseUrl.contains("127.0.0.1");
     }
 
     private RestClient restClient() {
@@ -193,6 +201,7 @@ public class MercadoPagoService {
                 .build();
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private record MercadoPagoPreferenceRequest(
             List<MercadoPagoItemRequest> items,
             MercadoPagoPayerRequest payer,
