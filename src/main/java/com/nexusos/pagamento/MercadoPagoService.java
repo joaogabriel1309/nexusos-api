@@ -75,11 +75,43 @@ public class MercadoPagoService {
             return;
         }
 
+        confirmarPagamento(paymentId);
+    }
+
+    @Transactional
+    public OrdemServico confirmarPagamentoCliente(OrdemServico os, String paymentId) {
+        MercadoPagoPaymentResponse pagamento;
         try {
-            var payment = restClient().get()
-                    .uri("/v1/payments/{id}", paymentId)
-                    .retrieve()
-                    .body(MercadoPagoPaymentResponse.class);
+            pagamento = consultarPagamento(paymentId);
+        } catch (RestClientResponseException ex) {
+            throw new RegraNegocioException("Nao foi possivel consultar o pagamento: " + extrairMensagemMercadoPago(ex));
+        }
+
+        if (pagamento == null) {
+            throw new RegraNegocioException("Pagamento nao encontrado no Mercado Pago.");
+        }
+
+        if (!os.getId().toString().equals(pagamento.externalReference())) {
+            throw new RegraNegocioException("Pagamento nao pertence a esta OS.");
+        }
+
+        if (!"approved".equalsIgnoreCase(pagamento.status())) {
+            throw new RegraNegocioException("Pagamento ainda nao foi aprovado pelo Mercado Pago.");
+        }
+
+        if (!valorConfere(os, pagamento.transactionAmount())) {
+            throw new RegraNegocioException("Valor pago nao confere com o valor da OS.");
+        }
+
+        os.setMercadoPagoPaymentId(pagamento.id());
+        os.setPaga(true);
+
+        return ordemServicoRepository.save(os);
+    }
+
+    private void confirmarPagamento(String paymentId) {
+        try {
+            var payment = consultarPagamento(paymentId);
 
             if (payment == null || payment.externalReference() == null) {
                 return;
@@ -96,6 +128,17 @@ public class MercadoPagoService {
         } catch (IllegalArgumentException | RestClientException ex) {
             // Notificacoes externas nao devem quebrar o processamento da aplicacao.
         }
+    }
+
+    private MercadoPagoPaymentResponse consultarPagamento(String paymentId) {
+        if (paymentId == null || paymentId.isBlank()) {
+            throw new RegraNegocioException("Pagamento nao informado.");
+        }
+
+        return restClient().get()
+                .uri("/v1/payments/{id}", paymentId)
+                .retrieve()
+                .body(MercadoPagoPaymentResponse.class);
     }
 
     private void validarPagamentoDisponivel(OrdemServico os) {
@@ -167,6 +210,7 @@ public class MercadoPagoService {
 
     private MercadoPagoPreferenceRequest criarPreferenceRequest(OrdemServico os, String tokenCliente) {
         var portalUrl = frontendBaseUrl + "/portal/cliente/" + tokenCliente;
+        var portalUrlComOs = portalUrl + "?os=" + os.getId();
         return new MercadoPagoPreferenceRequest(
                 List.of(new MercadoPagoItemRequest(
                         "OS n. " + os.getCodigo() + " - " + os.getTitulo(),
@@ -176,9 +220,9 @@ public class MercadoPagoService {
                 )),
                 new MercadoPagoPayerRequest(os.getCliente().getEmail(), os.getCliente().getNome()),
                 Map.of(
-                        "success", portalUrl + "?pagamento=sucesso",
-                        "failure", portalUrl + "?pagamento=falha",
-                        "pending", portalUrl + "?pagamento=pendente"
+                        "success", portalUrlComOs + "&pagamento=sucesso",
+                        "failure", portalUrlComOs + "&pagamento=falha",
+                        "pending", portalUrlComOs + "&pagamento=pendente"
                 ),
                 apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",
                 os.getId().toString(),

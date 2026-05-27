@@ -3,8 +3,10 @@ package com.nexusos.portalcliente;
 import com.nexusos.portalcliente.dto.PortalAprovacaoRequest;
 import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
+import com.nexusos.portalcliente.dto.PortalPagamentoConfirmacaoRequest;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,5 +54,13 @@ public class PortalClienteController {
     public ResponseEntity<PagamentoCheckoutResponse> iniciarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(portalClienteService.iniciarPagamento(token, ordemServicoId));
+    }
+
+    @Operation(summary = "Confirma pagamento da OS pelo retorno do Mercado Pago")
+    @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/confirmar")
+    public ResponseEntity<PortalOrdemServicoResponse> confirmarPagamento(@PathVariable String token,
+            @PathVariable UUID ordemServicoId,
+            @RequestBody @Valid PortalPagamentoConfirmacaoRequest request) {
+        return ResponseEntity.ok(portalClienteService.confirmarPagamento(token, ordemServicoId, request.paymentId()));
     }
 }

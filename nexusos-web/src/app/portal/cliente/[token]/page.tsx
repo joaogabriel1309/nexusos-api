@@ -3,8 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { CheckCircle2, CreditCard, Loader2, RefreshCcw, XCircle } from "lucide-react";
-import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,8 +81,11 @@ function CampoDetalhe({ label, value }: { label: string; value?: string | number
 
 export default function PortalClientePage() {
   const params = useParams<{ token: string }>();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const token = params.token;
   const queryClient = useQueryClient();
+  const pagamentoRetornoProcessado = useRef(false);
   const [codigoFiltro, setCodigoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
@@ -117,6 +120,44 @@ export default function PortalClientePage() {
       toast.error(mensagemErro(error, "Nao foi possivel iniciar o pagamento."));
     }
   });
+
+  const confirmarPagamentoMutation = useMutation({
+    mutationFn: ({ ordemId, paymentId }: { ordemId: string; paymentId: string }) => {
+      return portalClienteService.confirmarPagamento(token, ordemId, paymentId);
+    },
+    onSuccess: (ordemAtualizada) => {
+      queryClient.invalidateQueries({ queryKey });
+      setOrdemSelecionada(ordemAtualizada);
+      toast.success("Pagamento confirmado com sucesso.");
+      router.replace(`/portal/cliente/${token}`);
+    },
+    onError: (error) => {
+      toast.error(mensagemErro(error, "Pagamento aprovado, mas nao foi possivel atualizar a OS."));
+    }
+  });
+
+  useEffect(() => {
+    if (pagamentoRetornoProcessado.current) {
+      return;
+    }
+
+    const statusPagamento = searchParams.get("pagamento");
+    const ordemId = searchParams.get("os");
+    const paymentId = searchParams.get("payment_id") ?? searchParams.get("collection_id");
+
+    if (statusPagamento === "sucesso" && ordemId && paymentId) {
+      pagamentoRetornoProcessado.current = true;
+      confirmarPagamentoMutation.mutate({ ordemId, paymentId });
+    } else if (statusPagamento === "pendente") {
+      pagamentoRetornoProcessado.current = true;
+      toast.info("Pagamento pendente. A OS sera atualizada quando o Mercado Pago confirmar.");
+      router.replace(`/portal/cliente/${token}`);
+    } else if (statusPagamento === "falha") {
+      pagamentoRetornoProcessado.current = true;
+      toast.error("Pagamento nao aprovado.");
+      router.replace(`/portal/cliente/${token}`);
+    }
+  }, [confirmarPagamentoMutation, router, searchParams, token]);
 
   const ordensFiltradas = useMemo(() => {
     const ordens = portalQuery.data?.ordens ?? [];

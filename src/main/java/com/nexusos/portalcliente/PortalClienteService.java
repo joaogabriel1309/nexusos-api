@@ -51,6 +51,17 @@ public class PortalClienteService {
         return mercadoPagoService.criarCheckout(os, token);
     }
 
+    @Transactional
+    public PortalOrdemServicoResponse confirmarPagamento(String token, UUID ordemServicoId, String paymentId) {
+        var cliente = clienteService.buscarPorTokenAcesso(token);
+        var os = ordemServicoRepository.findById(ordemServicoId)
+                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+
+        var osAtualizada = mercadoPagoService.confirmarPagamentoCliente(os, paymentId);
+        return PortalOrdemServicoResponse.from(osAtualizada);
+    }
+
     private PortalOrdemServicoResponse registrarDecisao(String token, UUID ordemServicoId, boolean aprovado, String observacao) {
         var cliente = clienteService.buscarPorTokenAcesso(token);
         var os = ordemServicoRepository.findById(ordemServicoId)

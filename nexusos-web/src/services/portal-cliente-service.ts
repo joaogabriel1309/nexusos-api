@@ -29,5 +29,13 @@ export const portalClienteService = {
       {}
     );
     return response.data;
+  },
+
+  async confirmarPagamento(token: string, ordemServicoId: string, paymentId: string) {
+    const response = await api.post<PortalOrdemServico>(
+      `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/pagamento/confirmar`,
+      { paymentId }
+    );
+    return response.data;
   }
 };
