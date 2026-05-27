@@ -313,7 +313,7 @@ public class MercadoPagoService {
                 os.getValorTotalEstimado(),
                 "OS n. " + os.getCodigo() + " - " + os.getTitulo(),
                 "pix",
-                new MercadoPagoPayerRequest(os.getCliente().getEmail(), os.getCliente().getNome()),
+                new MercadoPagoPixPayerRequest(os.getCliente().getEmail(), os.getCliente().getNome()),
                 apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",
                 os.getId().toString()
         );
@@ -349,9 +349,15 @@ public class MercadoPagoService {
             BigDecimal transaction_amount,
             String description,
             String payment_method_id,
-            MercadoPagoPayerRequest payer,
+            MercadoPagoPixPayerRequest payer,
             String notification_url,
             String external_reference
+    ) {
+    }
+
+    private record MercadoPagoPixPayerRequest(
+            String email,
+            String first_name
     ) {
     }
 
