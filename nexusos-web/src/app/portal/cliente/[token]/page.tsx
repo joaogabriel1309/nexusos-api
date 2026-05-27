@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { CheckCircle2, CreditCard, Loader2, RefreshCcw, XCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -19,6 +20,16 @@ import type { PortalOrdemServico, StatusOS } from "@/types";
 
 const todosStatusOption = "__todos__";
 const todosProjetosOption = "__todos_projetos__";
+
+type ApiErrorResponse = {
+  mensagem?: string;
+  message?: string;
+};
+
+function mensagemErro(error: unknown, fallback: string) {
+  const axiosError = error as AxiosError<ApiErrorResponse>;
+  return axiosError.response?.data?.mensagem ?? axiosError.response?.data?.message ?? fallback;
+}
 
 function formatarDataHora(data?: string) {
   if (!data) {
@@ -102,8 +113,8 @@ export default function PortalClientePage() {
     onSuccess: (checkout) => {
       window.location.href = checkout.checkoutUrl;
     },
-    onError: () => {
-      toast.error("Nao foi possivel iniciar o pagamento.");
+    onError: (error) => {
+      toast.error(mensagemErro(error, "Nao foi possivel iniciar o pagamento."));
     }
   });
 
