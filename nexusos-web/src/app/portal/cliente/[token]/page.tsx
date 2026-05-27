@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,6 +62,7 @@ export default function PortalClientePage() {
   const params = useParams<{ token: string }>();
   const token = params.token;
   const queryClient = useQueryClient();
+  const [codigoFiltro, setCodigoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
@@ -87,12 +89,14 @@ export default function PortalClientePage() {
 
   const ordensFiltradas = useMemo(() => {
     const ordens = portalQuery.data?.ordens ?? [];
+    const codigoBusca = codigoFiltro.trim();
     return ordens.filter((ordem) => {
+      const matchCodigo = codigoBusca ? String(ordem.codigo).includes(codigoBusca) : true;
       const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
       const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
-      return matchStatus && matchProjeto;
+      return matchCodigo && matchStatus && matchProjeto;
     });
-  }, [portalQuery.data?.ordens, projetoFiltro, statusFiltro]);
+  }, [codigoFiltro, portalQuery.data?.ordens, projetoFiltro, statusFiltro]);
 
   const projetos = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -159,7 +163,14 @@ export default function PortalClientePage() {
                     <div className="text-sm text-muted-foreground">Cliente</div>
                     <div className="text-lg font-semibold">{portalQuery.data?.clienteNome}</div>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Input
+                      inputMode="numeric"
+                      placeholder="Codigo da OS"
+                      value={codigoFiltro}
+                      onChange={(event) => setCodigoFiltro(event.target.value.replace(/\D/g, ""))}
+                      className="sm:w-[180px]"
+                    />
                     <Select
                       value={projetoFiltro || todosProjetosOption}
                       onValueChange={(value) => setProjetoFiltro(value === todosProjetosOption ? "" : value)}
