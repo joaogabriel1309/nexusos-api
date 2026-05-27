@@ -43,6 +43,11 @@ nexusos:
       refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
   storage:
     uploads-path: ${UPLOADS_PATH:uploads}
+  mercado-pago:
+    access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+    api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+    api-base-url: ${API_PUBLIC_URL:http://localhost:8080}
 
 ---
 spring:

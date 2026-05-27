@@ -2,12 +2,15 @@ package com.nexusos.ordemservico;
 
 import java.util.UUID;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID> {
 
     List<OrdemServico> findByClienteIdOrderByAtualizadoEmDesc(UUID clienteId);
+
+    Optional<OrdemServico> findByMercadoPagoPaymentId(String mercadoPagoPaymentId);
 
     @Query(value = "select nextval('ordens_servico_codigo_seq')", nativeQuery = true)
     Long proximoCodigo();

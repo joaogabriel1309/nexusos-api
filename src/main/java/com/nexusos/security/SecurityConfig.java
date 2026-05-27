@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
                         .permitAll()
                         .requestMatchers("/api/v1/portal/clientes/**").permitAll()
+                        .requestMatchers("/api/v1/pagamentos/mercado-pago/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll()
                         .anyRequest().authenticated()
                 )

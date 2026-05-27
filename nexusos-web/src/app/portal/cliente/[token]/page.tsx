@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, RefreshCcw, XCircle } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, RefreshCcw, XCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -49,6 +49,16 @@ function formatarValor(valor?: number) {
   return valor != null ? moeda.format(valor) : "-";
 }
 
+function podeIniciarPagamento(ordem: PortalOrdemServico) {
+  return (
+    ordem.cobrar !== false &&
+    !ordem.paga &&
+    (ordem.valorTotalEstimado ?? 0) > 0 &&
+    ordem.status !== "RECEBIDA" &&
+    ordem.status !== "EM_ANALISE"
+  );
+}
+
 function CampoDetalhe({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div className="rounded-md border bg-secondary/30 p-4">
@@ -84,6 +94,16 @@ export default function PortalClientePage() {
     },
     onError: () => {
       toast.error("Nao foi possivel registrar sua decisao.");
+    }
+  });
+
+  const pagamentoMutation = useMutation({
+    mutationFn: (ordemId: string) => portalClienteService.iniciarPagamento(token, ordemId),
+    onSuccess: (checkout) => {
+      window.location.href = checkout.checkoutUrl;
+    },
+    onError: () => {
+      toast.error("Nao foi possivel iniciar o pagamento.");
     }
   });
 
@@ -304,14 +324,31 @@ export default function PortalClientePage() {
                   <CardHeader>
                     <CardTitle>Valores</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-4 md:grid-cols-3">
-                    <CampoDetalhe
-                      label="Horas estimadas"
-                      value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
-                    />
-                    <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
-                    <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
-                    <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <CampoDetalhe
+                        label="Horas estimadas"
+                        value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
+                      />
+                      <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
+                      <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
+                      <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
+                    </div>
+                    {podeIniciarPagamento(ordemSelecionada) ? (
+                      <div className="flex justify-end">
+                        <Button
+                          disabled={pagamentoMutation.isPending}
+                          onClick={() => pagamentoMutation.mutate(ordemSelecionada.id)}
+                        >
+                          {pagamentoMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CreditCard className="h-4 w-4" />
+                          )}
+                          Pagar
+                        </Button>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
 

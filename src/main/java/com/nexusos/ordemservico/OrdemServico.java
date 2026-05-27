@@ -87,6 +87,10 @@ public class OrdemServico {
     @Column(nullable = false)
     private Boolean paga;
 
+    private String mercadoPagoPreferenceId;
+
+    private String mercadoPagoPaymentId;
+
     @Column(columnDefinition = "text")
     private String descricaoFinalizacao;
 

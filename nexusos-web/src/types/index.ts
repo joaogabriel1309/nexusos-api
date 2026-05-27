@@ -101,4 +101,9 @@ export type PortalCliente = {
   ordens: PortalOrdemServico[];
 };
 
+export type PagamentoCheckoutResponse = {
+  preferenceId: string;
+  checkoutUrl: string;
+};
+
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

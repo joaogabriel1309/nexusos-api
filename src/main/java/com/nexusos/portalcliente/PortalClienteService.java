@@ -4,6 +4,8 @@ import com.nexusos.cliente.ClienteService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.OrdemServicoService;
+import com.nexusos.pagamento.MercadoPagoService;
+import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
 import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
 import java.util.UUID;
@@ -18,6 +20,7 @@ public class PortalClienteService {
     private final ClienteService clienteService;
     private final OrdemServicoRepository ordemServicoRepository;
     private final OrdemServicoService ordemServicoService;
+    private final MercadoPagoService mercadoPagoService;
 
     @Transactional(readOnly = true)
     public PortalClienteResponse listarOrdens(String token) {
@@ -36,6 +39,16 @@ public class PortalClienteService {
     @Transactional
     public PortalOrdemServicoResponse reprovar(String token, UUID ordemServicoId, String observacao) {
         return registrarDecisao(token, ordemServicoId, false, observacao);
+    }
+
+    @Transactional
+    public PagamentoCheckoutResponse iniciarPagamento(String token, UUID ordemServicoId) {
+        var cliente = clienteService.buscarPorTokenAcesso(token);
+        var os = ordemServicoRepository.findById(ordemServicoId)
+                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+
+        return mercadoPagoService.criarCheckout(os, token);
     }
 
     private PortalOrdemServicoResponse registrarDecisao(String token, UUID ordemServicoId, boolean aprovado, String observacao) {
