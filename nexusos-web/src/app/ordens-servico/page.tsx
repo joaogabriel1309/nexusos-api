@@ -34,6 +34,21 @@ const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZ
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
 
+function PagamentoBadge({ paga }: { paga?: boolean }) {
+  return (
+    <Badge
+      variant="outline"
+      className={
+        paga
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-amber-200 bg-amber-50 text-amber-700"
+      }
+    >
+      {paga ? "Paga" : "Pendente"}
+    </Badge>
+  );
+}
+
 export default function OrdensServicoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -237,6 +252,7 @@ export default function OrdensServicoPage() {
                   <TableHead className="min-w-0">OS</TableHead>
                   <TableHead>Cliente / Projeto</TableHead>
                   <TableHead className="w-[190px]">Status</TableHead>
+                  <TableHead className="w-[140px]">Pagamento</TableHead>
                   <TableHead className="w-[160px]">Prazo</TableHead>
                 </TableRow>
               </TableHeader>
@@ -271,6 +287,9 @@ export default function OrdensServicoPage() {
                       <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
                         {statusLabels[ordem.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <PagamentoBadge paga={ordem.paga} />
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>

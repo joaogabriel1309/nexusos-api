@@ -60,6 +60,21 @@ function formatarValor(valor?: number) {
   return valor != null ? moeda.format(valor) : "-";
 }
 
+function PagamentoBadge({ paga }: { paga?: boolean }) {
+  return (
+    <Badge
+      variant="outline"
+      className={
+        paga
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-amber-200 bg-amber-50 text-amber-700"
+      }
+    >
+      {paga ? "Paga" : "Pendente"}
+    </Badge>
+  );
+}
+
 function podeIniciarPagamento(ordem: PortalOrdemServico) {
   return (
     ordem.cobrar !== false &&
@@ -334,7 +349,7 @@ export default function PortalClientePage() {
                       <TableRow>
                         <TableHead>OS</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Criada em</TableHead>
+                        <TableHead>Pagamento</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -360,7 +375,9 @@ export default function PortalClientePage() {
                               {statusLabels[ordem.status]}
                             </Badge>
                           </TableCell>
-                          <TableCell>{formatarDataHora(ordem.criadoEm)}</TableCell>
+                          <TableCell>
+                            <PagamentoBadge paga={ordem.paga} />
+                          </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatarValor(ordem.valorTotalEstimado)}
                           </TableCell>
