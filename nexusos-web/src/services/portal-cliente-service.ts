@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { PagamentoCheckoutResponse, PortalCliente, PortalOrdemServico } from "@/types";
+import type { PagamentoCheckoutResponse, PagamentoPixResponse, PortalCliente, PortalOrdemServico } from "@/types";
 
 export const portalClienteService = {
   async listarOrdens(token: string) {
@@ -26,6 +26,14 @@ export const portalClienteService = {
   async iniciarPagamento(token: string, ordemServicoId: string) {
     const response = await api.post<PagamentoCheckoutResponse>(
       `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/pagamento`,
+      {}
+    );
+    return response.data;
+  },
+
+  async gerarPix(token: string, ordemServicoId: string) {
+    const response = await api.post<PagamentoPixResponse>(
+      `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/pagamento/pix`,
       {}
     );
     return response.data;

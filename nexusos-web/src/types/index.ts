@@ -108,4 +108,12 @@ export type PagamentoCheckoutResponse = {
   checkoutUrl: string;
 };
 
+export type PagamentoPixResponse = {
+  paymentId: string;
+  status: string;
+  qrCode: string;
+  qrCodeBase64?: string;
+  ticketUrl?: string;
+};
+
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

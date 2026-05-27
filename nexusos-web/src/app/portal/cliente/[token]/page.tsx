@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { CheckCircle2, CreditCard, Loader2, RefreshCcw, SearchCheck, XCircle } from "lucide-react";
+import { CheckCircle2, Copy, CreditCard, Loader2, QrCode, RefreshCcw, SearchCheck, XCircle } from "lucide-react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,9 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
-import type { PortalOrdemServico, StatusOS } from "@/types";
+import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
 
 const todosStatusOption = "__todos__";
 const todosProjetosOption = "__todos_projetos__";
@@ -125,6 +127,7 @@ export default function PortalClientePage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
+  const [pixPagamento, setPixPagamento] = useState<PagamentoPixResponse | null>(null);
 
   const queryKey = ["portal-cliente", token];
   const portalQuery = useQuery({
@@ -153,6 +156,19 @@ export default function PortalClientePage() {
     },
     onError: (error) => {
       toast.error(mensagemErro(error, "Nao foi possivel iniciar o pagamento."));
+    }
+  });
+
+  const pixMutation = useMutation({
+    mutationFn: (ordemId: string) => portalClienteService.gerarPix(token, ordemId),
+    onSuccess: (pix) => {
+      setPixPagamento(pix);
+      setOrdemSelecionada((ordem) => (ordem ? { ...ordem, pagamentoIniciado: true } : ordem));
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Pix gerado com sucesso.");
+    },
+    onError: (error) => {
+      toast.error(mensagemErro(error, "Nao foi possivel gerar o Pix."));
     }
   });
 
@@ -465,6 +481,18 @@ export default function PortalClientePage() {
                           )}
                           Pagar
                         </Button>
+                        <Button
+                          variant="secondary"
+                          disabled={pixMutation.isPending}
+                          onClick={() => pixMutation.mutate(ordemSelecionada.id)}
+                        >
+                          {pixMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <QrCode className="h-4 w-4" />
+                          )}
+                          Pagar com Pix
+                        </Button>
                       </div>
                     ) : null}
                   </CardContent>
@@ -500,6 +528,66 @@ export default function PortalClientePage() {
                     </Button>
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={Boolean(pixPagamento)} onOpenChange={(open) => !open && setPixPagamento(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Pagamento Pix</DialogTitle>
+              <DialogDescription>Escaneie o QR Code ou use o Pix copia e cola no app do seu banco.</DialogDescription>
+            </DialogHeader>
+            {pixPagamento ? (
+              <div className="space-y-4">
+                {pixPagamento.qrCodeBase64 ? (
+                  <div className="flex justify-center rounded-md border bg-white p-4">
+                    <Image
+                      src={`data:image/png;base64,${pixPagamento.qrCodeBase64}`}
+                      alt="QR Code Pix"
+                      width={224}
+                      height={224}
+                      unoptimized
+                    />
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Pix copia e cola</div>
+                  <Textarea readOnly value={pixPagamento.qrCode} className="min-h-32 resize-none text-xs" />
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {pixPagamento.ticketUrl ? (
+                    <Button variant="outline" asChild>
+                      <a href={pixPagamento.ticketUrl} target="_blank" rel="noreferrer">
+                        Abrir Pix
+                      </a>
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixPagamento.qrCode);
+                      toast.success("Codigo Pix copiado.");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar codigo
+                  </Button>
+                  {ordemSelecionada ? (
+                    <Button
+                      disabled={verificarPagamentoMutation.isPending}
+                      onClick={() => verificarPagamentoMutation.mutate(ordemSelecionada.id)}
+                    >
+                      {verificarPagamentoMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <SearchCheck className="h-4 w-4" />
+                      )}
+                      Verificar pagamento
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </DialogContent>

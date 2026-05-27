@@ -6,6 +6,7 @@ import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.OrdemServicoService;
 import com.nexusos.pagamento.MercadoPagoService;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
+import com.nexusos.pagamento.dto.PagamentoPixResponse;
 import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
 import java.util.UUID;
@@ -49,6 +50,16 @@ public class PortalClienteService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
 
         return mercadoPagoService.criarCheckout(os, token);
+    }
+
+    @Transactional
+    public PagamentoPixResponse gerarPix(String token, UUID ordemServicoId) {
+        var cliente = clienteService.buscarPorTokenAcesso(token);
+        var os = ordemServicoRepository.findById(ordemServicoId)
+                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+
+        return mercadoPagoService.criarPix(os);
     }
 
     @Transactional

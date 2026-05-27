@@ -8,9 +8,11 @@ import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.StatusOS;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
+import com.nexusos.pagamento.dto.PagamentoPixResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,6 +68,42 @@ public class MercadoPagoService {
         } catch (RestClientException ex) {
             log.warn("Falha ao comunicar com Mercado Pago ao criar preferencia da OS {}: {}", os.getId(), ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel iniciar o pagamento no Mercado Pago.");
+        }
+    }
+
+    @Transactional
+    public PagamentoPixResponse criarPix(OrdemServico os) {
+        validarPagamentoDisponivel(os);
+        var request = criarPixRequest(os);
+
+        try {
+            var response = restClient().post()
+                    .uri("/v1/payments")
+                    .header("X-Idempotency-Key", UUID.randomUUID().toString())
+                    .body(request)
+                    .retrieve()
+                    .body(MercadoPagoPaymentResponse.class);
+
+            if (response == null || response.id() == null || response.qrCode() == null) {
+                throw new RegraNegocioException("Mercado Pago nao retornou QR Code Pix.");
+            }
+
+            os.setMercadoPagoPaymentId(response.id());
+            ordemServicoRepository.save(os);
+            return new PagamentoPixResponse(
+                    response.id(),
+                    response.status(),
+                    response.qrCode(),
+                    response.qrCodeBase64(),
+                    response.ticketUrl()
+            );
+        } catch (RestClientResponseException ex) {
+            var detalhe = extrairMensagemMercadoPago(ex);
+            log.warn("Mercado Pago recusou a criacao do Pix da OS {}: {}", os.getId(), detalhe);
+            throw new RegraNegocioException("Mercado Pago recusou o Pix: " + detalhe);
+        } catch (RestClientException ex) {
+            log.warn("Falha ao comunicar com Mercado Pago ao criar Pix da OS {}: {}", os.getId(), ex.getMessage());
+            throw new RegraNegocioException("Nao foi possivel gerar o Pix no Mercado Pago.");
         }
     }
 
@@ -270,6 +308,17 @@ public class MercadoPagoService {
         );
     }
 
+    private MercadoPagoPixRequest criarPixRequest(OrdemServico os) {
+        return new MercadoPagoPixRequest(
+                os.getValorTotalEstimado(),
+                "OS n. " + os.getCodigo() + " - " + os.getTitulo(),
+                "pix",
+                new MercadoPagoPayerRequest(os.getCliente().getEmail(), os.getCliente().getNome()),
+                apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",
+                os.getId().toString()
+        );
+    }
+
     private boolean deveUsarAutoReturn() {
         return frontendBaseUrl != null
                 && frontendBaseUrl.startsWith("https://")
@@ -293,6 +342,16 @@ public class MercadoPagoService {
             String notification_url,
             String external_reference,
             String auto_return
+    ) {
+    }
+
+    private record MercadoPagoPixRequest(
+            BigDecimal transaction_amount,
+            String description,
+            String payment_method_id,
+            MercadoPagoPayerRequest payer,
+            String notification_url,
+            String external_reference
     ) {
     }
 
@@ -324,7 +383,37 @@ public class MercadoPagoService {
             String id,
             String status,
             @com.fasterxml.jackson.annotation.JsonProperty("transaction_amount") BigDecimal transactionAmount,
-            @com.fasterxml.jackson.annotation.JsonProperty("external_reference") String externalReference
+            @com.fasterxml.jackson.annotation.JsonProperty("external_reference") String externalReference,
+            @com.fasterxml.jackson.annotation.JsonProperty("point_of_interaction") MercadoPagoPointOfInteraction pointOfInteraction
+    ) {
+        String qrCode() {
+            return pointOfInteraction != null && pointOfInteraction.transactionData() != null
+                    ? pointOfInteraction.transactionData().qrCode()
+                    : null;
+        }
+
+        String qrCodeBase64() {
+            return pointOfInteraction != null && pointOfInteraction.transactionData() != null
+                    ? pointOfInteraction.transactionData().qrCodeBase64()
+                    : null;
+        }
+
+        String ticketUrl() {
+            return pointOfInteraction != null && pointOfInteraction.transactionData() != null
+                    ? pointOfInteraction.transactionData().ticketUrl()
+                    : null;
+        }
+    }
+
+    private record MercadoPagoPointOfInteraction(
+            @com.fasterxml.jackson.annotation.JsonProperty("transaction_data") MercadoPagoTransactionData transactionData
+    ) {
+    }
+
+    private record MercadoPagoTransactionData(
+            @com.fasterxml.jackson.annotation.JsonProperty("qr_code") String qrCode,
+            @com.fasterxml.jackson.annotation.JsonProperty("qr_code_base64") String qrCodeBase64,
+            @com.fasterxml.jackson.annotation.JsonProperty("ticket_url") String ticketUrl
     ) {
     }
 

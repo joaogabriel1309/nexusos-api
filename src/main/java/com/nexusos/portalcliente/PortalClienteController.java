@@ -5,6 +5,7 @@ import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
 import com.nexusos.portalcliente.dto.PortalPagamentoConfirmacaoRequest;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
+import com.nexusos.pagamento.dto.PagamentoPixResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -54,6 +55,13 @@ public class PortalClienteController {
     public ResponseEntity<PagamentoCheckoutResponse> iniciarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(portalClienteService.iniciarPagamento(token, ordemServicoId));
+    }
+
+    @Operation(summary = "Gera pagamento Pix da OS no Mercado Pago")
+    @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/pix")
+    public ResponseEntity<PagamentoPixResponse> gerarPix(@PathVariable String token,
+            @PathVariable UUID ordemServicoId) {
+        return ResponseEntity.ok(portalClienteService.gerarPix(token, ordemServicoId));
     }
 
     @Operation(summary = "Confirma pagamento da OS pelo retorno do Mercado Pago")
