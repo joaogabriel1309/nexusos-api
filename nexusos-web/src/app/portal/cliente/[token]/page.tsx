@@ -17,6 +17,7 @@ import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PortalOrdemServico, StatusOS } from "@/types";
 
 const todosStatusOption = "__todos__";
+const todosProjetosOption = "__todos_projetos__";
 
 function formatarDataHora(data?: string) {
   if (!data) {
@@ -61,6 +62,7 @@ export default function PortalClientePage() {
   const token = params.token;
   const queryClient = useQueryClient();
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
+  const [projetoFiltro, setProjetoFiltro] = useState("");
   const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
 
   const queryKey = ["portal-cliente", token];
@@ -85,11 +87,29 @@ export default function PortalClientePage() {
 
   const ordensFiltradas = useMemo(() => {
     const ordens = portalQuery.data?.ordens ?? [];
-    return ordens.filter((ordem) => (statusFiltro ? ordem.status === statusFiltro : true));
-  }, [portalQuery.data?.ordens, statusFiltro]);
+    return ordens.filter((ordem) => {
+      const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
+      const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
+      return matchStatus && matchProjeto;
+    });
+  }, [portalQuery.data?.ordens, projetoFiltro, statusFiltro]);
+
+  const projetos = useMemo(() => {
+    const mapa = new Map<string, string>();
+
+    for (const ordem of portalQuery.data?.ordens ?? []) {
+      if (ordem.projetoId && ordem.projetoNome) {
+        mapa.set(ordem.projetoId, ordem.projetoNome);
+      }
+    }
+
+    return Array.from(mapa.entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [portalQuery.data?.ordens]);
 
   const totais = useMemo(() => {
-    return (portalQuery.data?.ordens ?? []).reduce(
+    return ordensFiltradas.reduce(
       (total, ordem) => {
         const valor = ordem.valorTotalEstimado ?? 0;
 
@@ -103,7 +123,7 @@ export default function PortalClientePage() {
       },
       { aPagar: 0, pago: 0 }
     );
-  }, [portalQuery.data?.ordens]);
+  }, [ordensFiltradas]);
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -134,27 +154,45 @@ export default function PortalClientePage() {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <div className="text-sm text-muted-foreground">Cliente</div>
                     <div className="text-lg font-semibold">{portalQuery.data?.clienteNome}</div>
                   </div>
-                  <Select
-                    value={statusFiltro || todosStatusOption}
-                    onValueChange={(value) => setStatusFiltro(value === todosStatusOption ? "" : (value as StatusOS))}
-                  >
-                    <SelectTrigger className="sm:w-[240px]">
-                      <SelectValue placeholder="Filtrar por status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={todosStatusOption}>Todos os status</SelectItem>
-                      {statusOptions.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {statusLabels[status]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Select
+                      value={projetoFiltro || todosProjetosOption}
+                      onValueChange={(value) => setProjetoFiltro(value === todosProjetosOption ? "" : value)}
+                    >
+                      <SelectTrigger className="sm:w-[240px]">
+                        <SelectValue placeholder="Filtrar por projeto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={todosProjetosOption}>Todos os projetos</SelectItem>
+                        {projetos.map((projeto) => (
+                          <SelectItem key={projeto.id} value={projeto.id}>
+                            {projeto.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={statusFiltro || todosStatusOption}
+                      onValueChange={(value) => setStatusFiltro(value === todosStatusOption ? "" : (value as StatusOS))}
+                    >
+                      <SelectTrigger className="sm:w-[240px]">
+                        <SelectValue placeholder="Filtrar por status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={todosStatusOption}>Todos os status</SelectItem>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {statusLabels[status]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">

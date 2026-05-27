@@ -14,10 +14,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ProjetoFormData } from "@/schemas/projeto-schema";
+import { clienteService } from "@/services/cliente-service";
 import { projetoService } from "@/services/projeto-service";
 import type { Projeto } from "@/types";
 
 const projetosQueryKey = ["projetos"];
+const clientesQueryKey = ["clientes"];
 
 export default function ProjetosPage() {
   const queryClient = useQueryClient();
@@ -28,6 +30,11 @@ export default function ProjetosPage() {
   const projetosQuery = useQuery({
     queryKey: projetosQueryKey,
     queryFn: projetoService.listar
+  });
+
+  const clientesQuery = useQuery({
+    queryKey: clientesQueryKey,
+    queryFn: clienteService.listar
   });
 
   const salvarProjetoMutation = useMutation({
@@ -66,6 +73,7 @@ export default function ProjetosPage() {
   });
 
   const projetos = projetosQuery.data ?? [];
+  const clientes = (clientesQuery.data ?? []).filter((cliente) => cliente.ativo);
 
   function abrirCadastro() {
     setProjetoSelecionado(null);
@@ -91,7 +99,7 @@ export default function ProjetosPage() {
         title="Projetos"
         description="Cadastre projetos e vincule-os opcionalmente as ordens de servico."
         actions={
-          <Button onClick={abrirCadastro}>
+          <Button onClick={abrirCadastro} disabled={clientes.length === 0 || clientesQuery.isLoading}>
             <Plus className="h-4 w-4" />
             Novo projeto
           </Button>
@@ -100,16 +108,23 @@ export default function ProjetosPage() {
 
       <Card>
         <CardContent className="p-0">
-          {projetosQuery.isLoading ? (
+          {projetosQuery.isLoading || clientesQuery.isLoading ? (
             <div className="space-y-3 p-5">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : projetosQuery.isError ? (
+          ) : projetosQuery.isError || clientesQuery.isError ? (
             <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nao foi possivel carregar os projetos.</span>
-              <Button variant="outline" size="sm" onClick={() => projetosQuery.refetch()}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    projetosQuery.refetch();
+                    clientesQuery.refetch();
+                  }}
+                >
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
               </Button>
@@ -117,7 +132,7 @@ export default function ProjetosPage() {
           ) : projetos.length === 0 ? (
             <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nenhum projeto cadastrado.</span>
-              <Button variant="outline" size="sm" onClick={abrirCadastro}>
+                <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
                 <Plus className="h-4 w-4" />
                 Cadastrar projeto
               </Button>
@@ -127,6 +142,7 @@ export default function ProjetosPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Descricao</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-[140px] text-right">Acoes</TableHead>
@@ -136,6 +152,7 @@ export default function ProjetosPage() {
                 {projetos.map((projeto) => (
                   <TableRow key={projeto.id}>
                     <TableCell className="font-medium">{projeto.nome}</TableCell>
+                    <TableCell>{projeto.clienteNome || "-"}</TableCell>
                     <TableCell className="max-w-[520px] whitespace-normal text-muted-foreground">
                       {projeto.descricao || "-"}
                     </TableCell>
@@ -190,6 +207,7 @@ export default function ProjetosPage() {
           </DialogHeader>
           <ProjetoForm
             projeto={projetoSelecionado}
+            clientes={clientes}
             isSubmitting={salvarProjetoMutation.isPending}
             onSubmit={(data) => salvarProjetoMutation.mutate(data)}
           />

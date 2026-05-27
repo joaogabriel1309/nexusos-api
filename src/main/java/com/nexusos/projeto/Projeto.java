@@ -1,8 +1,12 @@
 package com.nexusos.projeto;
 
+import com.nexusos.cliente.Cliente;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -31,6 +35,10 @@ public class Projeto {
 
     @Column(columnDefinition = "text")
     private String descricao;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    private Cliente cliente;
 
     @Column(nullable = false)
     private boolean ativo;

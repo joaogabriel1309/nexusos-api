@@ -1,5 +1,6 @@
 package com.nexusos.projeto;
 
+import com.nexusos.cliente.ClienteService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.projeto.dto.ProjetoRequest;
 import com.nexusos.projeto.dto.ProjetoResponse;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
+    private final ClienteService clienteService;
 
     @Transactional(readOnly = true)
     public List<ProjetoResponse> listar() {
@@ -31,6 +33,7 @@ public class ProjetoService {
         var projeto = Projeto.builder()
                 .nome(request.nome())
                 .descricao(request.descricao())
+                .cliente(clienteService.buscarEntidade(request.clienteId()))
                 .build();
         return ProjetoResponse.from(projetoRepository.save(projeto));
     }
@@ -40,6 +43,7 @@ public class ProjetoService {
         var projeto = buscarEntidade(id);
         projeto.setNome(request.nome());
         projeto.setDescricao(request.descricao());
+        projeto.setCliente(clienteService.buscarEntidade(request.clienteId()));
         projeto.setAtivo(request.ativo());
         return ProjetoResponse.from(projetoRepository.save(projeto));
     }

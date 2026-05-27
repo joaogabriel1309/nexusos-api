@@ -39,6 +39,8 @@ export type Projeto = {
   id: string;
   nome: string;
   descricao?: string;
+  clienteId?: string;
+  clienteNome?: string;
   ativo: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -79,6 +81,7 @@ export type PortalOrdemServico = {
   status: StatusOS;
   prioridade: PrioridadeOS;
   prazo?: string;
+  projetoId?: string;
   projetoNome?: string;
   textoAnalise?: string;
   estimativaHoras?: number;

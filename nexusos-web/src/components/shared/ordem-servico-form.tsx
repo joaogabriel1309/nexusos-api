@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -25,7 +25,7 @@ const prioridades: { value: PrioridadeOS; label: string }[] = [
 type OrdemServicoFormProps = {
   clientes: Pick<Cliente, "id" | "nome">[];
   responsaveis: Pick<Usuario, "id" | "nome">[];
-  projetos: Pick<Projeto, "id" | "nome">[];
+  projetos: Pick<Projeto, "id" | "nome" | "clienteId">[];
   ordem?: OrdemServico | null;
   isSubmitting?: boolean;
   onSubmit: (data: OrdemServicoFormData) => void;
@@ -44,6 +44,10 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
       prazo: ""
     }
   });
+  const clienteId = form.watch("clienteId");
+  const projetosDoCliente = useMemo(() => {
+    return projetos.filter((projeto) => !projeto.clienteId || projeto.clienteId === clienteId);
+  }, [clienteId, projetos]);
 
   useEffect(() => {
     form.reset({
@@ -56,6 +60,13 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
       prazo: ordem?.prazo ?? ""
     });
   }, [form, ordem]);
+
+  useEffect(() => {
+    const projetoId = form.getValues("projetoId");
+    if (projetoId && !projetosDoCliente.some((projeto) => projeto.id === projetoId)) {
+      form.setValue("projetoId", "");
+    }
+  }, [form, projetosDoCliente]);
 
   return (
     <Form {...form}>
@@ -143,7 +154,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                   </FormControl>
                   <SelectContent>
                     <SelectItem value={projetoNaoVinculado}>Sem projeto</SelectItem>
-                    {projetos.map((projeto) => (
+                    {projetosDoCliente.map((projeto) => (
                       <SelectItem key={projeto.id} value={projeto.id}>
                         {projeto.nome}
                       </SelectItem>

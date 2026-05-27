@@ -62,6 +62,7 @@ public class OrdemServicoService {
         var cliente = clienteService.buscarEntidade(request.clienteId());
         var responsavel = request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null;
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
+        validarProjetoDoCliente(projeto, cliente.getId());
         var os = OrdemServico.builder()
                 .codigo(ordemServicoRepository.proximoCodigo())
                 .titulo(request.titulo())
@@ -89,7 +90,9 @@ public class OrdemServicoService {
         os.setDescricao(request.descricao());
         os.setCliente(clienteService.buscarEntidade(request.clienteId()));
         os.setResponsavel(request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null);
-        os.setProjeto(request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null);
+        var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
+        validarProjetoDoCliente(projeto, os.getCliente().getId());
+        os.setProjeto(projeto);
         os.setPrioridade(request.prioridade());
         os.setPrazo(request.prazo());
         os.setEntendimento(request.entendimento());
@@ -209,5 +212,11 @@ public class OrdemServicoService {
         }
 
         os.setValorTotalEstimado(os.getEstimativaHoras().multiply(os.getCliente().getValorHora()));
+    }
+
+    private void validarProjetoDoCliente(com.nexusos.projeto.Projeto projeto, UUID clienteId) {
+        if (projeto != null && projeto.getCliente() != null && !projeto.getCliente().getId().equals(clienteId)) {
+            throw new RegraNegocioException("Projeto nao pertence ao cliente informado.");
+        }
     }
 }
