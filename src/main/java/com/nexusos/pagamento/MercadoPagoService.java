@@ -1,5 +1,7 @@
 package com.nexusos.pagamento;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
@@ -9,17 +11,21 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MercadoPagoService {
 
     private final OrdemServicoRepository ordemServicoRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${nexusos.mercado-pago.access-token:}")
     private String accessToken;
@@ -52,7 +58,12 @@ public class MercadoPagoService {
             os.setMercadoPagoPreferenceId(response.id());
             ordemServicoRepository.save(os);
             return new PagamentoCheckoutResponse(response.id(), response.checkoutUrl());
+        } catch (RestClientResponseException ex) {
+            var detalhe = extrairMensagemMercadoPago(ex);
+            log.warn("Mercado Pago recusou a criacao da preferencia da OS {}: {}", os.getId(), detalhe);
+            throw new RegraNegocioException("Mercado Pago recusou o pagamento: " + detalhe);
         } catch (RestClientException ex) {
+            log.warn("Falha ao comunicar com Mercado Pago ao criar preferencia da OS {}: {}", os.getId(), ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel iniciar o pagamento no Mercado Pago.");
         }
     }
@@ -112,6 +123,45 @@ public class MercadoPagoService {
         return valorPago != null
                 && os.getValorTotalEstimado() != null
                 && os.getValorTotalEstimado().compareTo(valorPago) == 0;
+    }
+
+    private String extrairMensagemMercadoPago(RestClientResponseException ex) {
+        var body = ex.getResponseBodyAsString();
+        if (body == null || body.isBlank()) {
+            return "HTTP " + ex.getStatusCode().value();
+        }
+
+        try {
+            JsonNode json = objectMapper.readTree(body);
+            var message = valorTexto(json, "message");
+            var error = valorTexto(json, "error");
+            var cause = json.path("cause");
+
+            if (cause.isArray() && !cause.isEmpty()) {
+                var primeiroErro = cause.get(0);
+                var code = valorTexto(primeiroErro, "code");
+                var description = valorTexto(primeiroErro, "description");
+                if (description != null) {
+                    return code != null ? code + " - " + description : description;
+                }
+            }
+
+            if (message != null) {
+                return message;
+            }
+            if (error != null) {
+                return error;
+            }
+        } catch (Exception ignored) {
+            return body.length() > 250 ? body.substring(0, 250) : body;
+        }
+
+        return "HTTP " + ex.getStatusCode().value();
+    }
+
+    private String valorTexto(JsonNode json, String campo) {
+        var valor = json.path(campo);
+        return valor.isTextual() && !valor.asText().isBlank() ? valor.asText() : null;
     }
 
     private MercadoPagoPreferenceRequest criarPreferenceRequest(OrdemServico os, String tokenCliente) {
