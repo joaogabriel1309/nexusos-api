@@ -62,6 +62,17 @@ public class PortalClienteService {
         return PortalOrdemServicoResponse.from(osAtualizada);
     }
 
+    @Transactional
+    public PortalOrdemServicoResponse verificarPagamento(String token, UUID ordemServicoId) {
+        var cliente = clienteService.buscarPorTokenAcesso(token);
+        var os = ordemServicoRepository.findById(ordemServicoId)
+                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+
+        var osAtualizada = mercadoPagoService.verificarPagamentoCliente(os);
+        return PortalOrdemServicoResponse.from(osAtualizada);
+    }
+
     private PortalOrdemServicoResponse registrarDecisao(String token, UUID ordemServicoId, boolean aprovado, String observacao) {
         var cliente = clienteService.buscarPorTokenAcesso(token);
         var os = ordemServicoRepository.findById(ordemServicoId)

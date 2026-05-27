@@ -63,4 +63,11 @@ public class PortalClienteController {
             @RequestBody @Valid PortalPagamentoConfirmacaoRequest request) {
         return ResponseEntity.ok(portalClienteService.confirmarPagamento(token, ordemServicoId, request.paymentId()));
     }
+
+    @Operation(summary = "Verifica pagamento aprovado da OS no Mercado Pago")
+    @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/verificar")
+    public ResponseEntity<PortalOrdemServicoResponse> verificarPagamento(@PathVariable String token,
+            @PathVariable UUID ordemServicoId) {
+        return ResponseEntity.ok(portalClienteService.verificarPagamento(token, ordemServicoId));
+    }
 }

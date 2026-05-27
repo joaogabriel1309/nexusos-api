@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { CheckCircle2, CreditCard, Loader2, RefreshCcw, XCircle } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, RefreshCcw, SearchCheck, XCircle } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -153,6 +153,18 @@ export default function PortalClientePage() {
     },
     onError: (error) => {
       toast.error(mensagemErro(error, "Pagamento aprovado, mas nao foi possivel atualizar a OS."));
+    }
+  });
+
+  const verificarPagamentoMutation = useMutation({
+    mutationFn: (ordemId: string) => portalClienteService.verificarPagamento(token, ordemId),
+    onSuccess: (ordemAtualizada) => {
+      queryClient.invalidateQueries({ queryKey });
+      setOrdemSelecionada(ordemAtualizada);
+      toast.success("Pagamento confirmado com sucesso.");
+    },
+    onError: (error) => {
+      toast.error(mensagemErro(error, "Pagamento aprovado ainda nao encontrado."));
     }
   });
 
@@ -410,7 +422,21 @@ export default function PortalClientePage() {
                       <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
                     </div>
                     {podeIniciarPagamento(ordemSelecionada) ? (
-                      <div className="flex justify-end">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {ordemSelecionada.pagamentoIniciado ? (
+                          <Button
+                            variant="outline"
+                            disabled={verificarPagamentoMutation.isPending}
+                            onClick={() => verificarPagamentoMutation.mutate(ordemSelecionada.id)}
+                          >
+                            {verificarPagamentoMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <SearchCheck className="h-4 w-4" />
+                            )}
+                            Verificar pagamento
+                          </Button>
+                        ) : null}
                         <Button
                           disabled={pagamentoMutation.isPending}
                           onClick={() => pagamentoMutation.mutate(ordemSelecionada.id)}

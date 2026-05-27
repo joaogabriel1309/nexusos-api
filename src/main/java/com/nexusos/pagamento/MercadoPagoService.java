@@ -109,6 +109,19 @@ public class MercadoPagoService {
         return ordemServicoRepository.save(os);
     }
 
+    @Transactional
+    public OrdemServico verificarPagamentoCliente(OrdemServico os) {
+        var pagamento = buscarPagamentoAprovado(os);
+
+        if (pagamento == null) {
+            throw new RegraNegocioException("Pagamento aprovado ainda nao encontrado no Mercado Pago.");
+        }
+
+        os.setMercadoPagoPaymentId(pagamento.id());
+        os.setPaga(true);
+        return ordemServicoRepository.save(os);
+    }
+
     private void confirmarPagamento(String paymentId) {
         try {
             var payment = consultarPagamento(paymentId);
@@ -139,6 +152,33 @@ public class MercadoPagoService {
                 .uri("/v1/payments/{id}", paymentId)
                 .retrieve()
                 .body(MercadoPagoPaymentResponse.class);
+    }
+
+    private MercadoPagoPaymentResponse buscarPagamentoAprovado(OrdemServico os) {
+        try {
+            var response = restClient().get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/v1/payments/search")
+                            .queryParam("external_reference", os.getId())
+                            .build())
+                    .retrieve()
+                    .body(MercadoPagoPaymentSearchResponse.class);
+
+            if (response == null || response.results() == null) {
+                return null;
+            }
+
+            return response.results().stream()
+                    .filter(pagamento -> "approved".equalsIgnoreCase(pagamento.status()))
+                    .filter(pagamento -> os.getId().toString().equals(pagamento.externalReference()))
+                    .filter(pagamento -> valorConfere(os, pagamento.transactionAmount()))
+                    .findFirst()
+                    .orElse(null);
+        } catch (RestClientResponseException ex) {
+            throw new RegraNegocioException("Nao foi possivel consultar pagamentos: " + extrairMensagemMercadoPago(ex));
+        } catch (RestClientException ex) {
+            throw new RegraNegocioException("Nao foi possivel consultar pagamentos no Mercado Pago.");
+        }
     }
 
     private void validarPagamentoDisponivel(OrdemServico os) {
@@ -285,6 +325,11 @@ public class MercadoPagoService {
             String status,
             @com.fasterxml.jackson.annotation.JsonProperty("transaction_amount") BigDecimal transactionAmount,
             @com.fasterxml.jackson.annotation.JsonProperty("external_reference") String externalReference
+    ) {
+    }
+
+    private record MercadoPagoPaymentSearchResponse(
+            List<MercadoPagoPaymentResponse> results
     ) {
     }
 }

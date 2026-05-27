@@ -37,5 +37,13 @@ export const portalClienteService = {
       { paymentId }
     );
     return response.data;
+  },
+
+  async verificarPagamento(token: string, ordemServicoId: string) {
+    const response = await api.post<PortalOrdemServico>(
+      `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/pagamento/verificar`,
+      {}
+    );
+    return response.data;
   }
 };

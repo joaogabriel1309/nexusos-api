@@ -67,6 +67,7 @@ export type OrdemServico = {
   valorTotalEstimado?: number;
   cobrar?: boolean;
   paga?: boolean;
+  pagamentoIniciado?: boolean;
   descricaoFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;
@@ -88,6 +89,7 @@ export type PortalOrdemServico = {
   valorTotalEstimado?: number;
   cobrar?: boolean;
   paga?: boolean;
+  pagamentoIniciado?: boolean;
   descricaoFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;
