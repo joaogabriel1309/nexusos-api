@@ -70,6 +70,26 @@ function podeIniciarPagamento(ordem: PortalOrdemServico) {
   );
 }
 
+function pagamentoAprovadoNoRetorno(searchParams: ReturnType<typeof useSearchParams>) {
+  return (
+    searchParams.get("pagamento") === "sucesso" ||
+    searchParams.get("status") === "approved" ||
+    searchParams.get("collection_status") === "approved"
+  );
+}
+
+function pagamentoPendenteNoRetorno(searchParams: ReturnType<typeof useSearchParams>) {
+  return searchParams.get("pagamento") === "pendente" || searchParams.get("status") === "pending";
+}
+
+function pagamentoFalhouNoRetorno(searchParams: ReturnType<typeof useSearchParams>) {
+  return (
+    searchParams.get("pagamento") === "falha" ||
+    searchParams.get("status") === "failure" ||
+    searchParams.get("collection_status") === "rejected"
+  );
+}
+
 function CampoDetalhe({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div className="rounded-md border bg-secondary/30 p-4">
@@ -141,18 +161,21 @@ export default function PortalClientePage() {
       return;
     }
 
-    const statusPagamento = searchParams.get("pagamento");
-    const ordemId = searchParams.get("os");
+    const ordemId = searchParams.get("os") ?? searchParams.get("external_reference");
     const paymentId = searchParams.get("payment_id") ?? searchParams.get("collection_id");
 
-    if (statusPagamento === "sucesso" && ordemId && paymentId) {
+    if (pagamentoAprovadoNoRetorno(searchParams) && ordemId && paymentId) {
       pagamentoRetornoProcessado.current = true;
       confirmarPagamentoMutation.mutate({ ordemId, paymentId });
-    } else if (statusPagamento === "pendente") {
+    } else if (pagamentoAprovadoNoRetorno(searchParams)) {
+      pagamentoRetornoProcessado.current = true;
+      toast.warning("Pagamento aprovado, mas o retorno nao trouxe os dados necessarios para atualizar a OS.");
+      router.replace(`/portal/cliente/${token}`);
+    } else if (pagamentoPendenteNoRetorno(searchParams)) {
       pagamentoRetornoProcessado.current = true;
       toast.info("Pagamento pendente. A OS sera atualizada quando o Mercado Pago confirmar.");
       router.replace(`/portal/cliente/${token}`);
-    } else if (statusPagamento === "falha") {
+    } else if (pagamentoFalhouNoRetorno(searchParams)) {
       pagamentoRetornoProcessado.current = true;
       toast.error("Pagamento nao aprovado.");
       router.replace(`/portal/cliente/${token}`);
