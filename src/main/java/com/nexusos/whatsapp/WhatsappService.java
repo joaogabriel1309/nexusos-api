@@ -22,8 +22,14 @@ public class WhatsappService {
     @Value("${nexusos.whatsapp.enabled:false}")
     private boolean whatsappEnabled;
 
+    @Value("${nexusos.whatsapp.provider:callmebot}")
+    private String provider;
+
     @Value("${nexusos.whatsapp.api-url:https://graph.facebook.com/v20.0}")
     private String apiUrl;
+
+    @Value("${nexusos.whatsapp.callmebot-api-url:https://api.callmebot.com}")
+    private String callmebotApiUrl;
 
     @Value("${nexusos.whatsapp.phone-number-id:}")
     private String phoneNumberId;
@@ -42,7 +48,7 @@ public class WhatsappService {
             return;
         }
 
-        enviar(os.getCliente().getTelefone(),
+        enviar(os,
                 """
                         Ola, %s.
 
@@ -73,7 +79,7 @@ public class WhatsappService {
             return;
         }
 
-        enviar(os.getCliente().getTelefone(),
+        enviar(os,
                 """
                         Ola, %s.
 
@@ -104,18 +110,62 @@ public class WhatsappService {
                 && !os.getCliente().getTelefone().isBlank();
     }
 
-    private void enviar(String telefone, String conteudo) {
+    private void enviar(OrdemServico os, String conteudo) {
+        var telefone = os.getCliente().getTelefone();
         if (!whatsappEnabled) {
             log.info("Envio de WhatsApp desabilitado. Mensagem para '{}' nao enviada.", telefone);
             return;
         }
 
+        if ("callmebot".equalsIgnoreCase(provider)) {
+            enviarCallMeBot(os, conteudo);
+            return;
+        }
+
+        enviarCloudApi(telefone, conteudo);
+    }
+
+    private void enviarCallMeBot(OrdemServico os, String conteudo) {
+        var apiKey = os.getCliente().getWhatsappApiKey();
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("Cliente '{}' nao possui API key do CallMeBot. WhatsApp nao enviado.",
+                    os.getCliente().getNome());
+            return;
+        }
+
+        var destino = normalizarTelefone(os.getCliente().getTelefone(), true);
+        if (destino.isBlank()) {
+            log.warn("Telefone do cliente invalido para envio de WhatsApp: '{}'.", os.getCliente().getTelefone());
+            return;
+        }
+
+        try {
+            RestClient.builder()
+                    .baseUrl(callmebotApiUrl)
+                    .build()
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/whatsapp.php")
+                            .queryParam("phone", destino)
+                            .queryParam("text", conteudo)
+                            .queryParam("apikey", apiKey)
+                            .build())
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            log.warn("CallMeBot recusou a mensagem para '{}': {}", destino, ex.getResponseBodyAsString());
+        } catch (RestClientException ex) {
+            log.warn("Falha ao comunicar com CallMeBot ao enviar mensagem para '{}': {}", destino, ex.getMessage());
+        }
+    }
+
+    private void enviarCloudApi(String telefone, String conteudo) {
         if (accessToken == null || accessToken.isBlank() || phoneNumberId == null || phoneNumberId.isBlank()) {
             log.warn("WhatsApp Cloud API nao configurado. Mensagem para '{}' nao enviada.", telefone);
             return;
         }
 
-        var destino = normalizarTelefone(telefone);
+        var destino = normalizarTelefone(telefone, false);
         if (destino.isBlank()) {
             log.warn("Telefone do cliente invalido para envio de WhatsApp: '{}'.", telefone);
             return;
@@ -146,17 +196,17 @@ public class WhatsappService {
                 .build();
     }
 
-    private String normalizarTelefone(String telefone) {
+    private String normalizarTelefone(String telefone, boolean incluirMais) {
         var digitos = telefone.replaceAll("\\D", "");
         if (digitos.isBlank()) {
             return "";
         }
 
         if ((digitos.length() == 10 || digitos.length() == 11) && defaultCountryCode != null && !defaultCountryCode.isBlank()) {
-            return defaultCountryCode.replaceAll("\\D", "") + digitos;
+            digitos = defaultCountryCode.replaceAll("\\D", "") + digitos;
         }
 
-        return digitos;
+        return incluirMais ? "+" + digitos : digitos;
     }
 
     private String linkPortalCliente(OrdemServico os) {

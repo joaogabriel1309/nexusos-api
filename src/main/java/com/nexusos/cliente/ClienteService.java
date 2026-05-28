@@ -52,6 +52,7 @@ public class ClienteService {
                 .valorHora(request.valorHora())
                 .enviarEmail(Boolean.TRUE.equals(request.enviarEmail()))
                 .enviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()))
+                .whatsappApiKey(normalizarTexto(request.whatsappApiKey()))
                 .build();
         return ClienteResponse.from(clienteRepository.save(cliente));
     }
@@ -67,6 +68,7 @@ public class ClienteService {
         cliente.setValorHora(request.valorHora());
         cliente.setEnviarEmail(Boolean.TRUE.equals(request.enviarEmail()));
         cliente.setEnviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()));
+        cliente.setWhatsappApiKey(normalizarTexto(request.whatsappApiKey()));
         cliente.setAtivo(request.ativo());
         return ClienteResponse.from(clienteRepository.save(cliente));
     }
@@ -90,5 +92,9 @@ public class ClienteService {
                 .ifPresent(cliente -> {
                     throw new RegraNegocioException("Documento ja cadastrado.");
                 });
+    }
+
+    private String normalizarTexto(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 }

@@ -50,6 +50,9 @@ public class Cliente {
     @Column(nullable = false)
     private boolean enviarWhatsapp;
 
+    @Column(name = "whatsapp_api_key", length = 80)
+    private String whatsappApiKey;
+
     @Column(name = "token_acesso", nullable = false, unique = true, length = 80)
     private String tokenAcesso;
 
