@@ -47,6 +47,9 @@ public class Cliente {
     @Column(nullable = false)
     private boolean enviarEmail;
 
+    @Column(nullable = false)
+    private boolean enviarWhatsapp;
+
     @Column(name = "token_acesso", nullable = false, unique = true, length = 80)
     private String tokenAcesso;
 
@@ -61,6 +64,7 @@ public class Cliente {
         id = id == null ? UUID.randomUUID() : id;
         ativo = true;
         enviarEmail = Boolean.TRUE.equals(enviarEmail);
+        enviarWhatsapp = Boolean.TRUE.equals(enviarWhatsapp);
         valorHora = valorHora == null ? BigDecimal.ZERO : valorHora;
         tokenAcesso = tokenAcesso == null
                 ? UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")

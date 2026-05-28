@@ -14,6 +14,7 @@ public record ClienteUpdateRequest(
         @Size(max = 32) String telefone,
         @NotNull @PositiveOrZero BigDecimal valorHora,
         Boolean enviarEmail,
+        Boolean enviarWhatsapp,
         @NotNull Boolean ativo
 ) {
 }

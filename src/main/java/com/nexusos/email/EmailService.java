@@ -31,21 +31,25 @@ public class EmailService {
     @Value("${nexusos.email.frontend-base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
-    public void enviarOrdemServicoCriada(OrdemServico os) {
+    public void enviarOrdemServicoAnalisada(OrdemServico os) {
         if (!deveEnviar(os)) {
             return;
         }
 
         enviar(os.getCliente().getEmail(),
-                "Nova OS criada - NexusOS",
+                "OS analisada - NexusOS",
                 """
                         Ola, %s.
 
-                        Uma nova Ordem de Servico foi criada para voce no NexusOS.
+                        A sua Ordem de Servico foi analisada no NexusOS.
 
                         OS n. %d - %s
                         Status: %s
-                        Prazo: %s
+                        Horas estimadas: %s
+                        Valor estimado: %s
+
+                        Texto da analise:
+                        %s
 
                         Voce pode acompanhar pelo portal do cliente:
                         %s
@@ -54,7 +58,9 @@ public class EmailService {
                         os.getCodigo(),
                         os.getTitulo(),
                         os.getStatus(),
-                        os.getPrazo() != null ? os.getPrazo() : "Nao informado",
+                        os.getEstimativaHoras() != null ? os.getEstimativaHoras() : "Nao informado",
+                        formatarValor(os.getValorTotalEstimado()),
+                        os.getEntendimento() != null ? os.getEntendimento() : "Nao informado",
                         linkPortalCliente(os)
                 ));
     }

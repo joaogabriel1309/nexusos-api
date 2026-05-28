@@ -14,6 +14,7 @@ import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
+import com.nexusos.whatsapp.WhatsappService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
@@ -48,6 +49,7 @@ public class OrdemServicoService {
     private final UsuarioService usuarioService;
     private final AuditoriaService auditoriaService;
     private final EmailService emailService;
+    private final WhatsappService whatsappService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -82,7 +84,6 @@ public class OrdemServicoService {
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
-        emailService.enviarOrdemServicoCriada(salva);
         return OrdemServicoResponse.from(salva);
     }
 
@@ -133,6 +134,7 @@ public class OrdemServicoService {
                 statusAnterior, request.status());
         if (request.status() == StatusOS.FINALIZADA) {
             emailService.enviarOrdemServicoFinalizada(salva);
+            whatsappService.enviarOrdemServicoFinalizada(salva);
         }
         return OrdemServicoResponse.from(salva);
     }
@@ -146,8 +148,11 @@ public class OrdemServicoService {
         os.setEstimativaHoras(request.estimativaHoras());
         os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
         recalcularValorTotalEstimado(os);
-        auditoriaService.registrar(os, os.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, os.getStatus());
-        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+        var salva = ordemServicoRepository.save(os);
+        auditoriaService.registrar(salva, salva.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, salva.getStatus());
+        emailService.enviarOrdemServicoAnalisada(salva);
+        whatsappService.enviarOrdemServicoAnalisada(salva);
+        return OrdemServicoResponse.from(salva);
     }
 
     @Transactional(readOnly = true)
