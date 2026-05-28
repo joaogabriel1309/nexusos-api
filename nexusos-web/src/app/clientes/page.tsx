@@ -161,6 +161,7 @@ export default function ClientesPage() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Valor/hora</TableHead>
+                    <TableHead>E-mail OS</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[190px] text-right">Acoes</TableHead>
                   </TableRow>
@@ -174,6 +175,11 @@ export default function ClientesPage() {
                       <TableCell>{cliente.telefone || "-"}</TableCell>
                       <TableCell>
                         {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={cliente.enviarEmail ? "default" : "secondary"}>
+                          {cliente.enviarEmail ? "Ativo" : "Desativado"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={cliente.ativo ? "default" : "secondary"}>

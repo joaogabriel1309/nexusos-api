@@ -29,6 +29,7 @@ export type Cliente = {
   email: string;
   telefone?: string;
   valorHora: number;
+  enviarEmail: boolean;
   tokenAcesso?: string;
   ativo: boolean;
   criadoEm?: string;
