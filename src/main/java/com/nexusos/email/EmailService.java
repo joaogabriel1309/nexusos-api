@@ -1,0 +1,136 @@
+package com.nexusos.email;
+
+import com.nexusos.ordemservico.OrdemServico;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class EmailService {
+
+    private static final Locale PT_BR = Locale.of("pt", "BR");
+
+    private final ObjectProvider<JavaMailSender> mailSenderProvider;
+
+    @Value("${nexusos.email.enabled:false}")
+    private boolean emailEnabled;
+
+    @Value("${nexusos.email.from:}")
+    private String emailFrom;
+
+    @Value("${nexusos.email.frontend-base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
+    public void enviarOrdemServicoCriada(OrdemServico os) {
+        if (!deveEnviar(os)) {
+            return;
+        }
+
+        enviar(os.getCliente().getEmail(),
+                "Nova OS criada - NexusOS",
+                """
+                        Ola, %s.
+
+                        Uma nova Ordem de Servico foi criada para voce no NexusOS.
+
+                        OS n. %d - %s
+                        Status: %s
+                        Prazo: %s
+
+                        Voce pode acompanhar pelo portal do cliente:
+                        %s
+                        """.formatted(
+                        os.getCliente().getNome(),
+                        os.getCodigo(),
+                        os.getTitulo(),
+                        os.getStatus(),
+                        os.getPrazo() != null ? os.getPrazo() : "Nao informado",
+                        linkPortalCliente(os)
+                ));
+    }
+
+    public void enviarOrdemServicoFinalizada(OrdemServico os) {
+        if (!deveEnviar(os)) {
+            return;
+        }
+
+        enviar(os.getCliente().getEmail(),
+                "OS finalizada - NexusOS",
+                """
+                        Ola, %s.
+
+                        A sua Ordem de Servico foi finalizada.
+
+                        OS n. %d - %s
+                        Valor: %s
+
+                        O que foi feito:
+                        %s
+
+                        Voce pode consultar os detalhes pelo portal do cliente:
+                        %s
+                        """.formatted(
+                        os.getCliente().getNome(),
+                        os.getCodigo(),
+                        os.getTitulo(),
+                        formatarValor(os.getValorTotalEstimado()),
+                        os.getDescricaoFinalizacao() != null ? os.getDescricaoFinalizacao() : "Nao informado",
+                        linkPortalCliente(os)
+                ));
+    }
+
+    private boolean deveEnviar(OrdemServico os) {
+        return os.getCliente() != null
+                && os.getCliente().isEnviarEmail()
+                && os.getCliente().getEmail() != null
+                && !os.getCliente().getEmail().isBlank();
+    }
+
+    private void enviar(String destinatario, String assunto, String conteudo) {
+        if (!emailEnabled) {
+            log.info("Envio de e-mail desabilitado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
+            return;
+        }
+
+        var mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null) {
+            log.warn("JavaMailSender nao configurado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
+            return;
+        }
+
+        try {
+            var mensagem = new SimpleMailMessage();
+            if (emailFrom != null && !emailFrom.isBlank()) {
+                mensagem.setFrom(emailFrom);
+            }
+            mensagem.setTo(destinatario);
+            mensagem.setSubject(assunto);
+            mensagem.setText(conteudo);
+            mailSender.send(mensagem);
+        } catch (MailException ex) {
+            log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getMessage());
+        }
+    }
+
+    private String linkPortalCliente(OrdemServico os) {
+        return frontendBaseUrl.replaceAll("/+$", "") + "/portal/cliente/" + os.getCliente().getTokenAcesso();
+    }
+
+    private String formatarValor(BigDecimal valor) {
+        if (valor == null) {
+            return "Nao informado";
+        }
+
+        return NumberFormat.getCurrencyInstance(PT_BR).format(valor);
+    }
+}

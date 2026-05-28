@@ -25,6 +25,17 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 12MB
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
 
 server:
   port: ${PORT:${SERVER_PORT:8080}}
@@ -50,6 +61,10 @@ nexusos:
     api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
     api-base-url: ${API_PUBLIC_URL:http://localhost:8080}
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    from: ${EMAIL_FROM:${MAIL_USERNAME:}}
+    frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
 
 ---
 spring:

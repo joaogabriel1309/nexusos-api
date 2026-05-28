@@ -12,6 +12,7 @@ public record ClienteRequest(
         @NotBlank @Size(max = 32) String documento,
         @NotBlank @Email @Size(max = 160) String email,
         @Size(max = 32) String telefone,
-        @NotNull @PositiveOrZero BigDecimal valorHora
+        @NotNull @PositiveOrZero BigDecimal valorHora,
+        Boolean enviarEmail
 ) {
 }

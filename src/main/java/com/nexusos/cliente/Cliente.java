@@ -44,6 +44,9 @@ public class Cliente {
     @Column(nullable = false)
     private boolean ativo;
 
+    @Column(nullable = false)
+    private boolean enviarEmail;
+
     @Column(name = "token_acesso", nullable = false, unique = true, length = 80)
     private String tokenAcesso;
 
@@ -57,6 +60,7 @@ public class Cliente {
     void prePersist() {
         id = id == null ? UUID.randomUUID() : id;
         ativo = true;
+        enviarEmail = Boolean.TRUE.equals(enviarEmail);
         valorHora = valorHora == null ? BigDecimal.ZERO : valorHora;
         tokenAcesso = tokenAcesso == null
                 ? UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")

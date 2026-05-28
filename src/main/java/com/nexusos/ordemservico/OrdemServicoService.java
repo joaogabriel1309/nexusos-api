@@ -2,6 +2,7 @@ package com.nexusos.ordemservico;
 
 import com.nexusos.auditoria.AuditoriaService;
 import com.nexusos.cliente.ClienteService;
+import com.nexusos.email.EmailService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
@@ -46,6 +47,7 @@ public class OrdemServicoService {
     private final ProjetoService projetoService;
     private final UsuarioService usuarioService;
     private final AuditoriaService auditoriaService;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -80,6 +82,7 @@ public class OrdemServicoService {
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
+        emailService.enviarOrdemServicoCriada(salva);
         return OrdemServicoResponse.from(salva);
     }
 
@@ -128,6 +131,9 @@ public class OrdemServicoService {
         auditoriaService.registrar(salva, usuario, "ALTERACAO_STATUS",
                 request.descricao() != null ? request.descricao() : "Status da OS alterado.",
                 statusAnterior, request.status());
+        if (request.status() == StatusOS.FINALIZADA) {
+            emailService.enviarOrdemServicoFinalizada(salva);
+        }
         return OrdemServicoResponse.from(salva);
     }
 
