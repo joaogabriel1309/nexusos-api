@@ -30,6 +30,7 @@ export type Cliente = {
   telefone?: string;
   valorHora: number;
   enviarEmail: boolean;
+  enviarWhatsapp: boolean;
   tokenAcesso?: string;
   ativo: boolean;
   criadoEm?: string;

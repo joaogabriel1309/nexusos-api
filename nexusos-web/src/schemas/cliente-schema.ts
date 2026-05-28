@@ -6,7 +6,8 @@ export const clienteSchema = z.object({
   email: z.string().min(1, "Informe o e-mail").email("Informe um e-mail valido"),
   telefone: z.string().optional(),
   valorHora: z.coerce.number().min(0, "Informe um valor por hora valido"),
-  enviarEmail: z.boolean()
+  enviarEmail: z.boolean(),
+  enviarWhatsapp: z.boolean()
 });
 
 export type ClienteFormData = z.infer<typeof clienteSchema>;

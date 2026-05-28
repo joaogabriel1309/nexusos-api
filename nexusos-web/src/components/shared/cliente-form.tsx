@@ -25,7 +25,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       email: "",
       telefone: "",
       valorHora: 0,
-      enviarEmail: false
+      enviarEmail: false,
+      enviarWhatsapp: false
     }
   });
 
@@ -36,7 +37,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       email: cliente?.email ?? "",
       telefone: cliente?.telefone ?? "",
       valorHora: cliente?.valorHora ?? 0,
-      enviarEmail: cliente?.enviarEmail ?? false
+      enviarEmail: cliente?.enviarEmail ?? false,
+      enviarWhatsapp: cliente?.enviarWhatsapp ?? false
     });
   }, [cliente, form]);
 
@@ -127,6 +129,31 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
                     <FormLabel className="cursor-pointer">Enviar e-mail</FormLabel>
                     <span className="block text-muted-foreground">
                       Enviar notificacoes quando uma OS for criada ou finalizada para este cliente.
+                    </span>
+                  </span>
+                </label>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="enviarWhatsapp"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border p-4 text-sm">
+                  <FormControl>
+                    <Input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4"
+                      checked={field.value}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                    />
+                  </FormControl>
+                  <span className="space-y-1">
+                    <FormLabel className="cursor-pointer">Enviar WhatsApp</FormLabel>
+                    <span className="block text-muted-foreground">
+                      Enviar mensagens quando a OS for analisada ou finalizada para este cliente.
                     </span>
                   </span>
                 </label>

@@ -162,6 +162,7 @@ export default function ClientesPage() {
                     <TableHead>Telefone</TableHead>
                     <TableHead>Valor/hora</TableHead>
                     <TableHead>E-mail OS</TableHead>
+                    <TableHead>WhatsApp OS</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[190px] text-right">Acoes</TableHead>
                   </TableRow>
@@ -179,6 +180,11 @@ export default function ClientesPage() {
                       <TableCell>
                         <Badge variant={cliente.enviarEmail ? "default" : "secondary"}>
                           {cliente.enviarEmail ? "Ativo" : "Desativado"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={cliente.enviarWhatsapp ? "default" : "secondary"}>
+                          {cliente.enviarWhatsapp ? "Ativo" : "Desativado"}
                         </Badge>
                       </TableCell>
                       <TableCell>
