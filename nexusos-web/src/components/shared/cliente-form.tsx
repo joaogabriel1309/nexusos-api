@@ -26,7 +26,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       telefone: "",
       valorHora: 0,
       enviarEmail: false,
-      enviarWhatsapp: false
+      enviarWhatsapp: false,
+      whatsappApiKey: ""
     }
   });
 
@@ -38,7 +39,8 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
       telefone: cliente?.telefone ?? "",
       valorHora: cliente?.valorHora ?? 0,
       enviarEmail: cliente?.enviarEmail ?? false,
-      enviarWhatsapp: cliente?.enviarWhatsapp ?? false
+      enviarWhatsapp: cliente?.enviarWhatsapp ?? false,
+      whatsappApiKey: cliente?.whatsappApiKey ?? ""
     });
   }, [cliente, form]);
 
@@ -157,6 +159,19 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
                     </span>
                   </span>
                 </label>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="whatsappApiKey"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Chave WhatsApp CallMeBot</FormLabel>
+                <FormControl>
+                  <Input placeholder="APIKEY do cliente no CallMeBot" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
