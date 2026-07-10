@@ -31,7 +31,7 @@ public class ApontamentoTempoController {
 
     @Operation(summary = "Cria apontamento de tempo da OS")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ApontamentoTempoResponse> criar(@PathVariable UUID ordemServicoId,
             @Valid @RequestBody ApontamentoTempoRequest request) {
         var response = apontamentoTempoService.criar(ordemServicoId, request);

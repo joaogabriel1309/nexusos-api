@@ -1,4 +1,4 @@
-export type PerfilUsuario = "ADMIN" | "DESENVOLVEDOR" | "ANALISTA" | "CLIENTE";
+export type PerfilUsuario = "ADMIN" | "DESENVOLVEDOR";
 
 export type StatusOS =
   | "RECEBIDA"

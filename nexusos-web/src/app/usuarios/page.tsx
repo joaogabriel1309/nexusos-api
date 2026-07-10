@@ -23,9 +23,7 @@ const itensPorPagina = 20;
 
 const perfilLabels: Record<PerfilUsuario, string> = {
   ADMIN: "Administrador",
-  DESENVOLVEDOR: "Desenvolvedor",
-  ANALISTA: "Analista",
-  CLIENTE: "Cliente"
+  DESENVOLVEDOR: "Desenvolvedor"
 };
 
 export default function UsuariosPage() {

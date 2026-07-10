@@ -19,9 +19,7 @@ type UsuarioFormProps = {
 
 const perfilLabels = {
   ADMIN: "Administrador",
-  DESENVOLVEDOR: "Desenvolvedor",
-  ANALISTA: "Analista",
-  CLIENTE: "Cliente"
+  DESENVOLVEDOR: "Desenvolvedor"
 };
 
 export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: UsuarioFormProps) {
@@ -31,7 +29,7 @@ export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: Usuario
       nome: "",
       email: "",
       senha: "",
-      perfil: "ANALISTA"
+      perfil: "DESENVOLVEDOR"
     }
   });
 
@@ -40,7 +38,7 @@ export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: Usuario
       nome: usuario?.nome ?? "",
       email: usuario?.email ?? "",
       senha: "",
-      perfil: usuario?.perfil ?? "ANALISTA"
+      perfil: usuario?.perfil ?? "DESENVOLVEDOR"
     });
   }, [usuario, form]);
 

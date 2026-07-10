@@ -31,7 +31,7 @@ public class AnexoController {
 
     @Operation(summary = "Salva anexo local da OS")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<AnexoResponse> salvar(@PathVariable UUID ordemServicoId,
             @RequestParam("arquivo") MultipartFile arquivo,
             @RequestParam(value = "descricao", required = false) String descricao) {

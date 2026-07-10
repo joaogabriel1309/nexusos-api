@@ -31,7 +31,7 @@ public class ComentarioController {
 
     @Operation(summary = "Cria comentario na OS")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ComentarioResponse> criar(@PathVariable UUID ordemServicoId,
             @Valid @RequestBody ComentarioRequest request) {
         var response = comentarioService.criar(ordemServicoId, request);

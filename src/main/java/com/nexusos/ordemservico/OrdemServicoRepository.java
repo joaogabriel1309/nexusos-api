@@ -8,6 +8,12 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID> {
 
+    List<OrdemServico> findAllByOrderByAtualizadoEmDesc();
+
+    List<OrdemServico> findByResponsavelEmailOrderByAtualizadoEmDesc(String email);
+
+    Optional<OrdemServico> findByIdAndResponsavelEmail(UUID id, String email);
+
     List<OrdemServico> findByClienteIdOrderByAtualizadoEmDesc(UUID clienteId);
 
     Optional<OrdemServico> findByMercadoPagoPaymentId(String mercadoPagoPaymentId);

@@ -58,7 +58,7 @@ function formatarDataHora(data?: string) {
 }
 
 function descricaoCurta(ordem: PortalOrdemServico) {
-  return `n° ${ordem.codigo} - ${ordem.titulo || ordem.descricao}`;
+  return `${ordem.codigo} - ${ordem.titulo || ordem.descricao}`;
 }
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -410,7 +410,7 @@ export default function PortalClientePage() {
                           >
                             <TableCell>
                               <div className="max-w-[360px]">
-                                <div className="truncate font-medium" title={`n° ${ordem.codigo}`}>
+                                <div className="truncate font-medium" title={`${ordem.codigo}`}>
                                   {descricaoCurta(ordem)}
                                 </div>
                                 <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
@@ -450,7 +450,7 @@ export default function PortalClientePage() {
           <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {ordemSelecionada ? `n° ${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}` : "Detalhes da OS"}
+                {ordemSelecionada ? `${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}` : "Detalhes da OS"}
               </DialogTitle>
               <DialogDescription>Dados completos da ordem de servico compartilhados com o cliente.</DialogDescription>
             </DialogHeader>
@@ -465,7 +465,7 @@ export default function PortalClientePage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <CampoDetalhe label="Numero da OS" value={`n° ${ordemSelecionada.codigo}`} />
+                  <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
                   <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
                   <CampoDetalhe label="Prazo" value={formatarData(ordemSelecionada.prazo)} />
                   <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />

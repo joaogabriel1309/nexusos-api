@@ -5,7 +5,7 @@ export type LoginRequest = {
 
 export type AuthUsuario = {
   email: string;
-  perfil: "ADMIN" | "DESENVOLVEDOR" | "ANALISTA" | "CLIENTE";
+  perfil: "ADMIN" | "DESENVOLVEDOR";
 };
 
 export type AuthResponse = {

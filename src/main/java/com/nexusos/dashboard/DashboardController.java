@@ -20,21 +20,21 @@ public class DashboardController {
 
     @Operation(summary = "Retorna resumo geral do dashboard")
     @GetMapping("/resumo")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DashboardResumoResponse> resumo() {
         return ResponseEntity.ok(dashboardService.resumo());
     }
 
     @Operation(summary = "Retorna quantidade de OS por status")
     @GetMapping("/os-por-status")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Long>> osPorStatus() {
         return ResponseEntity.ok(dashboardService.osPorStatus());
     }
 
     @Operation(summary = "Retorna metricas simples de produtividade")
     @GetMapping("/produtividade")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProdutividadeResponse> produtividade() {
         return ResponseEntity.ok(dashboardService.produtividade());
     }

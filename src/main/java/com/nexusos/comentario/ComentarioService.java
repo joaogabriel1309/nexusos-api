@@ -19,6 +19,7 @@ public class ComentarioService {
 
     @Transactional(readOnly = true)
     public List<ComentarioResponse> listar(UUID ordemServicoId) {
+        ordemServicoService.buscarEntidade(ordemServicoId);
         return comentarioRepository.findByOrdemServicoIdOrderByCriadoEmAsc(ordemServicoId).stream()
                 .map(ComentarioResponse::from).toList();
     }

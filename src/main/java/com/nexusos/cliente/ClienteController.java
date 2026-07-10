@@ -30,21 +30,21 @@ public class ClienteController {
 
     @Operation(summary = "Lista clientes")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ClienteResponse>> listar() {
         return ResponseEntity.ok(clienteService.listar());
     }
 
     @Operation(summary = "Busca cliente por ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ClienteResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(clienteService.buscarPorId(id));
     }
 
     @Operation(summary = "Cria cliente")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ClienteResponse> criar(@Valid @RequestBody ClienteRequest request) {
         var response = clienteService.criar(request);
         return ResponseEntity.created(URI.create("/api/v1/clientes/" + response.id())).body(response);
@@ -52,7 +52,7 @@ public class ClienteController {
 
     @Operation(summary = "Atualiza cliente")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ClienteResponse> atualizar(@PathVariable UUID id,
             @Valid @RequestBody ClienteUpdateRequest request) {
         return ResponseEntity.ok(clienteService.atualizar(id, request));
@@ -60,7 +60,7 @@ public class ClienteController {
 
     @Operation(summary = "Gera novo link de acesso do cliente")
     @PatchMapping("/{id}/token-acesso")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ClienteResponse> gerarTokenAcesso(@PathVariable UUID id) {
         return ResponseEntity.ok(clienteService.gerarNovoTokenAcesso(id));
     }

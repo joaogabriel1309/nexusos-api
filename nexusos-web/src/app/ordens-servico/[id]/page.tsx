@@ -110,7 +110,7 @@ export default function OrdemServicoDetalhePage() {
   const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
   const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
   const responsaveis = useMemo(
-    () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo && usuario.perfil !== "CLIENTE"),
+    () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo),
     [usuariosQuery.data]
   );
   const valorHoraAnalise = useMemo(() => {
@@ -258,7 +258,7 @@ export default function OrdemServicoDetalhePage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `n° ${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
+        title={ordem ? `${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
         description="Visualize os dados completos da ordem de servico e acompanhe sua evolucao."
         actions={
           <Button variant="outline" onClick={() => router.push("/ordens-servico")}>
@@ -332,7 +332,7 @@ export default function OrdemServicoDetalhePage() {
                 <CardTitle>Informacoes da OS</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <CampoDetalhe label="Numero da OS" value={`n° ${ordem.codigo}`} />
+                <CampoDetalhe label="Numero da OS" value={ordem.codigo} />
                 <CampoDetalhe label="Titulo" value={ordem.titulo} />
                 <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
                 <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />

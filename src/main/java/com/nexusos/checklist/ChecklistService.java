@@ -19,6 +19,7 @@ public class ChecklistService {
 
     @Transactional(readOnly = true)
     public List<ChecklistResponse> listar(UUID ordemServicoId) {
+        ordemServicoService.buscarEntidade(ordemServicoId);
         return checklistRepository.findByOrdemServicoIdOrderByCriadoEmAsc(ordemServicoId).stream()
                 .map(ChecklistResponse::from).toList();
     }
@@ -36,6 +37,7 @@ public class ChecklistService {
     public ChecklistResponse concluir(UUID id) {
         var item = checklistRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Item de checklist nao encontrado."));
+        ordemServicoService.buscarEntidade(item.getOrdemServico().getId());
         item.setConcluido(true);
         item.setConcluidoEm(OffsetDateTime.now());
         return ChecklistResponse.from(checklistRepository.save(item));

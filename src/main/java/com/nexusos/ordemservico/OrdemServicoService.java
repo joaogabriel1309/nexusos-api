@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +54,16 @@ public class OrdemServicoService {
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
-        return ordemServicoRepository.findAll().stream().map(OrdemServicoResponse::from).toList();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var email = authentication != null ? authentication.getName() : null;
+        var desenvolvedor = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_DESENVOLVEDOR".equals(authority.getAuthority()));
+
+        var ordens = desenvolvedor && email != null
+                ? ordemServicoRepository.findByResponsavelEmailOrderByAtualizadoEmDesc(email)
+                : ordemServicoRepository.findAllByOrderByAtualizadoEmDesc();
+
+        return ordens.stream().map(OrdemServicoResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
@@ -198,8 +208,16 @@ public class OrdemServicoService {
 
     @Transactional(readOnly = true)
     public OrdemServico buscarEntidade(UUID id) {
-        return ordemServicoRepository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ordem de servico nao encontrada."));
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var email = authentication != null ? authentication.getName() : null;
+        var desenvolvedor = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_DESENVOLVEDOR".equals(authority.getAuthority()));
+
+        var ordem = desenvolvedor && email != null
+                ? ordemServicoRepository.findByIdAndResponsavelEmail(id, email)
+                : ordemServicoRepository.findById(id);
+
+        return ordem.orElseThrow(() -> new RecursoNaoEncontradoException("Ordem de servico nao encontrada."));
     }
 
     private void validarTransicao(StatusOS atual, StatusOS novo) {

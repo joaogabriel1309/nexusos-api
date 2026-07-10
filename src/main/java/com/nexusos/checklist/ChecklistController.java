@@ -31,7 +31,7 @@ public class ChecklistController {
 
     @Operation(summary = "Cria item de checklist da OS")
     @PostMapping("/api/v1/ordens-servico/{ordemServicoId}/checklist")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ChecklistResponse> criar(@PathVariable UUID ordemServicoId,
             @Valid @RequestBody ChecklistRequest request) {
         var response = checklistService.criar(ordemServicoId, request);
@@ -40,7 +40,7 @@ public class ChecklistController {
 
     @Operation(summary = "Conclui item de checklist")
     @PatchMapping("/api/v1/checklist/{id}/concluir")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA','DESENVOLVEDOR')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ChecklistResponse> concluir(@PathVariable UUID id) {
         return ResponseEntity.ok(checklistService.concluir(id));
     }

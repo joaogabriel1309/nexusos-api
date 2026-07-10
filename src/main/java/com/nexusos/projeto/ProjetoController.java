@@ -29,21 +29,21 @@ public class ProjetoController {
 
     @Operation(summary = "Lista projetos")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProjetoResponse>> listar() {
         return ResponseEntity.ok(projetoService.listar());
     }
 
     @Operation(summary = "Busca projeto por ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProjetoResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(projetoService.buscarPorId(id));
     }
 
     @Operation(summary = "Cria projeto")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProjetoResponse> criar(@Valid @RequestBody ProjetoRequest request) {
         var response = projetoService.criar(request);
         return ResponseEntity.created(URI.create("/api/v1/projetos/" + response.id())).body(response);
@@ -51,7 +51,7 @@ public class ProjetoController {
 
     @Operation(summary = "Atualiza projeto")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProjetoResponse> atualizar(@PathVariable UUID id,
             @Valid @RequestBody ProjetoUpdateRequest request) {
         return ResponseEntity.ok(projetoService.atualizar(id, request));

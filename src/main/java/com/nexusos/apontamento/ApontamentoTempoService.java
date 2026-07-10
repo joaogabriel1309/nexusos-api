@@ -20,6 +20,7 @@ public class ApontamentoTempoService {
 
     @Transactional(readOnly = true)
     public List<ApontamentoTempoResponse> listar(UUID ordemServicoId) {
+        ordemServicoService.buscarEntidade(ordemServicoId);
         return apontamentoTempoRepository.findByOrdemServicoIdOrderByInicioDesc(ordemServicoId).stream()
                 .map(ApontamentoTempoResponse::from).toList();
     }

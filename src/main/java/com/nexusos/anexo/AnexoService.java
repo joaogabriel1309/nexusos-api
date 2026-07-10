@@ -42,6 +42,7 @@ public class AnexoService {
 
     @Transactional(readOnly = true)
     public List<AnexoResponse> listar(UUID ordemServicoId) {
+        ordemServicoService.buscarEntidade(ordemServicoId);
         return anexoRepository.findByOrdemServicoIdOrderByCriadoEmDesc(ordemServicoId).stream()
                 .map(AnexoResponse::from).toList();
     }

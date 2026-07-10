@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { PerfilUsuario } from "@/types";
 
-export const perfisUsuario = ["ADMIN", "DESENVOLVEDOR", "ANALISTA", "CLIENTE"] as [PerfilUsuario, ...PerfilUsuario[]];
+export const perfisUsuario = ["ADMIN", "DESENVOLVEDOR"] as [PerfilUsuario, ...PerfilUsuario[]];
 
 const senhaSchema = z
   .string()
