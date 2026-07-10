@@ -16,12 +16,6 @@ export type AtualizarUsuarioPayload = {
   ativo: boolean;
 };
 
-type CadastroInicialPayload = {
-  nome: string;
-  email: string;
-  senha: string;
-};
-
 export const usuarioService = {
   async listar() {
     const response = await api.get<Usuario[]>("/usuarios");
@@ -30,16 +24,6 @@ export const usuarioService = {
 
   async criar(data: CriarUsuarioPayload) {
     const response = await api.post<Usuario>("/usuarios", data);
-    return response.data;
-  },
-
-  async criarUsuarioInicial(data: CadastroInicialPayload) {
-    const response = await api.post<Usuario>("/usuarios", {
-      nome: data.nome,
-      email: data.email,
-      senha: data.senha,
-      perfil: "ADMIN"
-    });
     return response.data;
   },
 

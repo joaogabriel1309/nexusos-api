@@ -8,7 +8,6 @@ import { useAuth } from "@/providers/auth-provider";
 import { loginSchema, type LoginFormData } from "@/schemas/auth-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClipboardCheck, Loader2, Lock, Mail } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -89,12 +88,6 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-5 text-center text-sm text-muted-foreground">
-            Primeiro acesso?{" "}
-            <Link href="/cadastro" className="font-medium text-primary hover:underline">
-              Cadastre-se
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </main>

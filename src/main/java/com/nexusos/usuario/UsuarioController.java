@@ -43,6 +43,7 @@ public class UsuarioController {
 
     @Operation(summary = "Cria usuario")
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UsuarioResponse> criar(@Valid @RequestBody UsuarioRequest request) {
         var response = usuarioService.criar(request);
         return ResponseEntity.created(URI.create("/api/v1/usuarios/" + response.id())).body(response);
