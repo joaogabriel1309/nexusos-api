@@ -33,6 +33,7 @@ export type Cliente = {
   enviarWhatsapp: boolean;
   whatsappApiKey?: string;
   tokenAcesso?: string;
+  tokenAcessoExpiraEm?: string;
   ativo: boolean;
   criadoEm?: string;
   atualizadoEm?: string;

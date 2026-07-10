@@ -56,6 +56,9 @@ public class Cliente {
     @Column(name = "token_acesso", nullable = false, unique = true, length = 80)
     private String tokenAcesso;
 
+    @Column(name = "token_acesso_expira_em", nullable = false)
+    private OffsetDateTime tokenAcessoExpiraEm;
+
     @Column(nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
@@ -72,6 +75,7 @@ public class Cliente {
         tokenAcesso = tokenAcesso == null
                 ? UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")
                 : tokenAcesso;
+        tokenAcessoExpiraEm = tokenAcessoExpiraEm == null ? OffsetDateTime.now().plusDays(90) : tokenAcessoExpiraEm;
         criadoEm = OffsetDateTime.now();
         atualizadoEm = criadoEm;
     }

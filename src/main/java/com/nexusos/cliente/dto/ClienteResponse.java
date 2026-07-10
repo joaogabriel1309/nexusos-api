@@ -16,6 +16,7 @@ public record ClienteResponse(
         boolean enviarWhatsapp,
         String whatsappApiKey,
         String tokenAcesso,
+        OffsetDateTime tokenAcessoExpiraEm,
         boolean ativo,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm
@@ -32,6 +33,7 @@ public record ClienteResponse(
                 cliente.isEnviarWhatsapp(),
                 cliente.getWhatsappApiKey(),
                 cliente.getTokenAcesso(),
+                cliente.getTokenAcessoExpiraEm(),
                 cliente.isAtivo(),
                 cliente.getCriadoEm(),
                 cliente.getAtualizadoEm()

@@ -43,19 +43,26 @@ server:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${SWAGGER_ENABLED:true}
   api-docs:
     path: /v3/api-docs
+    enabled: ${SWAGGER_ENABLED:true}
 
 nexusos:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,https://nexusos-api.vercel.app}
   security:
+    cookies:
+      secure: ${AUTH_COOKIE_SECURE:false}
+      same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
     jwt:
       secret: ${JWT_SECRET:}
       access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:60}
       refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
   storage:
     uploads-path: ${UPLOADS_PATH:uploads}
+  portal-cliente:
+    token-expiration-days: ${PORTAL_CLIENTE_TOKEN_EXPIRATION_DAYS:90}
   mercado-pago:
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
     api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}
@@ -106,5 +113,14 @@ logging:
 
 nexusos:
   security:
+    cookies:
+      secure: ${AUTH_COOKIE_SECURE:true}
+      same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
     jwt:
       secret: ${JWT_SECRET:}
+
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}

@@ -1,5 +1,6 @@
 package com.nexusos.whatsapp;
 
+import com.nexusos.cliente.ClienteService;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.notificacao.NotificacaoService;
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ public class WhatsappService {
     private static final Locale PT_BR = Locale.of("pt", "BR");
 
     private final NotificacaoService notificacaoService;
+    private final ClienteService clienteService;
 
     @Value("${nexusos.whatsapp.enabled:false}")
     private boolean whatsappEnabled;
@@ -221,7 +223,8 @@ public class WhatsappService {
     }
 
     private String linkPortalCliente(OrdemServico os) {
-        return frontendBaseUrl.replaceAll("/+$", "") + "/portal/cliente/" + os.getCliente().getTokenAcesso();
+        var cliente = clienteService.garantirTokenAcessoValido(os.getCliente());
+        return frontendBaseUrl.replaceAll("/+$", "") + "/portal/cliente/" + cliente.getTokenAcesso();
     }
 
     private String formatarValor(BigDecimal valor) {

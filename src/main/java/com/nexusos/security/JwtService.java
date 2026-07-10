@@ -49,6 +49,10 @@ public class JwtService {
         return extrairClaims(token).getSubject();
     }
 
+    public Instant extrairExpiracao(String token) {
+        return extrairClaims(token).getExpiration().toInstant();
+    }
+
     private String gerarToken(UserDetails userDetails, Instant expiresAt) {
         var now = Instant.now();
         var claims = new HashMap<String, Object>();

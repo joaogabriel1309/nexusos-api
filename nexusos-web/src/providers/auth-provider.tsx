@@ -18,57 +18,44 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
   const [usuario, setUsuario] = useState<AuthUsuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = authService.getToken();
-    const storedUsuario = authService.getUsuarioFromToken(storedToken);
-
-    if (storedToken && !storedUsuario) {
-      authService.logout();
-      setToken(null);
-      setUsuario(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setToken(storedToken);
-    setUsuario(storedUsuario);
-    setIsLoading(false);
+    authService.me()
+      .then((response) => setUsuario(authService.getUsuarioFromResponse(response)))
+      .catch(() => setUsuario(null))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, senha: string) => {
     const response = await authService.login(email, senha);
-    const authUsuario = authService.getUsuarioFromToken(response.accessToken);
+    const authUsuario = authService.getUsuarioFromResponse(response);
 
     if (!authUsuario) {
-      authService.logout();
+      await authService.logout();
       throw new Error("Nao foi possivel identificar o perfil do usuario autenticado.");
     }
 
-    setToken(response.accessToken);
     setUsuario(authUsuario);
   }, []);
 
-  const logout = useCallback(() => {
-    authService.logout();
-    setToken(null);
+  const logout = useCallback(async () => {
+    await authService.logout();
     setUsuario(null);
     router.push("/login");
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      token,
+      token: null,
       usuario,
       isLoading,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(usuario),
       login,
       logout
     }),
-    [isLoading, login, logout, token, usuario]
+    [isLoading, login, logout, usuario]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

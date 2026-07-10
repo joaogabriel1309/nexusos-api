@@ -9,9 +9,8 @@ export type AuthUsuario = {
 };
 
 export type AuthResponse = {
-  accessToken: string;
-  refreshToken?: string;
   tokenType: "Bearer";
+  usuario: AuthUsuario;
 };
 
 export type CadastroInicialRequest = {

@@ -6,9 +6,13 @@ import com.nexusos.cliente.dto.ClienteUpdateRequest;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
+import java.security.SecureRandom;
+import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,10 @@ public class ClienteService {
 
     private final ClienteRepository clienteRepository;
     private final NotificacaoService notificacaoService;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${nexusos.portal-cliente.token-expiration-days:90}")
+    private long tokenExpirationDays;
 
     @Transactional(readOnly = true)
     public List<ClienteResponse> listar() {
@@ -32,14 +40,27 @@ public class ClienteService {
     @Transactional
     public ClienteResponse gerarNovoTokenAcesso(UUID id) {
         var cliente = buscarEntidade(id);
-        cliente.setTokenAcesso(UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""));
+        renovarTokenAcesso(cliente);
         return ClienteResponse.from(clienteRepository.save(cliente));
+    }
+
+    @Transactional
+    public Cliente garantirTokenAcessoValido(Cliente cliente) {
+        if (cliente.getTokenAcesso() != null
+                && cliente.getTokenAcessoExpiraEm() != null
+                && cliente.getTokenAcessoExpiraEm().isAfter(OffsetDateTime.now())) {
+            return cliente;
+        }
+
+        renovarTokenAcesso(cliente);
+        return clienteRepository.save(cliente);
     }
 
     @Transactional(readOnly = true)
     public Cliente buscarPorTokenAcesso(String tokenAcesso) {
         return clienteRepository.findByTokenAcesso(tokenAcesso)
                 .filter(Cliente::isAtivo)
+                .filter(cliente -> cliente.getTokenAcessoExpiraEm().isAfter(OffsetDateTime.now()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Link de acesso invalido."));
     }
 
@@ -56,6 +77,7 @@ public class ClienteService {
                 .enviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()))
                 .whatsappApiKey(normalizarTexto(request.whatsappApiKey()))
                 .build();
+        renovarTokenAcesso(cliente);
         return ClienteResponse.from(clienteRepository.save(cliente));
     }
 
@@ -104,5 +126,16 @@ public class ClienteService {
 
     private String normalizarTexto(String valor) {
         return valor == null || valor.isBlank() ? null : valor.trim();
+    }
+
+    private void renovarTokenAcesso(Cliente cliente) {
+        cliente.setTokenAcesso(gerarTokenSeguro());
+        cliente.setTokenAcessoExpiraEm(OffsetDateTime.now().plusDays(tokenExpirationDays));
+    }
+
+    private String gerarTokenSeguro() {
+        var bytes = new byte[48];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
