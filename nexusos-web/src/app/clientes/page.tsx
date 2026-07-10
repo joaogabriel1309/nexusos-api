@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Edit, Link2, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ClienteForm } from "@/components/shared/cliente-form";
 import { PageHeader } from "@/components/shared/page-header";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +19,13 @@ import { clienteService } from "@/services/cliente-service";
 import type { Cliente } from "@/types";
 
 const clientesQueryKey = ["clientes"];
+const itensPorPagina = 20;
 
 export default function ClientesPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const clientesQuery = useQuery({
     queryKey: clientesQueryKey,
@@ -76,7 +79,16 @@ export default function ClientesPage() {
     }
   });
 
-  const clientes = clientesQuery.data ?? [];
+  const clientes = useMemo(() => clientesQuery.data ?? [], [clientesQuery.data]);
+  const totalPaginas = Math.max(1, Math.ceil(clientes.length / itensPorPagina));
+  const clientesPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return clientes.slice(inicio, inicio + itensPorPagina);
+  }, [clientes, paginaAtual]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   function abrirCadastro() {
     setClienteSelecionado(null);
@@ -169,7 +181,7 @@ export default function ClientesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientes.map((cliente) => (
+                    {clientesPaginados.map((cliente) => (
                       <TableRow key={cliente.id}>
                         <TableCell className="font-medium">{cliente.nome}</TableCell>
                         <TableCell>{cliente.documento}</TableCell>
@@ -229,6 +241,15 @@ export default function ClientesPage() {
                 </Table>
               </div>
             )}
+
+            {!clientesQuery.isLoading && !clientesQuery.isError && clientes.length > 0 ? (
+              <TablePagination
+                page={paginaAtual}
+                totalItems={clientes.length}
+                pageSize={itensPorPagina}
+                onPageChange={setPaginaAtual}
+              />
+            ) : null}
           </CardContent>
         </Card>
       </div>

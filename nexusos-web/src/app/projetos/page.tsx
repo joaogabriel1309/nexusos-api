@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProjetoForm } from "@/components/shared/projeto-form";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,12 +21,14 @@ import type { Projeto } from "@/types";
 
 const projetosQueryKey = ["projetos"];
 const clientesQueryKey = ["clientes"];
+const itensPorPagina = 20;
 
 export default function ProjetosPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [projetoSelecionado, setProjetoSelecionado] = useState<Projeto | null>(null);
   const [projetoInativandoId, setProjetoInativandoId] = useState<string | null>(null);
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const projetosQuery = useQuery({
     queryKey: projetosQueryKey,
@@ -72,8 +75,17 @@ export default function ProjetosPage() {
     onSettled: () => setProjetoInativandoId(null)
   });
 
-  const projetos = projetosQuery.data ?? [];
+  const projetos = useMemo(() => projetosQuery.data ?? [], [projetosQuery.data]);
   const clientes = (clientesQuery.data ?? []).filter((cliente) => cliente.ativo);
+  const totalPaginas = Math.max(1, Math.ceil(projetos.length / itensPorPagina));
+  const projetosPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return projetos.slice(inicio, inicio + itensPorPagina);
+  }, [paginaAtual, projetos]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   function abrirCadastro() {
     setProjetoSelecionado(null);
@@ -150,7 +162,7 @@ export default function ProjetosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projetos.map((projeto) => (
+                  {projetosPaginados.map((projeto) => (
                     <TableRow key={projeto.id}>
                       <TableCell className="font-medium">{projeto.nome}</TableCell>
                       <TableCell>{projeto.clienteNome || "-"}</TableCell>
@@ -188,6 +200,15 @@ export default function ProjetosPage() {
               </Table>
             </div>
           )}
+
+          {!projetosQuery.isLoading && !projetosQuery.isError && projetos.length > 0 ? (
+            <TablePagination
+              page={paginaAtual}
+              totalItems={projetos.length}
+              pageSize={itensPorPagina}
+              onPageChange={setPaginaAtual}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

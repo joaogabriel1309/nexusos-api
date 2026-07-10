@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit, Loader2, Plus, RefreshCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { UsuarioForm } from "@/components/shared/usuario-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { usuarioService } from "@/services/usuario-service";
 import type { PerfilUsuario, Usuario } from "@/types";
 
 const usuariosQueryKey = ["usuarios"];
+const itensPorPagina = 20;
 
 const perfilLabels: Record<PerfilUsuario, string> = {
   ADMIN: "Administrador",
@@ -31,6 +33,7 @@ export default function UsuariosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
   const [usuarioInativandoId, setUsuarioInativandoId] = useState<string | null>(null);
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const usuariosQuery = useQuery({
     queryKey: usuariosQueryKey,
@@ -86,7 +89,16 @@ export default function UsuariosPage() {
     }
   });
 
-  const usuarios = usuariosQuery.data ?? [];
+  const usuarios = useMemo(() => usuariosQuery.data ?? [], [usuariosQuery.data]);
+  const totalPaginas = Math.max(1, Math.ceil(usuarios.length / itensPorPagina));
+  const usuariosPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return usuarios.slice(inicio, inicio + itensPorPagina);
+  }, [paginaAtual, usuarios]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   function abrirCadastro() {
     setUsuarioSelecionado(null);
@@ -157,7 +169,7 @@ export default function UsuariosPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usuarios.map((usuario) => (
+                    {usuariosPaginados.map((usuario) => (
                       <TableRow key={usuario.id}>
                         <TableCell className="font-medium">{usuario.nome}</TableCell>
                         <TableCell>{usuario.email}</TableCell>
@@ -195,6 +207,15 @@ export default function UsuariosPage() {
                 </Table>
               </div>
             )}
+
+            {!usuariosQuery.isLoading && !usuariosQuery.isError && usuarios.length > 0 ? (
+              <TablePagination
+                page={paginaAtual}
+                totalItems={usuarios.length}
+                pageSize={itensPorPagina}
+                onPageChange={setPaginaAtual}
+              />
+            ) : null}
           </CardContent>
         </Card>
       </div>

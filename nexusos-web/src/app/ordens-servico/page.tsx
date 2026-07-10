@@ -3,11 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const todosOption = "__todos__";
 const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
+const itensPorPagina = 20;
 
 function PagamentoBadge({ paga }: { paga?: boolean }) {
   return (
@@ -62,6 +64,7 @@ export default function OrdensServicoPage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
@@ -138,6 +141,19 @@ export default function OrdensServicoPage() {
       })
       .sort((a, b) => b.codigo - a.codigo); // Ordena por código da OS do maior para o menor
   }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
+  const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
+  const ordensPaginadas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return ordensFiltradas.slice(inicio, inicio + itensPorPagina);
+  }, [ordensFiltradas, paginaAtual]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [clienteFiltro, dataFim, dataInicio, projetoFiltro, statusFiltro]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
@@ -302,7 +318,7 @@ export default function OrdensServicoPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ordensFiltradas.map((ordem) => (
+                  {ordensPaginadas.map((ordem) => (
                     <TableRow
                       key={ordem.id}
                       className="cursor-pointer"
@@ -347,6 +363,15 @@ export default function OrdensServicoPage() {
               </Table>
             </div>
           )}
+
+          {!isLoading && !isError && ordensFiltradas.length > 0 ? (
+            <TablePagination
+              page={paginaAtual}
+              totalItems={ordensFiltradas.length}
+              pageSize={itensPorPagina}
+              onPageChange={setPaginaAtual}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

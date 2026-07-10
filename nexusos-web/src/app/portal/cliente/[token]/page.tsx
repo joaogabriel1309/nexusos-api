@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
@@ -33,6 +34,7 @@ const ordemStatusFluxo: StatusOS[] = [
   "FINALIZADA"
 ];
 const indiceAguardandoAprovacao = ordemStatusFluxo.indexOf("AGUARDANDO_APROVACAO");
+const itensPorPagina = 20;
 
 type ApiErrorResponse = {
   mensagem?: string;
@@ -139,6 +141,7 @@ export default function PortalClientePage() {
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
   const [pixPagamento, setPixPagamento] = useState<PagamentoPixResponse | null>(null);
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const queryKey = ["portal-cliente", token];
   const portalQuery = useQuery({
@@ -248,6 +251,11 @@ export default function PortalClientePage() {
       })
       .sort((a, b) => ordemStatusFluxo.indexOf(a.status) - ordemStatusFluxo.indexOf(b.status));
   }, [codigoFiltro, portalQuery.data?.ordens, projetoFiltro, statusFiltro]);
+  const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
+  const ordensPaginadas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return ordensFiltradas.slice(inicio, inicio + itensPorPagina);
+  }, [ordensFiltradas, paginaAtual]);
 
   const projetos = useMemo(() => {
     const mapa = new Map<string, string>();
@@ -281,6 +289,14 @@ export default function PortalClientePage() {
       { aPagar: 0, pago: 0 }
     );
   }, [ordensFiltradas]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [codigoFiltro, projetoFiltro, statusFiltro]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -375,47 +391,55 @@ export default function PortalClientePage() {
                     Nenhuma OS encontrada para os filtros selecionados.
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>OS</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Pagamento</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ordensFiltradas.map((ordem) => (
-                        <TableRow
-                          key={ordem.id}
-                          className="cursor-pointer"
-                          onClick={() => setOrdemSelecionada(ordem)}
-                        >
-                          <TableCell>
-                            <div className="max-w-[360px]">
-                              <div className="truncate font-medium" title={`n° ${ordem.codigo}`}>
-                                {descricaoCurta(ordem)}
-                              </div>
-                              <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
-                                {ordem.descricao}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
-                              {statusLabels[ordem.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <PagamentoBadge paga={ordem.paga} />
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatarValor(ordem.valorTotalEstimado)}
-                          </TableCell>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>OS</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Pagamento</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {ordensPaginadas.map((ordem) => (
+                          <TableRow
+                            key={ordem.id}
+                            className="cursor-pointer"
+                            onClick={() => setOrdemSelecionada(ordem)}
+                          >
+                            <TableCell>
+                              <div className="max-w-[360px]">
+                                <div className="truncate font-medium" title={`n° ${ordem.codigo}`}>
+                                  {descricaoCurta(ordem)}
+                                </div>
+                                <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
+                                  {ordem.descricao}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                                {statusLabels[ordem.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <PagamentoBadge paga={ordem.paga} />
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatarValor(ordem.valorTotalEstimado)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <TablePagination
+                      page={paginaAtual}
+                      totalItems={ordensFiltradas.length}
+                      pageSize={itensPorPagina}
+                      onPageChange={setPaginaAtual}
+                    />
+                  </>
                 )}
               </div>
             )}

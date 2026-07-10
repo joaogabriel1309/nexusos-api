@@ -2,9 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCcw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +24,7 @@ const projetosQueryKey = ["projetos"];
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const todosClientesOption = "__todos__";
 const todosProjetosOption = "__todos_projetos__";
+const itensPorPagina = 20;
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -49,6 +51,7 @@ export default function OrdensServicoFinalizadasPage() {
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   const ordensQuery = useQuery({
     queryKey: ordensFinalizadasQueryKey,
@@ -98,10 +101,23 @@ export default function OrdensServicoFinalizadasPage() {
       return matchCliente && matchProjeto && matchInicio && matchFim;
     });
   }, [clienteFiltro, dataFim, dataInicio, ordens, projetoFiltro]);
+  const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
+  const ordensPaginadas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    return ordensFiltradas.slice(inicio, inicio + itensPorPagina);
+  }, [ordensFiltradas, paginaAtual]);
 
   const totalValor = useMemo(() => {
     return ordensFiltradas.reduce((total, ordem) => total + (ordem.paga ? ordem.valorTotalEstimado ?? 0 : 0), 0);
   }, [ordensFiltradas]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [clienteFiltro, dataFim, dataInicio, projetoFiltro]);
+
+  useEffect(() => {
+    setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
+  }, [totalPaginas]);
 
   function limparFiltros() {
     setClienteFiltro("");
@@ -215,7 +231,7 @@ export default function OrdensServicoFinalizadasPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordensFiltradas.map((ordem) => (
+                    {ordensPaginadas.map((ordem) => (
                       <TableRow key={ordem.id}>
                         <TableCell className="font-medium">n° {ordem.codigo} - {ordem.titulo}</TableCell>
                         <TableCell>{ordem.clienteNome}</TableCell>
@@ -235,6 +251,15 @@ export default function OrdensServicoFinalizadasPage() {
                   </TableBody>
                 </Table>
               )}
+
+              {ordensFiltradas.length > 0 ? (
+                <TablePagination
+                  page={paginaAtual}
+                  totalItems={ordensFiltradas.length}
+                  pageSize={itensPorPagina}
+                  onPageChange={setPaginaAtual}
+                />
+              ) : null}
             </div>
           )}
         </CardContent>
