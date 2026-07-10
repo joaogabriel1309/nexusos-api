@@ -1,6 +1,7 @@
 package com.nexusos.whatsapp;
 
 import com.nexusos.ordemservico.OrdemServico;
+import com.nexusos.notificacao.NotificacaoService;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -18,6 +19,8 @@ import org.springframework.web.client.RestClientResponseException;
 public class WhatsappService {
 
     private static final Locale PT_BR = Locale.of("pt", "BR");
+
+    private final NotificacaoService notificacaoService;
 
     @Value("${nexusos.whatsapp.enabled:false}")
     private boolean whatsappEnabled;
@@ -122,7 +125,7 @@ public class WhatsappService {
             return;
         }
 
-        enviarCloudApi(telefone, conteudo);
+        enviarCloudApi(os, telefone, conteudo);
     }
 
     private void enviarCallMeBot(OrdemServico os, String conteudo) {
@@ -130,12 +133,14 @@ public class WhatsappService {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Cliente '{}' nao possui API key do CallMeBot. WhatsApp nao enviado.",
                     os.getCliente().getNome());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "cliente sem API key do CallMeBot");
             return;
         }
 
         var destino = normalizarTelefone(os.getCliente().getTelefone(), true);
         if (destino.isBlank()) {
             log.warn("Telefone do cliente invalido para envio de WhatsApp: '{}'.", os.getCliente().getTelefone());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "telefone do cliente invalido");
             return;
         }
 
@@ -154,20 +159,24 @@ public class WhatsappService {
                     .toBodilessEntity();
         } catch (RestClientResponseException ex) {
             log.warn("CallMeBot recusou a mensagem para '{}': {}", destino, ex.getResponseBodyAsString());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "CallMeBot recusou a mensagem");
         } catch (RestClientException ex) {
             log.warn("Falha ao comunicar com CallMeBot ao enviar mensagem para '{}': {}", destino, ex.getMessage());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", ex.getMessage());
         }
     }
 
-    private void enviarCloudApi(String telefone, String conteudo) {
+    private void enviarCloudApi(OrdemServico os, String telefone, String conteudo) {
         if (accessToken == null || accessToken.isBlank() || phoneNumberId == null || phoneNumberId.isBlank()) {
             log.warn("WhatsApp Cloud API nao configurado. Mensagem para '{}' nao enviada.", telefone);
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "Cloud API nao configurada");
             return;
         }
 
         var destino = normalizarTelefone(telefone, false);
         if (destino.isBlank()) {
             log.warn("Telefone do cliente invalido para envio de WhatsApp: '{}'.", telefone);
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "telefone do cliente invalido");
             return;
         }
 
@@ -185,8 +194,10 @@ public class WhatsappService {
                     .toBodilessEntity();
         } catch (RestClientResponseException ex) {
             log.warn("WhatsApp recusou a mensagem para '{}': {}", destino, ex.getResponseBodyAsString());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "Cloud API recusou a mensagem");
         } catch (RestClientException ex) {
             log.warn("Falha ao comunicar com WhatsApp ao enviar mensagem para '{}': {}", destino, ex.getMessage());
+            notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", ex.getMessage());
         }
     }
 

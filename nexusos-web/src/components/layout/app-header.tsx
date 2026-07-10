@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getResumoNotificacao } from "@/lib/notificacao-labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -91,14 +92,19 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                 <div className="text-sm font-semibold">Notificações</div>
                 <div className="text-xs text-muted-foreground">Avisos importantes do sistema</div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={naoLidas === 0 || marcarTodasComoLidasMutation.isPending}
-                onClick={() => marcarTodasComoLidasMutation.mutate()}
-              >
-                Marcar todas
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => router.push("/notificacoes")}>
+                  Ver todas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={naoLidas === 0 || marcarTodasComoLidasMutation.isPending}
+                  onClick={() => marcarTodasComoLidasMutation.mutate()}
+                >
+                  Marcar todas
+                </Button>
+              </div>
             </div>
             <Separator />
             <div className="max-h-[420px] overflow-y-auto">
@@ -118,7 +124,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                     </div>
                     <span className="text-sm text-muted-foreground">{notificacao.mensagem}</span>
                     <span className="text-xs text-muted-foreground">
-                      {notificacao.ordemServicoCodigo ? `OS ${notificacao.ordemServicoCodigo} • ` : ""}
+                      {getResumoNotificacao(notificacao)} •{" "}
                       {formatarDataHora(notificacao.criadoEm)}
                     </span>
                   </button>

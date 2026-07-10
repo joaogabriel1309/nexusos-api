@@ -3,6 +3,7 @@ package com.nexusos.apontamento;
 import com.nexusos.apontamento.dto.ApontamentoTempoRequest;
 import com.nexusos.apontamento.dto.ApontamentoTempoResponse;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServicoService;
 import com.nexusos.usuario.UsuarioService;
 import java.util.List;
@@ -17,6 +18,7 @@ public class ApontamentoTempoService {
     private final ApontamentoTempoRepository apontamentoTempoRepository;
     private final OrdemServicoService ordemServicoService;
     private final UsuarioService usuarioService;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<ApontamentoTempoResponse> listar(UUID ordemServicoId) {
@@ -31,11 +33,15 @@ public class ApontamentoTempoService {
             throw new RegraNegocioException("Fim deve ser posterior ao inicio.");
         }
         var apontamento = new ApontamentoTempo();
-        apontamento.setOrdemServico(ordemServicoService.buscarEntidade(ordemServicoId));
-        apontamento.setUsuario(usuarioService.buscarEntidade(request.usuarioId()));
+        var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
+        var usuario = usuarioService.buscarEntidade(request.usuarioId());
+        apontamento.setOrdemServico(ordemServico);
+        apontamento.setUsuario(usuario);
         apontamento.setDescricao(request.descricao());
         apontamento.setInicio(request.inicio());
         apontamento.setFim(request.fim());
-        return ApontamentoTempoResponse.from(apontamentoTempoRepository.save(apontamento));
+        var salvo = apontamentoTempoRepository.save(apontamento);
+        notificacaoService.notificarApontamento(ordemServico, usuario, "novo apontamento registrado");
+        return ApontamentoTempoResponse.from(salvo);
     }
 }

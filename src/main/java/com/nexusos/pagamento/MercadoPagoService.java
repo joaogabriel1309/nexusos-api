@@ -66,9 +66,11 @@ public class MercadoPagoService {
         } catch (RestClientResponseException ex) {
             var detalhe = extrairMensagemMercadoPago(ex);
             log.warn("Mercado Pago recusou a criacao da preferencia da OS {}: {}", os.getId(), detalhe);
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
             throw new RegraNegocioException("Mercado Pago recusou o pagamento: " + detalhe);
         } catch (RestClientException ex) {
             log.warn("Falha ao comunicar com Mercado Pago ao criar preferencia da OS {}: {}", os.getId(), ex.getMessage());
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel iniciar o pagamento no Mercado Pago.");
         }
     }
@@ -102,9 +104,11 @@ public class MercadoPagoService {
         } catch (RestClientResponseException ex) {
             var detalhe = extrairMensagemMercadoPago(ex);
             log.warn("Mercado Pago recusou a criacao do Pix da OS {}: {}", os.getId(), detalhe);
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
             throw new RegraNegocioException("Mercado Pago recusou o Pix: " + detalhe);
         } catch (RestClientException ex) {
             log.warn("Falha ao comunicar com Mercado Pago ao criar Pix da OS {}: {}", os.getId(), ex.getMessage());
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel gerar o Pix no Mercado Pago.");
         }
     }
@@ -124,7 +128,12 @@ public class MercadoPagoService {
         try {
             pagamento = consultarPagamento(paymentId);
         } catch (RestClientResponseException ex) {
-            throw new RegraNegocioException("Nao foi possivel consultar o pagamento: " + extrairMensagemMercadoPago(ex));
+            var detalhe = extrairMensagemMercadoPago(ex);
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
+            throw new RegraNegocioException("Nao foi possivel consultar o pagamento: " + detalhe);
+        } catch (RestClientException ex) {
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
+            throw new RegraNegocioException("Nao foi possivel consultar o pagamento no Mercado Pago.");
         }
 
         if (pagamento == null) {
@@ -229,8 +238,11 @@ public class MercadoPagoService {
                     .findFirst()
                     .orElse(null);
         } catch (RestClientResponseException ex) {
-            throw new RegraNegocioException("Nao foi possivel consultar pagamentos: " + extrairMensagemMercadoPago(ex));
+            var detalhe = extrairMensagemMercadoPago(ex);
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
+            throw new RegraNegocioException("Nao foi possivel consultar pagamentos: " + detalhe);
         } catch (RestClientException ex) {
+            notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel consultar pagamentos no Mercado Pago.");
         }
     }

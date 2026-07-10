@@ -1,9 +1,23 @@
 import { api } from "@/lib/api";
-import type { NotificacaoResumo } from "@/types";
+import type { NotificacaoPagina, NotificacaoResumo } from "@/types";
+
+type ListarHistoricoParams = {
+  pagina?: number;
+  tamanho?: number;
+  lida?: boolean;
+  tipo?: string;
+};
 
 export const notificacaoService = {
   async listarMinhas() {
     const response = await api.get<NotificacaoResumo>("/notificacoes");
+    return response.data;
+  },
+
+  async listarHistorico(params: ListarHistoricoParams = {}) {
+    const response = await api.get<NotificacaoPagina>("/notificacoes/historico", {
+      params
+    });
     return response.data;
   },
 

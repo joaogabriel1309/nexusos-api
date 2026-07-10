@@ -136,4 +136,14 @@ export type NotificacaoResumo = {
   itens: Notificacao[];
 };
 
+export type NotificacaoPagina = {
+  naoLidas: number;
+  totalItens: number;
+  pagina: number;
+  tamanho: number;
+  totalPaginas: number;
+  tiposDisponiveis: string[];
+  itens: Notificacao[];
+};
+
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

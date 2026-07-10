@@ -2,6 +2,7 @@ package com.nexusos.projeto;
 
 import com.nexusos.cliente.ClienteService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.projeto.dto.ProjetoRequest;
 import com.nexusos.projeto.dto.ProjetoResponse;
 import com.nexusos.projeto.dto.ProjetoUpdateRequest;
@@ -17,6 +18,7 @@ public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final ClienteService clienteService;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<ProjetoResponse> listar() {
@@ -35,7 +37,9 @@ public class ProjetoService {
                 .descricao(request.descricao())
                 .cliente(clienteService.buscarEntidade(request.clienteId()))
                 .build();
-        return ProjetoResponse.from(projetoRepository.save(projeto));
+        var salvo = projetoRepository.save(projeto);
+        notificacaoService.notificarProjetoSemOs(salvo.getNome());
+        return ProjetoResponse.from(salvo);
     }
 
     @Transactional

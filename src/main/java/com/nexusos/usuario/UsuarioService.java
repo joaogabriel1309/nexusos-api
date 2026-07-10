@@ -2,12 +2,14 @@ package com.nexusos.usuario;
 
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.usuario.dto.UsuarioRequest;
 import com.nexusos.usuario.dto.UsuarioResponse;
 import com.nexusos.usuario.dto.UsuarioUpdateRequest;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectProvider<NotificacaoService> notificacaoServiceProvider;
 
     @Transactional(readOnly = true)
     public List<UsuarioResponse> listar() {
@@ -41,7 +44,9 @@ public class UsuarioService {
                 .senha(passwordEncoder.encode(request.senha()))
                 .perfil(request.perfil())
                 .build();
-        return UsuarioResponse.from(usuarioRepository.save(usuario));
+        var salvo = usuarioRepository.save(usuario);
+        notificacaoServiceProvider.ifAvailable(notificacaoService -> notificacaoService.notificarUsuarioCriado(salvo));
+        return UsuarioResponse.from(salvo);
     }
 
     @Transactional
@@ -62,7 +67,8 @@ public class UsuarioService {
     public void inativar(UUID id) {
         var usuario = buscarEntidade(id);
         usuario.setAtivo(false);
-        usuarioRepository.save(usuario);
+        var salvo = usuarioRepository.save(usuario);
+        notificacaoServiceProvider.ifAvailable(notificacaoService -> notificacaoService.notificarUsuarioInativado(salvo));
     }
 
     @Transactional(readOnly = true)

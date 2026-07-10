@@ -1,5 +1,6 @@
 package com.nexusos.notificacao;
 
+import com.nexusos.notificacao.dto.NotificacaoPaginaResponse;
 import com.nexusos.notificacao.dto.NotificacaoResumoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,6 +26,18 @@ public class NotificacaoController {
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<NotificacaoResumoResponse> listarMinhas() {
         return ResponseEntity.ok(notificacaoService.listarMinhas());
+    }
+
+    @Operation(summary = "Lista historico paginado de notificacoes do usuario autenticado")
+    @GetMapping("/historico")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<NotificacaoPaginaResponse> listarHistorico(
+            @RequestParam(defaultValue = "1") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(required = false) Boolean lida,
+            @RequestParam(required = false) String tipo
+    ) {
+        return ResponseEntity.ok(notificacaoService.listarHistorico(pagina, tamanho, lida, tipo));
     }
 
     @Operation(summary = "Marca uma notificacao como lida")

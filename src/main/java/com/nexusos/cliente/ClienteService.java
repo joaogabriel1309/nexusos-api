@@ -5,6 +5,7 @@ import com.nexusos.cliente.dto.ClienteResponse;
 import com.nexusos.cliente.dto.ClienteUpdateRequest;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<ClienteResponse> listar() {
@@ -60,6 +62,7 @@ public class ClienteService {
     @Transactional
     public ClienteResponse atualizar(UUID id, ClienteUpdateRequest request) {
         var cliente = buscarEntidade(id);
+        var estavaAtivo = cliente.isAtivo();
         validarDocumentoDisponivel(request.documento(), id);
         cliente.setNome(request.nome());
         cliente.setDocumento(request.documento());
@@ -70,14 +73,19 @@ public class ClienteService {
         cliente.setEnviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()));
         cliente.setWhatsappApiKey(normalizarTexto(request.whatsappApiKey()));
         cliente.setAtivo(request.ativo());
-        return ClienteResponse.from(clienteRepository.save(cliente));
+        var salvo = clienteRepository.save(cliente);
+        if (estavaAtivo && !salvo.isAtivo()) {
+            notificacaoService.notificarClienteInativado(salvo.getNome());
+        }
+        return ClienteResponse.from(salvo);
     }
 
     @Transactional
     public void inativar(UUID id) {
         var cliente = buscarEntidade(id);
         cliente.setAtivo(false);
-        clienteRepository.save(cliente);
+        var salvo = clienteRepository.save(cliente);
+        notificacaoService.notificarClienteInativado(salvo.getNome());
     }
 
     @Transactional(readOnly = true)

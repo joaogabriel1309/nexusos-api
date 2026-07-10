@@ -1,6 +1,7 @@
 package com.nexusos.email;
 
 import com.nexusos.ordemservico.OrdemServico;
+import com.nexusos.notificacao.NotificacaoService;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -21,6 +22,7 @@ public class EmailService {
     private static final Locale PT_BR = Locale.of("pt", "BR");
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
+    private final NotificacaoService notificacaoService;
 
     @Value("${nexusos.email.enabled:false}")
     private boolean emailEnabled;
@@ -36,7 +38,8 @@ public class EmailService {
             return;
         }
 
-        enviar(os.getCliente().getEmail(),
+        enviar(os,
+                os.getCliente().getEmail(),
                 "OS analisada - NexusOS",
                 """
                         Ola, %s.
@@ -70,7 +73,8 @@ public class EmailService {
             return;
         }
 
-        enviar(os.getCliente().getEmail(),
+        enviar(os,
+                os.getCliente().getEmail(),
                 "OS finalizada - NexusOS",
                 """
                         Ola, %s.
@@ -102,7 +106,7 @@ public class EmailService {
                 && !os.getCliente().getEmail().isBlank();
     }
 
-    private void enviar(String destinatario, String assunto, String conteudo) {
+    private void enviar(OrdemServico os, String destinatario, String assunto, String conteudo) {
         if (!emailEnabled) {
             log.info("Envio de e-mail desabilitado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
             return;
@@ -111,6 +115,7 @@ public class EmailService {
         var mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
             log.warn("JavaMailSender nao configurado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
+            notificacaoService.notificarFalhaIntegracao(os, "e-mail", "JavaMailSender nao configurado");
             return;
         }
 
@@ -125,6 +130,7 @@ public class EmailService {
             mailSender.send(mensagem);
         } catch (MailException ex) {
             log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getMessage());
+            notificacaoService.notificarFalhaIntegracao(os, "e-mail", ex.getMessage());
         }
     }
 

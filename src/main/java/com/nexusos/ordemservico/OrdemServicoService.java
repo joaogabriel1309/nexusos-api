@@ -96,6 +96,7 @@ public class OrdemServicoService {
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
+        notificacaoService.notificarOsCriada(salva);
         notificacaoService.notificarAtribuicao(
                 salva,
                 "Uma nova OS foi atribuida a voce: " + salva.getCodigo() + " - " + salva.getTitulo() + "."
@@ -106,7 +107,10 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponse atualizar(UUID id, OrdemServicoUpdateRequest request) {
         var os = buscarEntidade(id);
-        var responsavelAnteriorId = os.getResponsavel() != null ? os.getResponsavel().getId() : null;
+        var responsavelAnterior = os.getResponsavel();
+        var responsavelAnteriorId = responsavelAnterior != null ? responsavelAnterior.getId() : null;
+        var prioridadeAnterior = os.getPrioridade();
+        var prazoAnterior = os.getPrazo();
         os.setTitulo(request.titulo());
         os.setDescricao(request.descricao());
         os.setCliente(clienteService.buscarEntidade(request.clienteId()));
@@ -123,11 +127,24 @@ public class OrdemServicoService {
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
 
-        if (salva.getResponsavel() != null && (responsavelAnteriorId == null || !responsavelAnteriorId.equals(salva.getResponsavel().getId()))) {
-            notificacaoService.notificarAtribuicao(
-                    salva,
-                    "A OS " + salva.getCodigo() + " foi direcionada para voce."
-            );
+        var responsavelAtualId = salva.getResponsavel() != null ? salva.getResponsavel().getId() : null;
+        var responsavelAlterado = responsavelAnteriorId == null
+                ? responsavelAtualId != null
+                : !responsavelAnteriorId.equals(responsavelAtualId);
+        if (responsavelAlterado) {
+            notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
+            if (salva.getResponsavel() != null) {
+                notificacaoService.notificarAtribuicao(
+                        salva,
+                        "A OS " + salva.getCodigo() + " foi direcionada para voce."
+                );
+            }
+        }
+        if (prioridadeAnterior != salva.getPrioridade()) {
+            notificacaoService.notificarPrioridadeAlterada(salva);
+        }
+        if ((prazoAnterior == null && salva.getPrazo() != null) || (prazoAnterior != null && !prazoAnterior.equals(salva.getPrazo()))) {
+            notificacaoService.notificarPrazoAlterado(salva);
         }
 
         return OrdemServicoResponse.from(salva);
@@ -210,10 +227,12 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponse atualizarResponsavel(UUID id, ResponsavelUpdateRequest request) {
         var os = buscarEntidade(id);
+        var responsavelAnterior = os.getResponsavel();
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
         auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsavel da OS atualizado.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
+        notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
         notificacaoService.notificarAtribuicao(
                 salva,
                 "A OS " + salva.getCodigo() + " foi direcionada para voce."

@@ -3,6 +3,7 @@ package com.nexusos.checklist;
 import com.nexusos.checklist.dto.ChecklistRequest;
 import com.nexusos.checklist.dto.ChecklistResponse;
 import com.nexusos.exception.RecursoNaoEncontradoException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServicoService;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChecklistService {
     private final ChecklistRepository checklistRepository;
     private final OrdemServicoService ordemServicoService;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<ChecklistResponse> listar(UUID ordemServicoId) {
@@ -27,10 +29,13 @@ public class ChecklistService {
     @Transactional
     public ChecklistResponse criar(UUID ordemServicoId, ChecklistRequest request) {
         var item = new ChecklistItem();
-        item.setOrdemServico(ordemServicoService.buscarEntidade(ordemServicoId));
+        var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
+        item.setOrdemServico(ordemServico);
         item.setDescricao(request.descricao());
         item.setObrigatorio(request.obrigatorio());
-        return ChecklistResponse.from(checklistRepository.save(item));
+        var salvo = checklistRepository.save(item);
+        notificacaoService.notificarChecklist(ordemServico, "novo item " + salvo.getDescricao());
+        return ChecklistResponse.from(salvo);
     }
 
     @Transactional
@@ -40,6 +45,8 @@ public class ChecklistService {
         ordemServicoService.buscarEntidade(item.getOrdemServico().getId());
         item.setConcluido(true);
         item.setConcluidoEm(OffsetDateTime.now());
-        return ChecklistResponse.from(checklistRepository.save(item));
+        var salvo = checklistRepository.save(item);
+        notificacaoService.notificarChecklist(salvo.getOrdemServico(), "item concluido " + salvo.getDescricao());
+        return ChecklistResponse.from(salvo);
     }
 }

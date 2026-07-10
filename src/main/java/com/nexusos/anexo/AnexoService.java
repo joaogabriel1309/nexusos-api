@@ -2,6 +2,7 @@ package com.nexusos.anexo;
 
 import com.nexusos.anexo.dto.AnexoResponse;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServicoService;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,6 +38,7 @@ public class AnexoService {
 
     private final AnexoRepository anexoRepository;
     private final OrdemServicoService ordemServicoService;
+    private final NotificacaoService notificacaoService;
     @Value("${nexusos.storage.uploads-path}")
     private String uploadsPath;
 
@@ -75,7 +77,9 @@ public class AnexoService {
             anexo.setTamanho(arquivo.getSize());
             anexo.setCaminho(destino.toString());
             anexo.setDescricao(descricao);
-            return AnexoResponse.from(anexoRepository.save(anexo));
+            var salvo = anexoRepository.save(anexo);
+            notificacaoService.notificarAnexo(ordemServico, nomeOriginal);
+            return AnexoResponse.from(salvo);
         } catch (IOException ex) {
             throw new RegraNegocioException("Falha ao salvar anexo.");
         }

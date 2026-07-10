@@ -2,6 +2,7 @@ package com.nexusos.comentario;
 
 import com.nexusos.comentario.dto.ComentarioRequest;
 import com.nexusos.comentario.dto.ComentarioResponse;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServicoService;
 import com.nexusos.usuario.UsuarioService;
 import java.util.List;
@@ -16,6 +17,7 @@ public class ComentarioService {
     private final ComentarioRepository comentarioRepository;
     private final OrdemServicoService ordemServicoService;
     private final UsuarioService usuarioService;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<ComentarioResponse> listar(UUID ordemServicoId) {
@@ -27,9 +29,13 @@ public class ComentarioService {
     @Transactional
     public ComentarioResponse criar(UUID ordemServicoId, ComentarioRequest request) {
         var comentario = new Comentario();
-        comentario.setOrdemServico(ordemServicoService.buscarEntidade(ordemServicoId));
-        comentario.setUsuario(usuarioService.buscarEntidade(request.usuarioId()));
+        var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
+        var usuario = usuarioService.buscarEntidade(request.usuarioId());
+        comentario.setOrdemServico(ordemServico);
+        comentario.setUsuario(usuario);
         comentario.setMensagem(request.mensagem());
-        return ComentarioResponse.from(comentarioRepository.save(comentario));
+        var salvo = comentarioRepository.save(comentario);
+        notificacaoService.notificarComentario(ordemServico, usuario);
+        return ComentarioResponse.from(salvo);
     }
 }
