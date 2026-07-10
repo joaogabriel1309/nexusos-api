@@ -131,13 +131,13 @@ export default function ClientesPage() {
         <Card>
           <CardContent className="p-0">
             {clientesQuery.isLoading ? (
-              <div className="space-y-3 p-5">
+              <div className="space-y-3 p-4 sm:p-5">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : clientesQuery.isError ? (
-              <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Nao foi possivel carregar os clientes.</span>
                 <Button variant="outline" size="sm" onClick={() => clientesQuery.refetch()}>
                   <RefreshCcw className="h-4 w-4" />
@@ -145,7 +145,7 @@ export default function ClientesPage() {
                 </Button>
               </div>
             ) : clientes.length === 0 ? (
-              <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Nenhum cliente cadastrado.</span>
                 <Button variant="outline" size="sm" onClick={abrirCadastro}>
                   <Plus className="h-4 w-4" />
@@ -153,79 +153,81 @@ export default function ClientesPage() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Valor/hora</TableHead>
-                    <TableHead>E-mail OS</TableHead>
-                    <TableHead>WhatsApp OS</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[190px] text-right">Acoes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientes.map((cliente) => (
-                    <TableRow key={cliente.id}>
-                      <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell>{cliente.documento}</TableCell>
-                      <TableCell>{cliente.email}</TableCell>
-                      <TableCell>{cliente.telefone || "-"}</TableCell>
-                      <TableCell>
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={cliente.enviarEmail ? "default" : "secondary"}>
-                          {cliente.enviarEmail ? "Ativo" : "Desativado"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={cliente.enviarWhatsapp ? "default" : "secondary"}>
-                          {cliente.enviarWhatsapp ? "Ativo" : "Desativado"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={cliente.ativo ? "default" : "secondary"}>
-                          {cliente.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            disabled={gerarTokenMutation.isPending}
-                            onClick={() => copiarLinkCliente(cliente)}
-                            aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
-                            title={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
-                          >
-                            {cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            disabled={!cliente.ativo || inativarClienteMutation.isPending}
-                            onClick={() => inativarCliente(cliente)}
-                            aria-label="Inativar cliente"
-                          >
-                            {inativarClienteMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Documento</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Valor/hora</TableHead>
+                      <TableHead>E-mail OS</TableHead>
+                      <TableHead>WhatsApp OS</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[190px] text-right">Acoes</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {clientes.map((cliente) => (
+                      <TableRow key={cliente.id}>
+                        <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell>{cliente.documento}</TableCell>
+                        <TableCell>{cliente.email}</TableCell>
+                        <TableCell>{cliente.telefone || "-"}</TableCell>
+                        <TableCell>
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={cliente.enviarEmail ? "default" : "secondary"}>
+                            {cliente.enviarEmail ? "Ativo" : "Desativado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={cliente.enviarWhatsapp ? "default" : "secondary"}>
+                            {cliente.enviarWhatsapp ? "Ativo" : "Desativado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={cliente.ativo ? "default" : "secondary"}>
+                            {cliente.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              disabled={gerarTokenMutation.isPending}
+                              onClick={() => copiarLinkCliente(cliente)}
+                              aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                              title={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}
+                            >
+                              {cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              disabled={!cliente.ativo || inativarClienteMutation.isPending}
+                              onClick={() => inativarCliente(cliente)}
+                              aria-label="Inativar cliente"
+                            >
+                              {inativarClienteMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

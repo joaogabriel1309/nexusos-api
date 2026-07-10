@@ -109,13 +109,13 @@ export default function ProjetosPage() {
       <Card>
         <CardContent className="p-0">
           {projetosQuery.isLoading || clientesQuery.isLoading ? (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
           ) : projetosQuery.isError || clientesQuery.isError ? (
-            <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nao foi possivel carregar os projetos.</span>
                 <Button
                   variant="outline"
@@ -130,7 +130,7 @@ export default function ProjetosPage() {
               </Button>
             </div>
           ) : projetos.length === 0 ? (
-            <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nenhum projeto cadastrado.</span>
                 <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
                 <Plus className="h-4 w-4" />
@@ -138,53 +138,55 @@ export default function ProjetosPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Descricao</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[140px] text-right">Acoes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projetos.map((projeto) => (
-                  <TableRow key={projeto.id}>
-                    <TableCell className="font-medium">{projeto.nome}</TableCell>
-                    <TableCell>{projeto.clienteNome || "-"}</TableCell>
-                    <TableCell className="max-w-[520px] whitespace-normal text-muted-foreground">
-                      {projeto.descricao || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={projeto.ativo ? "default" : "secondary"}>
-                        {projeto.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" onClick={() => abrirEdicao(projeto)} aria-label="Editar projeto">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          disabled={!projeto.ativo || projetoInativandoId === projeto.id}
-                          onClick={() => inativarProjeto(projeto)}
-                          aria-label="Inativar projeto"
-                        >
-                          {projetoInativandoId === projeto.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Descricao</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[140px] text-right">Acoes</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {projetos.map((projeto) => (
+                    <TableRow key={projeto.id}>
+                      <TableCell className="font-medium">{projeto.nome}</TableCell>
+                      <TableCell>{projeto.clienteNome || "-"}</TableCell>
+                      <TableCell className="max-w-[520px] whitespace-normal text-muted-foreground">
+                        {projeto.descricao || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={projeto.ativo ? "default" : "secondary"}>
+                          {projeto.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="icon" onClick={() => abrirEdicao(projeto)} aria-label="Editar projeto">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            disabled={!projeto.ativo || projetoInativandoId === projeto.id}
+                            onClick={() => inativarProjeto(projeto)}
+                            aria-label="Inativar projeto"
+                          >
+                            {projetoInativandoId === projeto.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

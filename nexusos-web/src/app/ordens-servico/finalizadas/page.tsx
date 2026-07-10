@@ -100,7 +100,7 @@ export default function OrdensServicoFinalizadasPage() {
       />
 
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           {ordensQuery.isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />

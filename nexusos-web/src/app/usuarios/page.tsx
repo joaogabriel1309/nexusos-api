@@ -123,13 +123,13 @@ export default function UsuariosPage() {
         <Card>
           <CardContent className="p-0">
             {usuariosQuery.isLoading ? (
-              <div className="space-y-3 p-5">
+              <div className="space-y-3 p-4 sm:p-5">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : usuariosQuery.isError ? (
-              <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Nao foi possivel carregar os usuarios.</span>
                 <Button variant="outline" size="sm" onClick={() => usuariosQuery.refetch()}>
                   <RefreshCcw className="h-4 w-4" />
@@ -137,7 +137,7 @@ export default function UsuariosPage() {
                 </Button>
               </div>
             ) : usuarios.length === 0 ? (
-              <div className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Nenhum usuario cadastrado.</span>
                 <Button variant="outline" size="sm" onClick={abrirCadastro}>
                   <Plus className="h-4 w-4" />
@@ -145,55 +145,56 @@ export default function UsuariosPage() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead>Perfil</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[140px] text-right">Acoes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usuarios.map((usuario) => (
-                    <TableRow key={usuario.id}>
-                      <TableCell className="font-medium">{usuario.nome}</TableCell>
-                      <TableCell>{usuario.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{perfilLabels[usuario.perfil]}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={usuario.ativo ? "default" : "secondary"}>
-                          {usuario.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="icon" onClick={() => abrirEdicao(usuario)} aria-label="Editar usuario">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            disabled={!usuario.ativo || usuarioInativandoId === usuario.id}
-                            onClick={() => inativarUsuario(usuario)}
-                            aria-label="Inativar usuario"
-                          >
-                            {usuarioInativandoId === usuario.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Perfil</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-[140px] text-right">Acoes</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {usuarios.map((usuario) => (
+                      <TableRow key={usuario.id}>
+                        <TableCell className="font-medium">{usuario.nome}</TableCell>
+                        <TableCell>{usuario.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{perfilLabels[usuario.perfil]}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={usuario.ativo ? "default" : "secondary"}>
+                            {usuario.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="icon" onClick={() => abrirEdicao(usuario)} aria-label="Editar usuario">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              disabled={!usuario.ativo || usuarioInativandoId === usuario.id}
+                              onClick={() => inativarUsuario(usuario)}
+                              aria-label="Inativar usuario"
+                            >
+                              {usuarioInativandoId === usuario.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
             )}
-          </CardContent>
+              </CardContent>
         </Card>
       </div>
 

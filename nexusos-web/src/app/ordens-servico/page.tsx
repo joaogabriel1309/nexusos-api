@@ -158,8 +158,8 @@ export default function OrdensServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Ordens de Servico"
-        description="Acompanhe demandas tecnicas por status, prioridade e responsavel."
+        title="Ordens de Serviço"
+        description="Acompanhe demandas técnicas por status, prioridade e responsável."
         actions={
           <Button onClick={abrirCadastro} disabled={clientes.length === 0 || isLoading}>
             <Plus className="h-4 w-4" />
@@ -169,8 +169,8 @@ export default function OrdensServicoPage() {
       />
 
       <Card>
-        <CardContent className="p-5">
-          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
+        <CardContent className="p-4 sm:p-5">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
             <Select
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -218,7 +218,7 @@ export default function OrdensServicoPage() {
             </Select>
             <Input type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
             <Input type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
-            <Button variant="outline" onClick={limparFiltros}>
+            <Button variant="outline" onClick={limparFiltros} className="w-full sm:w-auto">
               Limpar
             </Button>
           </div>
@@ -246,60 +246,62 @@ export default function OrdensServicoPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-0">OS</TableHead>
-                  <TableHead>Cliente / Projeto</TableHead>
-                  <TableHead className="w-[190px]">Status</TableHead>
-                  <TableHead className="w-[140px]">Pagamento</TableHead>
-                  <TableHead className="w-[160px]">Prazo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ordensFiltradas.map((ordem) => (
-                  <TableRow
-                    key={ordem.id}
-                    className="cursor-pointer"
-                    onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
-                  >
-                    <TableCell>
-                      <div className="max-w-[420px] min-w-0">
-                        <div className="truncate font-medium" title={ordem.titulo}>
-                          n° {ordem.codigo} - {ordem.titulo}
-                        </div>
-                        <div className="max-w-full truncate text-xs text-muted-foreground" title={ordem.descricao}>
-                          {ordem.descricao}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[260px] min-w-0">
-                        <div className="truncate text-sm" title={ordem.clienteNome}>
-                          {ordem.clienteNome}
-                        </div>
-                        <div className="truncate text-xs text-muted-foreground" title={ordem.projetoNome || "Sem projeto"}>
-                          {ordem.projetoNome || "Sem projeto"}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
-                        {statusLabels[ordem.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <PagamentoBadge paga={ordem.paga} />
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
-                        {formatarDataPrazo(ordem.prazo)}
-                      </span>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-0">OS</TableHead>
+                    <TableHead>Cliente / Projeto</TableHead>
+                    <TableHead className="w-[190px]">Status</TableHead>
+                    <TableHead className="w-[140px]">Pagamento</TableHead>
+                    <TableHead className="w-[160px]">Prazo</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {ordensFiltradas.map((ordem) => (
+                    <TableRow
+                      key={ordem.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
+                    >
+                      <TableCell>
+                        <div className="max-w-[420px] min-w-0">
+                          <div className="truncate font-medium" title={ordem.titulo}>
+                            n° {ordem.codigo} - {ordem.titulo}
+                          </div>
+                          <div className="max-w-full truncate text-xs text-muted-foreground" title={ordem.descricao}>
+                            {ordem.descricao}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-[260px] min-w-0">
+                          <div className="truncate text-sm" title={ordem.clienteNome}>
+                            {ordem.clienteNome}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground" title={ordem.projetoNome || "Sem projeto"}>
+                            {ordem.projetoNome || "Sem projeto"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                          {statusLabels[ordem.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <PagamentoBadge paga={ordem.paga} />
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
+                          {formatarDataPrazo(ordem.prazo)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -317,7 +319,7 @@ export default function OrdensServicoPage() {
           <DialogHeader>
             <DialogTitle>{ordemSelecionada ? "Editar OS" : "Cadastrar OS"}</DialogTitle>
             <DialogDescription>
-              {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise tecnica."}
+              {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise técnica."}
             </DialogDescription>
           </DialogHeader>
           <OrdemServicoForm
