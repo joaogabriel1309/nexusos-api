@@ -1,12 +1,16 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useAuth } from "@/providers/auth-provider";
+import { notificacaoService } from "@/services/notificacao-service";
 
 type AppHeaderProps = {
   sidebarCollapsed?: boolean;
@@ -14,8 +18,48 @@ type AppHeaderProps = {
 };
 
 export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHeaderProps) {
-  const { logout } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { logout, usuario } = useAuth();
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
+  const notificacoesQuery = useQuery({
+    queryKey: ["notificacoes"],
+    queryFn: notificacaoService.listarMinhas,
+    refetchInterval: 60_000
+  });
+  const marcarComoLidaMutation = useMutation({
+    mutationFn: notificacaoService.marcarComoLida,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+    }
+  });
+  const marcarTodasComoLidasMutation = useMutation({
+    mutationFn: notificacaoService.marcarTodasComoLidas,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
+    }
+  });
+
+  const notificacoes = notificacoesQuery.data?.itens ?? [];
+  const naoLidas = notificacoesQuery.data?.naoLidas ?? 0;
+  const avatarFallback = usuario?.email?.slice(0, 2).toUpperCase() ?? "NX";
+
+  function abrirNotificacao(id?: string, ordemServicoId?: string) {
+    if (id) {
+      marcarComoLidaMutation.mutate(id);
+    }
+
+    if (ordemServicoId) {
+      router.push(`/ordens-servico/${ordemServicoId}`);
+    }
+  }
+
+  function formatarDataHora(data: string) {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short"
+    }).format(new Date(data));
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-white/90 px-4 backdrop-blur lg:px-6">
@@ -29,15 +73,65 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         <Input className="pl-9" placeholder="Buscar OS, cliente ou responsável" />
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notificações</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              {naoLidas > 0 ? (
+                <span className="absolute right-1 top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground">
+                  {naoLidas > 9 ? "9+" : naoLidas}
+                </span>
+              ) : null}
+              <span className="sr-only">Notificações</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-0">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold">Notificações</div>
+                <div className="text-xs text-muted-foreground">Avisos importantes do sistema</div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={naoLidas === 0 || marcarTodasComoLidasMutation.isPending}
+                onClick={() => marcarTodasComoLidasMutation.mutate()}
+              >
+                Marcar todas
+              </Button>
+            </div>
+            <Separator />
+            <div className="max-h-[420px] overflow-y-auto">
+              {notificacoes.length === 0 ? (
+                <div className="px-4 py-6 text-sm text-muted-foreground">Nenhuma notificação no momento.</div>
+              ) : (
+                notificacoes.map((notificacao) => (
+                  <button
+                    key={notificacao.id}
+                    type="button"
+                    onClick={() => abrirNotificacao(notificacao.id, notificacao.ordemServicoId)}
+                    className="flex w-full flex-col gap-1 border-b px-4 py-3 text-left transition-colors hover:bg-secondary"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-sm font-medium">{notificacao.titulo}</span>
+                      {!notificacao.lida ? <span className="mt-1 h-2.5 w-2.5 rounded-full bg-primary" /> : null}
+                    </div>
+                    <span className="text-sm text-muted-foreground">{notificacao.mensagem}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {notificacao.ordemServicoCodigo ? `OS ${notificacao.ordemServicoCodigo} • ` : ""}
+                      {formatarDataHora(notificacao.criadoEm)}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Avatar>
-                <AvatarFallback>NX</AvatarFallback>
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>

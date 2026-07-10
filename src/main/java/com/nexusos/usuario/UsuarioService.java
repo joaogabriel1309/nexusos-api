@@ -71,6 +71,18 @@ public class UsuarioService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado."));
     }
 
+    @Transactional(readOnly = true)
+    public Usuario buscarAutenticado() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new AccessDeniedException("Usuario autenticado nao encontrado.");
+        }
+
+        return usuarioRepository.findByEmail(authentication.getName().toLowerCase())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario autenticado nao encontrado."));
+    }
+
     private void validarEmailDisponivel(String email, UUID idAtual) {
         usuarioRepository.findByEmail(email.toLowerCase())
                 .filter(usuario -> !usuario.getId().equals(idAtual))

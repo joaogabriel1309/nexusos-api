@@ -14,6 +14,8 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     Optional<OrdemServico> findByIdAndResponsavelEmail(UUID id, String email);
 
+    List<OrdemServico> findByResponsavelIsNotNullAndStatusNot(StatusOS status);
+
     List<OrdemServico> findByClienteIdOrderByAtualizadoEmDesc(UUID clienteId);
 
     Optional<OrdemServico> findByMercadoPagoPaymentId(String mercadoPagoPaymentId);

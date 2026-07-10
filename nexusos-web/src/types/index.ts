@@ -119,4 +119,21 @@ export type PagamentoPixResponse = {
   ticketUrl?: string;
 };
 
+export type Notificacao = {
+  id: string;
+  ordemServicoId?: string;
+  ordemServicoCodigo?: number;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  lida: boolean;
+  criadoEm: string;
+  lidaEm?: string;
+};
+
+export type NotificacaoResumo = {
+  naoLidas: number;
+  itens: Notificacao[];
+};
+
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

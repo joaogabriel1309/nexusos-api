@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.StatusOS;
@@ -29,6 +30,7 @@ public class MercadoPagoService {
 
     private final OrdemServicoRepository ordemServicoRepository;
     private final ObjectMapper objectMapper;
+    private final NotificacaoService notificacaoService;
 
     @Value("${nexusos.mercado-pago.access-token:}")
     private String accessToken;
@@ -141,10 +143,15 @@ public class MercadoPagoService {
             throw new RegraNegocioException("Valor pago nao confere com o valor da OS.");
         }
 
+        var jaEstavaPaga = Boolean.TRUE.equals(os.getPaga());
         os.setMercadoPagoPaymentId(pagamento.id());
         os.setPaga(true);
 
-        return ordemServicoRepository.save(os);
+        var salva = ordemServicoRepository.save(os);
+        if (!jaEstavaPaga) {
+            notificacaoService.notificarPagamento(salva, true);
+        }
+        return salva;
     }
 
     @Transactional
@@ -155,9 +162,14 @@ public class MercadoPagoService {
             throw new RegraNegocioException("Pagamento aprovado ainda nao encontrado no Mercado Pago.");
         }
 
+        var jaEstavaPaga = Boolean.TRUE.equals(os.getPaga());
         os.setMercadoPagoPaymentId(pagamento.id());
         os.setPaga(true);
-        return ordemServicoRepository.save(os);
+        var salva = ordemServicoRepository.save(os);
+        if (!jaEstavaPaga) {
+            notificacaoService.notificarPagamento(salva, true);
+        }
+        return salva;
     }
 
     private void confirmarPagamento(String paymentId) {
@@ -170,11 +182,15 @@ public class MercadoPagoService {
 
             ordemServicoRepository.findById(java.util.UUID.fromString(payment.externalReference()))
                     .ifPresent(os -> {
+                        var jaEstavaPaga = Boolean.TRUE.equals(os.getPaga());
                         os.setMercadoPagoPaymentId(payment.id());
                         if ("approved".equalsIgnoreCase(payment.status()) && valorConfere(os, payment.transactionAmount())) {
                             os.setPaga(true);
                         }
-                        ordemServicoRepository.save(os);
+                        var salva = ordemServicoRepository.save(os);
+                        if (!jaEstavaPaga && Boolean.TRUE.equals(salva.getPaga())) {
+                            notificacaoService.notificarPagamento(salva, true);
+                        }
                     });
         } catch (IllegalArgumentException | RestClientException ex) {
             // Notificacoes externas nao devem quebrar o processamento da aplicacao.

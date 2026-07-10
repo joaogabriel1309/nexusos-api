@@ -5,6 +5,7 @@ import com.nexusos.cliente.ClienteService;
 import com.nexusos.email.EmailService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
@@ -51,6 +52,7 @@ public class OrdemServicoService {
     private final AuditoriaService auditoriaService;
     private final EmailService emailService;
     private final WhatsappService whatsappService;
+    private final NotificacaoService notificacaoService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -94,12 +96,17 @@ public class OrdemServicoService {
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
+        notificacaoService.notificarAtribuicao(
+                salva,
+                "Uma nova OS foi atribuida a voce: " + salva.getCodigo() + " - " + salva.getTitulo() + "."
+        );
         return OrdemServicoResponse.from(salva);
     }
 
     @Transactional
     public OrdemServicoResponse atualizar(UUID id, OrdemServicoUpdateRequest request) {
         var os = buscarEntidade(id);
+        var responsavelAnteriorId = os.getResponsavel() != null ? os.getResponsavel().getId() : null;
         os.setTitulo(request.titulo());
         os.setDescricao(request.descricao());
         os.setCliente(clienteService.buscarEntidade(request.clienteId()));
@@ -114,7 +121,16 @@ public class OrdemServicoService {
         os.setRiscos(request.riscos());
         os.setEstimativaHoras(request.estimativaHoras());
         recalcularValorTotalEstimado(os);
-        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+        var salva = ordemServicoRepository.save(os);
+
+        if (salva.getResponsavel() != null && (responsavelAnteriorId == null || !responsavelAnteriorId.equals(salva.getResponsavel().getId()))) {
+            notificacaoService.notificarAtribuicao(
+                    salva,
+                    "A OS " + salva.getCodigo() + " foi direcionada para voce."
+            );
+        }
+
+        return OrdemServicoResponse.from(salva);
     }
 
     @Transactional
@@ -142,6 +158,7 @@ public class OrdemServicoService {
         auditoriaService.registrar(salva, usuario, "ALTERACAO_STATUS",
                 request.descricao() != null ? request.descricao() : "Status da OS alterado.",
                 statusAnterior, request.status());
+        notificacaoService.notificarStatus(salva);
         if (request.status() == StatusOS.FINALIZADA) {
             emailService.enviarOrdemServicoFinalizada(salva);
             whatsappService.enviarOrdemServicoFinalizada(salva);
@@ -185,7 +202,9 @@ public class OrdemServicoService {
         os.setStatus(aprovado ? StatusOS.APROVADA : StatusOS.EM_ANALISE);
         auditoriaService.registrar(os, os.getResponsavel(), aprovado ? "APROVACAO_CLIENTE" : "REPROVACAO_CLIENTE",
                 aprovado ? "OS aprovada pelo cliente." : "OS reprovada pelo cliente.", StatusOS.AGUARDANDO_APROVACAO, os.getStatus());
-        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+        var salva = ordemServicoRepository.save(os);
+        notificacaoService.notificarAprovacaoCliente(salva, aprovado);
+        return OrdemServicoResponse.from(salva);
     }
 
     @Transactional
@@ -194,7 +213,12 @@ public class OrdemServicoService {
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
         auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsavel da OS atualizado.", null, os.getStatus());
-        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+        var salva = ordemServicoRepository.save(os);
+        notificacaoService.notificarAtribuicao(
+                salva,
+                "A OS " + salva.getCodigo() + " foi direcionada para voce."
+        );
+        return OrdemServicoResponse.from(salva);
     }
 
     @Transactional
@@ -203,7 +227,9 @@ public class OrdemServicoService {
         os.setPaga(paga);
         auditoriaService.registrar(os, os.getResponsavel(), "PAGAMENTO",
                 paga ? "OS marcada como paga." : "OS marcada como nao paga.", null, os.getStatus());
-        return OrdemServicoResponse.from(ordemServicoRepository.save(os));
+        var salva = ordemServicoRepository.save(os);
+        notificacaoService.notificarPagamento(salva, paga);
+        return OrdemServicoResponse.from(salva);
     }
 
     @Transactional(readOnly = true)
