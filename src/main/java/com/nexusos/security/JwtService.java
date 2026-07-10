@@ -8,8 +8,10 @@ import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.Date;
 import javax.crypto.SecretKey;
+import com.nexusos.usuario.Usuario;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -49,7 +51,14 @@ public class JwtService {
 
     private String gerarToken(UserDetails userDetails, Instant expiresAt) {
         var now = Instant.now();
+        var claims = new HashMap<String, Object>();
+
+        if (userDetails instanceof Usuario usuario) {
+            claims.put("perfil", usuario.getPerfil().name());
+        }
+
         return Jwts.builder()
+                .claims(claims)
                 .subject(userDetails.getUsername())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt))

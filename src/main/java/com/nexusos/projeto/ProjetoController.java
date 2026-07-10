@@ -29,12 +29,14 @@ public class ProjetoController {
 
     @Operation(summary = "Lista projetos")
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<List<ProjetoResponse>> listar() {
         return ResponseEntity.ok(projetoService.listar());
     }
 
     @Operation(summary = "Busca projeto por ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<ProjetoResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(projetoService.buscarPorId(id));
     }

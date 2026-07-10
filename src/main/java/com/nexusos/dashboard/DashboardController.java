@@ -5,6 +5,7 @@ import com.nexusos.dashboard.dto.ProdutividadeResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,18 +20,21 @@ public class DashboardController {
 
     @Operation(summary = "Retorna resumo geral do dashboard")
     @GetMapping("/resumo")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<DashboardResumoResponse> resumo() {
         return ResponseEntity.ok(dashboardService.resumo());
     }
 
     @Operation(summary = "Retorna quantidade de OS por status")
     @GetMapping("/os-por-status")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<Map<String, Long>> osPorStatus() {
         return ResponseEntity.ok(dashboardService.osPorStatus());
     }
 
     @Operation(summary = "Retorna metricas simples de produtividade")
     @GetMapping("/produtividade")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<ProdutividadeResponse> produtividade() {
         return ResponseEntity.ok(dashboardService.produtividade());
     }

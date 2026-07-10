@@ -5,12 +5,15 @@ import { usePathname } from "next/navigation";
 import { ClipboardCheck, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { getActiveNavigationHref, navigationItems } from "@/components/layout/navigation";
+import { getActiveNavigationHref, getNavigationItems } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/auth-provider";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { usuario } = useAuth();
   const activeHref = getActiveNavigationHref(pathname);
+  const navigationItems = getNavigationItems(usuario?.perfil);
 
   return (
     <Sheet>

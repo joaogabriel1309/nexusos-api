@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { prioridadeLabels } from "@/lib/os-labels";
+import { useAuth } from "@/providers/auth-provider";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import type { PrioridadeOS } from "@/types";
@@ -42,6 +43,8 @@ function formatarDataHora(data?: string) {
 }
 
 export default function OrdensServicoFinalizadasPage() {
+  const { usuario } = useAuth();
+  const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [dataInicio, setDataInicio] = useState("");
@@ -55,11 +58,26 @@ export default function OrdensServicoFinalizadasPage() {
 
   const projetosQuery = useQuery({
     queryKey: projetosQueryKey,
-    queryFn: projetoService.listar
+    queryFn: projetoService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const ordens = useMemo(() => ordensQuery.data ?? [], [ordensQuery.data]);
-  const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
+  const projetos = useMemo(() => {
+    if (!isDesenvolvedor) {
+      return (projetosQuery.data ?? []).filter((projeto) => projeto.ativo);
+    }
+
+    return Array.from(
+      new Map(
+        ordens
+          .filter((ordem) => ordem.projetoId && ordem.projetoNome)
+          .map((ordem) => [ordem.projetoId as string, ordem.projetoNome as string])
+      ).entries()
+    )
+      .map(([id, nome]) => ({ id, nome, ativo: true }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [isDesenvolvedor, ordens, projetosQuery.data]);
   const clientes = useMemo(() => {
     return Array.from(new Map(ordens.map((ordem) => [ordem.clienteId, ordem.clienteNome])).entries())
       .map(([id, nome]) => ({ id, nome }))
@@ -107,7 +125,7 @@ export default function OrdensServicoFinalizadasPage() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : ordensQuery.isError || projetosQuery.isError ? (
+          ) : ordensQuery.isError || (!isDesenvolvedor && projetosQuery.isError) ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nao foi possivel carregar as OS finalizadas.</span>
               <Button
@@ -115,7 +133,9 @@ export default function OrdensServicoFinalizadasPage() {
                 size="sm"
                 onClick={() => {
                   ordensQuery.refetch();
-                  projetosQuery.refetch();
+                  if (!isDesenvolvedor) {
+                    projetosQuery.refetch();
+                  }
                 }}
               >
                 <RefreshCcw className="h-4 w-4" />

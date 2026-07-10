@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
-import { getActiveNavigationHref, navigationItems } from "@/components/layout/navigation";
+import { getActiveNavigationHref, getNavigationItems } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/auth-provider";
 
 type AppSidebarProps = {
   collapsed?: boolean;
@@ -12,7 +13,9 @@ type AppSidebarProps = {
 
 export function AppSidebar({ collapsed = false }: AppSidebarProps) {
   const pathname = usePathname();
+  const { usuario } = useAuth();
   const activeHref = getActiveNavigationHref(pathname);
+  const navigationItems = getNavigationItems(usuario?.perfil);
 
   return (
     <aside className={cn("hidden min-h-screen border-r bg-white transition-all lg:block", collapsed ? "w-20" : "w-64")}>

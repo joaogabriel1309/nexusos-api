@@ -22,6 +22,17 @@ import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types
 
 const todosStatusOption = "__todos__";
 const todosProjetosOption = "__todos_projetos__";
+const ordemStatusFluxo: StatusOS[] = [
+  "RECEBIDA",
+  "EM_ANALISE",
+  "AGUARDANDO_APROVACAO",
+  "APROVADA",
+  "EM_DESENVOLVIMENTO",
+  "EM_TESTE",
+  "AGUARDANDO_PAGAMENTO",
+  "FINALIZADA"
+];
+const indiceAguardandoAprovacao = ordemStatusFluxo.indexOf("AGUARDANDO_APROVACAO");
 
 type ApiErrorResponse = {
   mensagem?: string;
@@ -228,12 +239,14 @@ export default function PortalClientePage() {
   const ordensFiltradas = useMemo(() => {
     const ordens = portalQuery.data?.ordens ?? [];
     const codigoBusca = codigoFiltro.trim();
-    return ordens.filter((ordem) => {
-      const matchCodigo = codigoBusca ? String(ordem.codigo).includes(codigoBusca) : true;
-      const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
-      const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
-      return matchCodigo && matchStatus && matchProjeto;
-    });
+    return ordens
+      .filter((ordem) => {
+        const matchCodigo = codigoBusca ? String(ordem.codigo).includes(codigoBusca) : true;
+        const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
+        const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
+        return matchCodigo && matchStatus && matchProjeto;
+      })
+      .sort((a, b) => ordemStatusFluxo.indexOf(a.status) - ordemStatusFluxo.indexOf(b.status));
   }, [codigoFiltro, portalQuery.data?.ordens, projetoFiltro, statusFiltro]);
 
   const projetos = useMemo(() => {
@@ -250,31 +263,15 @@ export default function PortalClientePage() {
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [portalQuery.data?.ordens]);
 
-  // Ordem dos status do fluxo
-  const ordemStatus: StatusOS[] = [
-    "RECEBIDA",
-    "EM_ANALISE",
-    "AGUARDANDO_APROVACAO",
-    "APROVADA",
-    "EM_DESENVOLVIMENTO",
-    "EM_TESTE",
-    "AGUARDANDO_PAGAMENTO",
-    "FINALIZADA"
-  ];
-  
-  // Índice do status "Aguardando aprovação"
-  const indiceAguardandoAprovacao = ordemStatus.indexOf("AGUARDANDO_APROVACAO");
-
   const totais = useMemo(() => {
     return ordensFiltradas.reduce(
       (total, ordem) => {
         const valor = ordem.valorTotalEstimado ?? 0;
-        const indiceStatus = ordemStatus.indexOf(ordem.status);
+        const indiceStatus = ordemStatusFluxo.indexOf(ordem.status);
 
         if (ordem.paga) {
           total.pago += valor;
-        } 
-        // Contabiliza no "Valor a Pagar" SOMENTE os status que estão na posição > "Aguardando aprovação" (i.e., status que vem DEPOIS)
+        }
         else if (indiceStatus > indiceAguardandoAprovacao) {
           total.aPagar += valor;
         }

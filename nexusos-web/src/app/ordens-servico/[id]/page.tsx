@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
+import { useAuth } from "@/providers/auth-provider";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
@@ -71,6 +72,8 @@ export default function OrdemServicoDetalhePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { usuario } = useAuth();
+  const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const id = params.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
@@ -87,17 +90,20 @@ export default function OrdemServicoDetalhePage() {
 
   const clientesQuery = useQuery({
     queryKey: ["clientes"],
-    queryFn: clienteService.listar
+    queryFn: clienteService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const projetosQuery = useQuery({
     queryKey: ["projetos"],
-    queryFn: projetoService.listar
+    queryFn: projetoService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const usuariosQuery = useQuery({
     queryKey: ["usuarios"],
-    queryFn: usuarioService.listar
+    queryFn: usuarioService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const ordem = ordemQuery.data;
@@ -108,12 +114,16 @@ export default function OrdemServicoDetalhePage() {
     [usuariosQuery.data]
   );
   const valorHoraAnalise = useMemo(() => {
+    if (isDesenvolvedor) {
+      return 0;
+    }
+
     if (!ordem) {
       return 0;
     }
 
     return clientes.find((cliente) => cliente.id === ordem.clienteId)?.valorHora ?? 0;
-  }, [clientes, ordem]);
+  }, [clientes, isDesenvolvedor, ordem]);
 
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
@@ -296,18 +306,22 @@ export default function OrdemServicoDetalhePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" onClick={() => setAnaliseDialogOpen(true)}>
-                  <ClipboardCheck className="h-4 w-4" />
-                  {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
-                </Button>
-                <Button variant="outline" onClick={() => setDialogOpen(true)}>
-                  <Edit className="h-4 w-4" />
-                  Editar
-                </Button>
-                <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
-                  {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  Excluir
-                </Button>
+                {!isDesenvolvedor ? (
+                  <>
+                    <Button variant="outline" onClick={() => setAnaliseDialogOpen(true)}>
+                      <ClipboardCheck className="h-4 w-4" />
+                      {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                      <Edit className="h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
+                      {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      Excluir
+                    </Button>
+                  </>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -349,7 +363,7 @@ export default function OrdemServicoDetalhePage() {
                     type="checkbox"
                     className="mt-1 h-4 w-4 accent-primary"
                     checked={Boolean(ordem.paga)}
-                    disabled={pagamentoMutation.isPending || ordem.cobrar === false}
+                    disabled={isDesenvolvedor || pagamentoMutation.isPending || ordem.cobrar === false}
                     onChange={(event) => pagamentoMutation.mutate(event.target.checked)}
                   />
                   <span>
@@ -385,7 +399,7 @@ export default function OrdemServicoDetalhePage() {
         </div>
       )}
 
-      {ordem ? (
+      {ordem && !isDesenvolvedor ? (
         <>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="max-w-3xl">

@@ -30,12 +30,14 @@ public class ClienteController {
 
     @Operation(summary = "Lista clientes")
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<List<ClienteResponse>> listar() {
         return ResponseEntity.ok(clienteService.listar());
     }
 
     @Operation(summary = "Busca cliente por ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<ClienteResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(clienteService.buscarPorId(id));
     }

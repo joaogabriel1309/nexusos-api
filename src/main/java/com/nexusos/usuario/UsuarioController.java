@@ -29,12 +29,14 @@ public class UsuarioController {
 
     @Operation(summary = "Lista usuarios")
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<List<UsuarioResponse>> listar() {
         return ResponseEntity.ok(usuarioService.listar());
     }
 
     @Operation(summary = "Busca usuario por ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ANALISTA')")
     public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(usuarioService.buscarPorId(id));
     }

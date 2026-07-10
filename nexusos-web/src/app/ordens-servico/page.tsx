@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
+import { useAuth } from "@/providers/auth-provider";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
@@ -52,6 +53,8 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
 export default function OrdensServicoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { usuario } = useAuth();
+  const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
   const [clienteFiltro, setClienteFiltro] = useState("");
@@ -67,44 +70,73 @@ export default function OrdensServicoPage() {
 
   const clientesQuery = useQuery({
     queryKey: clientesQueryKey,
-    queryFn: clienteService.listar
+    queryFn: clienteService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const projetosQuery = useQuery({
     queryKey: projetosQueryKey,
-    queryFn: projetoService.listar
+    queryFn: projetoService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const usuariosQuery = useQuery({
     queryKey: usuariosQueryKey,
-    queryFn: usuarioService.listar
+    queryFn: usuarioService.listar,
+    enabled: !isDesenvolvedor
   });
 
   const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
+  const clientesFiltroOptions = useMemo(() => {
+    if (!isDesenvolvedor) {
+      return clientes;
+    }
+
+    return Array.from(new Map((ordensQuery.data ?? []).map((ordem) => [ordem.clienteId, ordem.clienteNome])).entries())
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [clientes, isDesenvolvedor, ordensQuery.data]);
   const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
+  const projetosFiltroOptions = useMemo(() => {
+    if (!isDesenvolvedor) {
+      return projetos;
+    }
+
+    return Array.from(
+      new Map(
+        (ordensQuery.data ?? [])
+          .filter((ordem) => ordem.projetoId && ordem.projetoNome)
+          .map((ordem) => [ordem.projetoId as string, ordem.projetoNome as string])
+      ).entries()
+    )
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [isDesenvolvedor, ordensQuery.data, projetos]);
   const responsaveis = useMemo(
     () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo && usuario.perfil !== "CLIENTE"),
     [usuariosQuery.data]
   );
 
   const ordensFiltradas = useMemo(() => {
-    return (ordensQuery.data ?? []).filter((ordem) => {
-      if (ordem.status === "FINALIZADA") {
-        return false;
-      }
+    return (ordensQuery.data ?? [])
+      .filter((ordem) => {
+        if (ordem.status === "FINALIZADA") {
+          return false;
+        }
 
-      const prazo = ordem.prazo ? new Date(`${ordem.prazo}T00:00:00`) : null;
-      const inicio = dataInicio ? new Date(`${dataInicio}T00:00:00`) : null;
-      const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
+        const prazo = ordem.prazo ? new Date(`${ordem.prazo}T00:00:00`) : null;
+        const inicio = dataInicio ? new Date(`${dataInicio}T00:00:00`) : null;
+        const fim = dataFim ? new Date(`${dataFim}T23:59:59`) : null;
 
-      const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
-      const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
-      const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
-      const matchInicio = inicio && prazo ? prazo >= inicio : true;
-      const matchFim = fim && prazo ? prazo <= fim : true;
+        const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
+        const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
+        const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
+        const matchInicio = inicio && prazo ? prazo >= inicio : true;
+        const matchFim = fim && prazo ? prazo <= fim : true;
 
-      return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim;
-    });
+        return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim;
+      })
+      .sort((a, b) => b.codigo - a.codigo); // Ordena por código da OS do maior para o menor
   }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
 
   const salvarMutation = useMutation({
@@ -132,19 +164,27 @@ export default function OrdensServicoPage() {
     }
   });
 
-  const isLoading = ordensQuery.isLoading || clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading;
-  const isError = ordensQuery.isError || clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError;
+  const isLoading =
+    ordensQuery.isLoading || (!isDesenvolvedor && (clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading));
+  const isError =
+    ordensQuery.isError || (!isDesenvolvedor && (clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError));
 
   function abrirCadastro() {
+    if (isDesenvolvedor) {
+      return;
+    }
+
     setOrdemSelecionada(null);
     setDialogOpen(true);
   }
 
   function recarregar() {
     ordensQuery.refetch();
-    clientesQuery.refetch();
-    projetosQuery.refetch();
-    usuariosQuery.refetch();
+    if (!isDesenvolvedor) {
+      clientesQuery.refetch();
+      projetosQuery.refetch();
+      usuariosQuery.refetch();
+    }
   }
 
   function limparFiltros() {
@@ -161,10 +201,12 @@ export default function OrdensServicoPage() {
         title="Ordens de Serviço"
         description="Acompanhe demandas técnicas por status, prioridade e responsável."
         actions={
-          <Button onClick={abrirCadastro} disabled={clientes.length === 0 || isLoading}>
-            <Plus className="h-4 w-4" />
-            Nova OS
-          </Button>
+          !isDesenvolvedor ? (
+            <Button onClick={abrirCadastro} disabled={clientes.length === 0 || isLoading}>
+              <Plus className="h-4 w-4" />
+              Nova OS
+            </Button>
+          ) : null
         }
       />
 
@@ -180,7 +222,7 @@ export default function OrdensServicoPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={todosClientesOption}>Todos os clientes</SelectItem>
-                {clientes.map((cliente) => (
+                {clientesFiltroOptions.map((cliente) => (
                   <SelectItem key={cliente.id} value={cliente.id}>
                     {cliente.nome}
                   </SelectItem>
@@ -196,7 +238,7 @@ export default function OrdensServicoPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={todosProjetosOption}>Todos os projetos</SelectItem>
-                {projetos.map((projeto) => (
+                {projetosFiltroOptions.map((projeto) => (
                   <SelectItem key={projeto.id} value={projeto.id}>
                     {projeto.nome}
                   </SelectItem>
@@ -240,10 +282,12 @@ export default function OrdensServicoPage() {
           ) : ordensFiltradas.length === 0 ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nenhuma OS encontrada.</span>
-              <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
-                <Plus className="h-4 w-4" />
-                Cadastrar OS
-              </Button>
+              {!isDesenvolvedor ? (
+                <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
+                  <Plus className="h-4 w-4" />
+                  Cadastrar OS
+                </Button>
+              ) : null}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -306,32 +350,34 @@ export default function OrdensServicoPage() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setOrdemSelecionada(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{ordemSelecionada ? "Editar OS" : "Cadastrar OS"}</DialogTitle>
-            <DialogDescription>
-              {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise técnica."}
-            </DialogDescription>
-          </DialogHeader>
-          <OrdemServicoForm
-            clientes={clientes}
-            responsaveis={responsaveis}
-            projetos={projetos}
-            ordem={ordemSelecionada}
-            isSubmitting={salvarMutation.isPending}
-            onSubmit={(data) => salvarMutation.mutate(data)}
-          />
-        </DialogContent>
-      </Dialog>
+      {!isDesenvolvedor ? (
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setOrdemSelecionada(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{ordemSelecionada ? "Editar OS" : "Cadastrar OS"}</DialogTitle>
+              <DialogDescription>
+                {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise técnica."}
+              </DialogDescription>
+            </DialogHeader>
+            <OrdemServicoForm
+              clientes={clientes}
+              responsaveis={responsaveis}
+              projetos={projetos}
+              ordem={ordemSelecionada}
+              isSubmitting={salvarMutation.isPending}
+              onSubmit={(data) => salvarMutation.mutate(data)}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
     </AppShell>
   );
