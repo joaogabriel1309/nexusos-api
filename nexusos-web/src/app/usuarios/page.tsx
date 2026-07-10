@@ -193,8 +193,9 @@ export default function UsuariosPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
             )}
-              </CardContent>
+          </CardContent>
         </Card>
       </div>
 
