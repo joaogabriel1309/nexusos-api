@@ -335,9 +335,7 @@ export default function PortalClientePage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
                 <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
-                <CampoDetalhe label="Prazo" value={formatarData(ordemSelecionada.prazo)} />
                 <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
-                <CampoDetalhe label="Ultima atualizacao" value={formatarDataHora(ordemSelecionada.atualizadoEm)} />
                 <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
                 <div className="md:col-span-2">
                   <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
@@ -345,6 +343,11 @@ export default function PortalClientePage() {
                 <div className="md:col-span-2">
                   <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
                 </div>
+                {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
+                  <div className="md:col-span-2">
+                    <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
+                  </div>
+                ) : null}
               </div>
 
               <Card>
@@ -357,7 +360,6 @@ export default function PortalClientePage() {
                       label="Horas estimadas"
                       value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
                     />
-                    <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
                     <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
                     <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
                   </div>
@@ -404,17 +406,6 @@ export default function PortalClientePage() {
                   ) : null}
                 </CardContent>
               </Card>
-
-              {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Finalizacao</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
-                  </CardContent>
-                </Card>
-              ) : null}
 
               {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
                 <div className="flex flex-wrap justify-end gap-2">
