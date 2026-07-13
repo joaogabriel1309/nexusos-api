@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ClipboardCheck, Edit, Loader2, RefreshCcw, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, Edit, History, Loader2, RefreshCcw, Trash2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { useAuth } from "@/providers/auth-provider";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
+import { auditoriaService } from "@/services/auditoria-service";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
@@ -80,11 +81,18 @@ export default function OrdemServicoDetalhePage() {
   const [osEmAcao, setOsEmAcao] = useState(false);
 
   const detalheQueryKey = ["ordens-servico", id];
+  const auditoriaQueryKey = ["auditoria", "ordens-servico", id];
   const ordensQueryKey = ["ordens-servico"];
 
   const ordemQuery = useQuery({
     queryKey: detalheQueryKey,
     queryFn: () => ordemServicoService.buscarPorId(id),
+    enabled: Boolean(id)
+  });
+
+  const auditoriaQuery = useQuery({
+    queryKey: auditoriaQueryKey,
+    queryFn: () => auditoriaService.listarPorOrdemServico(id),
     enabled: Boolean(id)
   });
 
@@ -141,6 +149,7 @@ export default function OrdemServicoDetalhePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       setDialogOpen(false);
       toast.success("OS atualizada com sucesso.");
@@ -161,6 +170,7 @@ export default function OrdemServicoDetalhePage() {
     onMutate: () => setOsEmAcao(true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       toast.success("Status da OS atualizado.");
     },
@@ -180,6 +190,7 @@ export default function OrdemServicoDetalhePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       setAnaliseDialogOpen(false);
       toast.success("Analise da OS salva com sucesso.");
@@ -199,6 +210,7 @@ export default function OrdemServicoDetalhePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       toast.success("Pagamento da OS atualizado.");
     },
@@ -396,6 +408,55 @@ export default function OrdemServicoDetalhePage() {
               </CardContent>
             </Card>
           ) : null}
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle>Trilha de auditoria</CardTitle>
+              <History className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {auditoriaQuery.isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              ) : auditoriaQuery.isError ? (
+                <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span>Nao foi possivel carregar a auditoria desta OS.</span>
+                  <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
+                    <RefreshCcw className="h-4 w-4" />
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : (auditoriaQuery.data ?? []).length === 0 ? (
+                <div className="rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
+                  Nenhum evento de auditoria registrado.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(auditoriaQuery.data ?? []).map((evento) => (
+                    <div key={evento.id} className="border-l-2 border-primary/30 pl-4">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm font-semibold">{evento.tipoEvento.replaceAll("_", " ")}</div>
+                        <div className="text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">{evento.descricao}</div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>{evento.usuarioNome ?? "Sistema"}</span>
+                        {evento.statusAnterior || evento.statusNovo ? (
+                          <span>
+                            {evento.statusAnterior ? statusLabels[evento.statusAnterior] : "-"} para{" "}
+                            {evento.statusNovo ? statusLabels[evento.statusNovo] : "-"}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

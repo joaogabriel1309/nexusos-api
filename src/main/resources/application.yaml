@@ -63,6 +63,11 @@ nexusos:
     uploads-path: ${UPLOADS_PATH:uploads}
   portal-cliente:
     token-expiration-days: ${PORTAL_CLIENTE_TOKEN_EXPIRATION_DAYS:90}
+  sla:
+    baixa-dias: ${SLA_BAIXA_DIAS:10}
+    media-dias: ${SLA_MEDIA_DIAS:5}
+    alta-dias: ${SLA_ALTA_DIAS:2}
+    critica-dias: ${SLA_CRITICA_DIAS:1}
   mercado-pago:
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
     api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}

@@ -5,7 +5,11 @@ export type DashboardResumo = {
   totalOs: number;
   osAbertas: number;
   osFinalizadas: number;
+  osVencidas: number;
+  osVencemHoje: number;
+  osSemResponsavel: number;
   osPorPrioridade: Partial<Record<PrioridadeOS, number>>;
+  slaPorPrioridade: Partial<Record<PrioridadeOS, number>>;
   tempoMedioFinalizacaoHoras: number;
 };
 

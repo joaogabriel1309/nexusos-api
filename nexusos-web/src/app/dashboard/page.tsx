@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, ClipboardList, Clock, Code2, RefreshCcw } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Clock, Code2, RefreshCcw, UserX } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,10 @@ export default function DashboardPage() {
     { title: "OS abertas", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} OS no total` },
     { title: "Em desenvolvimento", value: emDesenvolvimento, icon: Code2, hint: "status atual" },
     { title: "Finalizadas", value: resumo?.osFinalizadas ?? 0, icon: CheckCircle2, hint: `${produtividade?.percentualFinalizacao.toFixed(1) ?? "0.0"}% do total` },
-    { title: "Tempo medio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "ate finalizacao" }
+    { title: "Tempo medio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "ate finalizacao" },
+    { title: "OS vencidas", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado" },
+    { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atencao no dia" },
+    { title: "Sem responsavel", value: resumo?.osSemResponsavel ?? 0, icon: UserX, hint: "precisam de atribuicao" }
   ];
 
   function recarregar() {
@@ -147,6 +150,22 @@ export default function DashboardPage() {
                   <div key={prioridade} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{prioridadeLabels[prioridade]}</span>
                     <span className="font-medium">{resumo?.osPorPrioridade?.[prioridade] ?? 0}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+
+          <section className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>SLA por prioridade</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {prioridades.map((prioridade) => (
+                  <div key={prioridade} className="rounded-md border bg-secondary/30 p-4">
+                    <div className="text-sm text-muted-foreground">{prioridadeLabels[prioridade]}</div>
+                    <div className="mt-2 text-2xl font-semibold">{resumo?.slaPorPrioridade?.[prioridade] ?? 0}d</div>
                   </div>
                 ))}
               </CardContent>

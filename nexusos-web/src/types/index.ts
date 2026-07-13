@@ -147,4 +147,16 @@ export type NotificacaoPagina = {
   itens: Notificacao[];
 };
 
+export type AuditoriaOS = {
+  id: string;
+  ordemServicoId: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  tipoEvento: string;
+  descricao: string;
+  statusAnterior?: StatusOS;
+  statusNovo?: StatusOS;
+  criadoEm: string;
+};
+
 export type { AuthResponse, CadastroInicialRequest, LoginRequest } from "@/types/auth";

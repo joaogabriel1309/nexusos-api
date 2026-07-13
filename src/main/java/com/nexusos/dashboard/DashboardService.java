@@ -4,7 +4,9 @@ import com.nexusos.dashboard.dto.DashboardResumoResponse;
 import com.nexusos.dashboard.dto.ProdutividadeResponse;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.PrioridadeOS;
+import com.nexusos.ordemservico.SlaPrioridadeService;
 import com.nexusos.ordemservico.StatusOS;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,16 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardService {
 
     private final OrdemServicoRepository ordemServicoRepository;
+    private final SlaPrioridadeService slaPrioridadeService;
 
     @Transactional(readOnly = true)
     public DashboardResumoResponse resumo() {
         var total = ordemServicoRepository.count();
         var finalizadas = ordemServicoRepository.countByStatus(StatusOS.FINALIZADA);
+        var hoje = LocalDate.now();
         return new DashboardResumoResponse(
                 total,
                 total - finalizadas,
                 finalizadas,
+                ordemServicoRepository.countByStatusNotAndPrazoBefore(StatusOS.FINALIZADA, hoje),
+                ordemServicoRepository.countByStatusNotAndPrazo(StatusOS.FINALIZADA, hoje),
+                ordemServicoRepository.countByStatusNotAndResponsavelIsNull(StatusOS.FINALIZADA),
                 osPorPrioridade(),
+                slaPrioridadeService.listarDiasPorPrioridade(),
                 ordemServicoRepository.calcularTempoMedioFinalizacaoHoras()
         );
     }

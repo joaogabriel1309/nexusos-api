@@ -53,6 +53,7 @@ public class OrdemServicoService {
     private final EmailService emailService;
     private final WhatsappService whatsappService;
     private final NotificacaoService notificacaoService;
+    private final SlaPrioridadeService slaPrioridadeService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -88,7 +89,7 @@ public class OrdemServicoService {
                 .projeto(projeto)
                 .status(StatusOS.RECEBIDA)
                 .prioridade(request.prioridade())
-                .prazo(request.prazo())
+                .prazo(request.prazo() != null ? request.prazo() : slaPrioridadeService.calcularPrazo(request.prioridade()))
                 .estimativaHoras(request.estimativaHoras())
                 .cobrar(Boolean.TRUE)
                 .paga(Boolean.FALSE)
@@ -119,7 +120,11 @@ public class OrdemServicoService {
         validarProjetoDoCliente(projeto, os.getCliente().getId());
         os.setProjeto(projeto);
         os.setPrioridade(request.prioridade());
-        os.setPrazo(request.prazo());
+        os.setPrazo(request.prazo() != null
+                ? request.prazo()
+                : prioridadeAnterior != request.prioridade() && prazoAnterior == null
+                        ? slaPrioridadeService.calcularPrazo(request.prioridade())
+                        : null);
         os.setEntendimento(request.entendimento());
         os.setImpacto(request.impacto());
         os.setRiscos(request.riscos());

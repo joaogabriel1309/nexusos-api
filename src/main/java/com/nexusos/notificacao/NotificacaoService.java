@@ -37,6 +37,7 @@ public class NotificacaoService {
     private static final String TIPO_OS_SEM_RESPONSAVEL = "OS_SEM_RESPONSAVEL";
     private static final String TIPO_OS_SEM_PRAZO = "OS_SEM_PRAZO";
     private static final String TIPO_OS_CRITICA = "OS_CRITICA";
+    private static final String TIPO_OS_CRITICA_VENCIDA = "OS_CRITICA_VENCIDA";
     private static final String TIPO_OS_PARADA = "OS_PARADA";
     private static final String TIPO_RESPONSAVEL_ALTERADO = "RESPONSAVEL_ALTERADO";
     private static final String TIPO_COMENTARIO = "COMENTARIO";
@@ -222,6 +223,7 @@ public class NotificacaoService {
                 + (autor != null ? " de " + autor.getNome() : "") + ".";
 
         notificarAdmins(ordemServico, TIPO_COMENTARIO, titulo, mensagem);
+        notificarResponsavelSobreInteracao(ordemServico, autor, TIPO_COMENTARIO, titulo, mensagem);
     }
 
     @Transactional
@@ -230,6 +232,7 @@ public class NotificacaoService {
         var mensagem = "O checklist da OS " + ordemServico.getCodigo() + " foi atualizado: " + descricaoEvento + ".";
 
         notificarAdmins(ordemServico, TIPO_CHECKLIST, titulo, mensagem);
+        notificarResponsavelSobreInteracao(ordemServico, null, TIPO_CHECKLIST, titulo, mensagem);
     }
 
     @Transactional
@@ -281,6 +284,14 @@ public class NotificacaoService {
     public void notificarApontamento(OrdemServico ordemServico, Usuario usuario, String descricaoEvento) {
         notificarAdmins(
                 ordemServico,
+                TIPO_APONTAMENTO,
+                "Apontamento de tempo atualizado",
+                "A OS " + ordemServico.getCodigo() + " teve apontamento de tempo atualizado"
+                        + (usuario != null ? " por " + usuario.getNome() : "") + ": " + descricaoEvento + "."
+        );
+        notificarResponsavelSobreInteracao(
+                ordemServico,
+                usuario,
                 TIPO_APONTAMENTO,
                 "Apontamento de tempo atualizado",
                 "A OS " + ordemServico.getCodigo() + " teve apontamento de tempo atualizado"
@@ -359,6 +370,7 @@ public class NotificacaoService {
                         ordem.getPrazo()
                 );
                 notificarDesenvolvedorResponsavelSobrePrazo(ordem, TIPO_PRAZO_VENCIDO, titulo, mensagem);
+                notificarAdminsSobreOsCriticaVencida(ordem);
                 notificarAdminsSobreOsParada(ordem, hoje);
                 continue;
             }
@@ -424,6 +436,46 @@ public class NotificacaoService {
                 titulo,
                 "A OS " + ordemServico.getCodigo() + " esta com prioridade critica."
         );
+    }
+
+    private void notificarAdminsSobreOsCriticaVencida(OrdemServico ordemServico) {
+        if (ordemServico.getPrioridade() == null || !"CRITICA".equals(ordemServico.getPrioridade().name())) {
+            return;
+        }
+
+        criarSeNaoExistir(
+                adminsAtivos(),
+                ordemServico,
+                TIPO_OS_CRITICA_VENCIDA,
+                "OS critica vencida",
+                "A OS critica " + ordemServico.getCodigo() + " venceu em " + ordemServico.getPrazo() + ".",
+                ordemServico.getPrazo()
+        );
+    }
+
+    private void notificarResponsavelSobreInteracao(
+            OrdemServico ordemServico,
+            Usuario autor,
+            String tipo,
+            String titulo,
+            String mensagem
+    ) {
+        var responsavel = ordemServico.getResponsavel();
+        if (responsavel == null) {
+            return;
+        }
+
+        if (autor != null && autor.getId() != null && autor.getId().equals(responsavel.getId())) {
+            return;
+        }
+
+        notificacaoRepository.save(Notificacao.builder()
+                .usuario(responsavel)
+                .ordemServico(ordemServico)
+                .tipo(tipo)
+                .titulo(titulo)
+                .mensagem(mensagem)
+                .build());
     }
 
     private void notificarAdminsSobreOsParada(OrdemServico ordemServico, LocalDate hoje) {
