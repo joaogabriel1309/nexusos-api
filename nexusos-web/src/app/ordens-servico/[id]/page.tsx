@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
@@ -35,6 +36,14 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
 }
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+type OrdemServicoTab = "informacoes" | "textos" | "valores" | "auditoria";
+
+const abas: { value: OrdemServicoTab; label: string }[] = [
+  { value: "informacoes", label: "Informacoes" },
+  { value: "textos", label: "Textos" },
+  { value: "valores", label: "Valores" },
+  { value: "auditoria", label: "Auditoria" }
+];
 
 function formatarDataHora(data?: string) {
   if (!data) {
@@ -79,6 +88,7 @@ export default function OrdemServicoDetalhePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
   const [osEmAcao, setOsEmAcao] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("informacoes");
 
   const detalheQueryKey = ["ordens-servico", id];
   const auditoriaQueryKey = ["auditoria", "ordens-servico", id];
@@ -338,125 +348,165 @@ export default function OrdemServicoDetalhePage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
-            <Card>
-              <CardHeader>
-                <CardTitle>Informacoes da OS</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <CampoDetalhe label="Numero da OS" value={ordem.codigo} />
-                <CampoDetalhe label="Titulo" value={ordem.titulo} />
-                <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
-                <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
-                <CampoDetalhe label="Responsavel" value={ordem.responsavelNome || "A definir"} />
-                <CampoPrazo prazo={ordem.prazo} />
-                <CampoDetalhe label="Criada em" value={formatarDataHora(ordem.criadoEm)} />
-                <CampoDetalhe label="Atualizada em" value={formatarDataHora(ordem.atualizadoEm)} />
-                <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
-                <div className="md:col-span-2">
-                  <CampoDetalhe label="Descricao" value={ordem.descricao} />
-                </div>
-              </CardContent>
-            </Card>
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <div className="inline-flex h-10 w-max items-center justify-center rounded-md bg-muted p-1">
+                {abas.map((aba) => (
+                  <button
+                    key={aba.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={abaAtiva === aba.value}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+                      abaAtiva === aba.value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setAbaAtiva(aba.value)}
+                  >
+                    {aba.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Valores</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <CampoDetalhe
-                  label="Horas estimadas"
-                  value={ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h` : "Sem estimativa"}
-                />
-                <CampoDetalhe label="Cobranca" value={ordem.cobrar === false ? "Nao cobrar" : "Cobrar"} />
-                <CampoDetalhe label="Valor total estimado" value={formatarValor(ordem.valorTotalEstimado)} />
-                <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 accent-primary"
-                    checked={Boolean(ordem.paga)}
-                    disabled={isDesenvolvedor || pagamentoMutation.isPending || ordem.cobrar === false}
-                    onChange={(event) => pagamentoMutation.mutate(event.target.checked)}
-                  />
-                  <span>
-                    <span className="block text-sm font-medium">OS paga</span>
-                    <span className="block text-sm text-muted-foreground">
-                      Marque quando o pagamento desta ordem de servico ja tiver sido recebido.
-                    </span>
-                  </span>
-                </label>
-              </CardContent>
-            </Card>
-          </div>
+            {abaAtiva === "informacoes" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informacoes da OS</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <CampoDetalhe label="Numero da OS" value={ordem.codigo} />
+                  <CampoDetalhe label="Titulo" value={ordem.titulo} />
+                  <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
+                  <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
+                  <CampoDetalhe label="Responsavel" value={ordem.responsavelNome || "A definir"} />
+                  <CampoPrazo prazo={ordem.prazo} />
+                  <CampoDetalhe label="Criada em" value={formatarDataHora(ordem.criadoEm)} />
+                  <CampoDetalhe label="Atualizada em" value={formatarDataHora(ordem.atualizadoEm)} />
+                  <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
+                </CardContent>
+              </Card>
+            ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Analise tecnica</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CampoDetalhe label="Texto da Analise" value={ordem.entendimento} />
-            </CardContent>
-          </Card>
+            {abaAtiva === "textos" ? (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Descricao</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CampoDetalhe label="Descricao da solicitacao" value={ordem.descricao} />
+                  </CardContent>
+                </Card>
 
-          {ordem.status === "FINALIZADA" || ordem.descricaoFinalizacao ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Finalizacao</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CampoDetalhe label="O que foi feito" value={ordem.descricaoFinalizacao} />
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle>Trilha de auditoria</CardTitle>
-              <History className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {auditoriaQuery.isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
-                </div>
-              ) : auditoriaQuery.isError ? (
-                <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                  <span>Nao foi possivel carregar a auditoria desta OS.</span>
-                  <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
-                    <RefreshCcw className="h-4 w-4" />
-                    Tentar novamente
-                  </Button>
-                </div>
-              ) : (auditoriaQuery.data ?? []).length === 0 ? (
-                <div className="rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                  Nenhum evento de auditoria registrado.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {(auditoriaQuery.data ?? []).map((evento) => (
-                    <div key={evento.id} className="border-l-2 border-primary/30 pl-4">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="text-sm font-semibold">{evento.tipoEvento.replaceAll("_", " ")}</div>
-                        <div className="text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">{evento.descricao}</div>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>{evento.usuarioNome ?? "Sistema"}</span>
-                        {evento.statusAnterior || evento.statusNovo ? (
-                          <span>
-                            {evento.statusAnterior ? statusLabels[evento.statusAnterior] : "-"} para{" "}
-                            {evento.statusNovo ? statusLabels[evento.statusNovo] : "-"}
-                          </span>
-                        ) : null}
-                      </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Analise tecnica</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <CampoDetalhe label="Texto da analise" value={ordem.entendimento} />
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <CampoDetalhe label="Impacto" value={ordem.impacto} />
+                    <CampoDetalhe label="Riscos" value={ordem.riscos} />
+                  </CardContent>
+                </Card>
+
+                {ordem.status === "FINALIZADA" || ordem.descricaoFinalizacao ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Finalizacao</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CampoDetalhe label="O que foi feito" value={ordem.descricaoFinalizacao} />
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+            ) : null}
+
+            {abaAtiva === "valores" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Valores</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <CampoDetalhe
+                    label="Horas estimadas"
+                    value={ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h` : "Sem estimativa"}
+                  />
+                  <CampoDetalhe label="Cobranca" value={ordem.cobrar === false ? "Nao cobrar" : "Cobrar"} />
+                  <CampoDetalhe label="Valor total estimado" value={formatarValor(ordem.valorTotalEstimado)} />
+                  <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-primary"
+                      checked={Boolean(ordem.paga)}
+                      disabled={isDesenvolvedor || pagamentoMutation.isPending || ordem.cobrar === false}
+                      onChange={(event) => pagamentoMutation.mutate(event.target.checked)}
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">OS paga</span>
+                      <span className="block text-sm text-muted-foreground">
+                        Marque quando o pagamento desta ordem de servico ja tiver sido recebido.
+                      </span>
+                    </span>
+                  </label>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {abaAtiva === "auditoria" ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle>Trilha de auditoria</CardTitle>
+                  <History className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {auditoriaQuery.isLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-14 w-full" />
+                      <Skeleton className="h-14 w-full" />
+                      <Skeleton className="h-14 w-full" />
+                    </div>
+                  ) : auditoriaQuery.isError ? (
+                    <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                      <span>Nao foi possivel carregar a auditoria desta OS.</span>
+                      <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
+                        <RefreshCcw className="h-4 w-4" />
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  ) : (auditoriaQuery.data ?? []).length === 0 ? (
+                    <div className="rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
+                      Nenhum evento de auditoria registrado.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(auditoriaQuery.data ?? []).map((evento) => (
+                        <div key={evento.id} className="border-l-2 border-primary/30 pl-4">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="text-sm font-semibold">{evento.tipoEvento.replaceAll("_", " ")}</div>
+                            <div className="text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
+                          </div>
+                          <div className="mt-1 text-sm text-muted-foreground">{evento.descricao}</div>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <span>{evento.usuarioNome ?? "Sistema"}</span>
+                            {evento.statusAnterior || evento.statusNovo ? (
+                              <span>
+                                {evento.statusAnterior ? statusLabels[evento.statusAnterior] : "-"} para{" "}
+                                {evento.statusNovo ? statusLabels[evento.statusNovo] : "-"}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
         </div>
       )}
 
