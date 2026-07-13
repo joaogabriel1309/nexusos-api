@@ -346,13 +346,19 @@ export default function OrdemServicoDetalhePage() {
     excluirMutation.mutate();
   }
 
+  function voltarParaListagem() {
+    const origem = new URLSearchParams(window.location.search).get("origem");
+
+    router.push(origem === "finalizadas" ? "/ordens-servico/finalizadas" : "/ordens-servico");
+  }
+
   return (
     <AppShell>
       <PageHeader
         title={ordem ? `${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
         description="Visualize os dados completos da ordem de servico e acompanhe sua evolucao."
         actions={
-          <Button variant="outline" onClick={() => router.push("/ordens-servico")}>
+          <Button variant="outline" onClick={voltarParaListagem}>
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
@@ -476,8 +482,6 @@ export default function OrdemServicoDetalhePage() {
                     <div className="md:col-span-2">
                       <CampoDetalhe label="Texto da analise" value={ordem.entendimento} />
                     </div>
-                    <CampoDetalhe label="Impacto" value={ordem.impacto} />
-                    <CampoDetalhe label="Riscos" value={ordem.riscos} />
                   </CardContent>
                 </Card>
 
