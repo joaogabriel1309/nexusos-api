@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -23,15 +24,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
+import { prioridadeLabels, statusBadgeClasses, statusLabels } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { auditoriaService } from "@/services/auditoria-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
-import type { AuditoriaOS, PrioridadeOS, StatusOS } from "@/types";
+import type { AuditoriaOS, OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -41,13 +41,107 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
 }
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-type OrdemServicoTab = "informacoes" | "textos" | "valores" | "auditoria";
+type OrdemServicoTab = "status" | "informacoes" | "textos" | "valores" | "auditoria";
 
 const abas: { value: OrdemServicoTab; label: string }[] = [
+  { value: "status", label: "Status e acoes" },
   { value: "informacoes", label: "Informacoes" },
   { value: "textos", label: "Textos" },
   { value: "valores", label: "Valores" },
   { value: "auditoria", label: "Auditoria" }
+];
+
+type WorkflowAction = {
+  status: StatusOS;
+  label: string;
+  description: string;
+  primary?: boolean;
+};
+
+const workflowActions: Record<StatusOS, WorkflowAction[]> = {
+  RECEBIDA: [
+    {
+      status: "EM_ANALISE",
+      label: "Iniciar analise",
+      description: "A OS entra na etapa de entendimento tecnico.",
+      primary: true
+    }
+  ],
+  EM_ANALISE: [
+    {
+      status: "AGUARDANDO_APROVACAO",
+      label: "Enviar para aprovacao",
+      description: "Disponibiliza a analise para decisao do cliente.",
+      primary: true
+    }
+  ],
+  AGUARDANDO_APROVACAO: [
+    {
+      status: "APROVADA",
+      label: "Aprovar manualmente",
+      description: "Registra aprovacao interna quando a decisao veio por outro canal.",
+      primary: true
+    },
+    {
+      status: "EM_ANALISE",
+      label: "Voltar para analise",
+      description: "Reabre a analise para ajustes antes de nova aprovacao."
+    }
+  ],
+  APROVADA: [
+    {
+      status: "EM_DESENVOLVIMENTO",
+      label: "Iniciar desenvolvimento",
+      description: "Move a OS para execucao tecnica.",
+      primary: true
+    }
+  ],
+  EM_DESENVOLVIMENTO: [
+    {
+      status: "EM_TESTE",
+      label: "Enviar para teste",
+      description: "Sinaliza que a entrega esta pronta para validacao.",
+      primary: true
+    }
+  ],
+  EM_TESTE: [
+    {
+      status: "AGUARDANDO_PAGAMENTO",
+      label: "Enviar para pagamento",
+      description: "Conclui a validacao e libera a etapa financeira.",
+      primary: true
+    },
+    {
+      status: "EM_DESENVOLVIMENTO",
+      label: "Voltar para desenvolvimento",
+      description: "Retorna a OS para ajustes tecnicos."
+    }
+  ],
+  AGUARDANDO_PAGAMENTO: [
+    {
+      status: "FINALIZADA",
+      label: "Finalizar OS",
+      description: "Abre a tela para documentar entrega, branch, commits e arquivos.",
+      primary: true
+    },
+    {
+      status: "EM_DESENVOLVIMENTO",
+      label: "Retomar desenvolvimento",
+      description: "Reabre a execucao caso ainda exista ajuste pendente."
+    }
+  ],
+  FINALIZADA: []
+};
+
+const statusWorkflowOrder: StatusOS[] = [
+  "RECEBIDA",
+  "EM_ANALISE",
+  "AGUARDANDO_APROVACAO",
+  "APROVADA",
+  "EM_DESENVOLVIMENTO",
+  "EM_TESTE",
+  "AGUARDANDO_PAGAMENTO",
+  "FINALIZADA"
 ];
 
 function formatarDataHora(data?: string) {
@@ -143,6 +237,87 @@ function TimelineEvento({ evento, isUltimo }: { evento: AuditoriaOS; isUltimo: b
   );
 }
 
+function statusDateMap(ordem: OrdemServico, eventos: AuditoriaOS[]) {
+  const datas = new Map<StatusOS, string>();
+  datas.set("RECEBIDA", ordem.criadoEm);
+
+  eventos
+    .filter((evento) => evento.statusNovo)
+    .sort((a, b) => new Date(a.criadoEm).getTime() - new Date(b.criadoEm).getTime())
+    .forEach((evento) => {
+      if (evento.statusNovo && !datas.has(evento.statusNovo)) {
+        datas.set(evento.statusNovo, evento.criadoEm);
+      }
+    });
+
+  if (!datas.has(ordem.status)) {
+    datas.set(ordem.status, ordem.finalizadoEm ?? ordem.atualizadoEm);
+  }
+
+  return datas;
+}
+
+function StatusTimeline({ ordem, eventos }: { ordem: OrdemServico; eventos: AuditoriaOS[] }) {
+  const datas = statusDateMap(ordem, eventos);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm font-medium">Linha do tempo do status</div>
+          <p className="text-sm text-muted-foreground">
+            Veja por quais etapas a OS ja passou e quais ainda faltam no fluxo padrao.
+          </p>
+        </div>
+        <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+          Status atual: {statusLabels[ordem.status]}
+        </Badge>
+      </div>
+
+      <div className="space-y-0">
+        {statusWorkflowOrder.map((status, index) => {
+          const data = datas.get(status);
+          const isAtual = status === ordem.status;
+          const isConcluido = Boolean(data) && !isAtual;
+          const isPendente = !data && !isAtual;
+          const isUltimo = index === statusWorkflowOrder.length - 1;
+
+          return (
+            <div key={status} className="relative flex gap-4 pb-6 last:pb-0">
+              {!isUltimo ? <div className="absolute left-4 top-8 h-[calc(100%-2rem)] w-px bg-border" /> : null}
+              <div
+                className={cn(
+                  "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background",
+                  isAtual ? "border-primary bg-primary text-primary-foreground" : null,
+                  isConcluido ? "border-emerald-200 bg-emerald-50 text-emerald-700" : null,
+                  isPendente ? "text-muted-foreground" : null
+                )}
+              >
+                {isConcluido || isAtual ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+              </div>
+              <div className="min-w-0 flex-1 rounded-md border bg-secondary/30 p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">{statusLabels[status]}</span>
+                      {isAtual ? <Badge>Atual</Badge> : null}
+                      {isConcluido ? <Badge variant="outline">Concluido</Badge> : null}
+                      {isPendente ? <Badge variant="outline">Pendente</Badge> : null}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {data ? `Registrado em ${formatarDataHora(data)}` : "Etapa ainda nao alcancada."}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function OrdemServicoDetalhePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -151,7 +326,7 @@ export default function OrdemServicoDetalhePage() {
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const id = params.id;
   const [osEmAcao, setOsEmAcao] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("informacoes");
+  const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("status");
 
   const detalheQueryKey = ["ordens-servico", id];
   const auditoriaQueryKey = ["auditoria", "ordens-servico", id];
@@ -231,17 +406,17 @@ export default function OrdemServicoDetalhePage() {
     onSettled: () => setOsEmAcao(false)
   });
 
-  function atualizarStatus(status: StatusOS) {
-    if (!ordem || status === ordem.status) {
+  function executarAcaoWorkflow(action: WorkflowAction) {
+    if (!ordem) {
       return;
     }
 
-    if (status === "FINALIZADA") {
+    if (action.status === "FINALIZADA") {
       router.push(`/ordens-servico/${ordem.id}/finalizar`);
       return;
     }
 
-    statusMutation.mutate({ status });
+    statusMutation.mutate({ status: action.status, descricao: action.label });
   }
 
   function excluirOrdem() {
@@ -288,47 +463,6 @@ export default function OrdemServicoDetalhePage() {
         </Card>
       ) : (
         <div className="space-y-5">
-          <Card>
-            <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
-                  {statusLabels[ordem.status]}
-                </Badge>
-                <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Select value={ordem.status} disabled={osEmAcao} onValueChange={(status) => atualizarStatus(status as StatusOS)}>
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {statusLabels[status]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!isDesenvolvedor ? (
-                  <>
-                    <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
-                      <ClipboardCheck className="h-4 w-4" />
-                      {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
-                    </Button>
-                    <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
-                      <Edit className="h-4 w-4" />
-                      Editar
-                    </Button>
-                    <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
-                      {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      Excluir
-                    </Button>
-                  </>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-
           <div className="space-y-4">
             <div className="overflow-x-auto">
               <div className="inline-flex h-10 w-max items-center justify-center rounded-md bg-muted p-1">
@@ -349,6 +483,120 @@ export default function OrdemServicoDetalhePage() {
                 ))}
               </div>
             </div>
+
+            {abaAtiva === "status" ? (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <CardTitle>Status e acoes</CardTitle>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Avance a OS pelo fluxo permitido e acompanhe as etapas ja percorridas.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                          {statusLabels[ordem.status]}
+                        </Badge>
+                        <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {workflowActions[ordem.status].length > 0 ? (
+                      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                        <div className="rounded-md border bg-secondary/30 p-4">
+                          <div className="text-xs font-medium uppercase text-muted-foreground">Proxima acao recomendada</div>
+                          <div className="mt-2 text-sm font-semibold">{workflowActions[ordem.status][0].label}</div>
+                          <p className="mt-1 text-sm text-muted-foreground">{workflowActions[ordem.status][0].description}</p>
+                        </div>
+                        <Button
+                          className="w-full lg:w-auto"
+                          disabled={osEmAcao}
+                          onClick={() => executarAcaoWorkflow(workflowActions[ordem.status][0])}
+                        >
+                          {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                          {workflowActions[ordem.status][0].label}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        Esta OS esta finalizada. Nao existem proximas etapas operacionais disponiveis.
+                      </div>
+                    )}
+
+                    {workflowActions[ordem.status].length > 1 ? (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Outras acoes disponiveis</div>
+                        <div className="flex flex-wrap gap-2">
+                          {workflowActions[ordem.status].slice(1).map((action) => (
+                            <Button
+                              key={action.status}
+                              variant="outline"
+                              disabled={osEmAcao}
+                              onClick={() => executarAcaoWorkflow(action)}
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Ultima atualizacao:{" "}
+                        <span className="font-medium text-foreground">{formatarDataHora(ordem.atualizadoEm)}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {!isDesenvolvedor ? (
+                          <>
+                            <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
+                              <ClipboardCheck className="h-4 w-4" />
+                              {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
+                            </Button>
+                            <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
+                              <Edit className="h-4 w-4" />
+                              Editar
+                            </Button>
+                            <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
+                              {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              Excluir
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Historico de status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {auditoriaQuery.isLoading ? (
+                      <div className="space-y-3">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                      </div>
+                    ) : auditoriaQuery.isError ? (
+                      <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                        <span>Nao foi possivel carregar o historico de status desta OS.</span>
+                        <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
+                          <RefreshCcw className="h-4 w-4" />
+                          Tentar novamente
+                        </Button>
+                      </div>
+                    ) : (
+                      <StatusTimeline ordem={ordem} eventos={auditoriaQuery.data ?? []} />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
 
             {abaAtiva === "informacoes" ? (
               <Card>
