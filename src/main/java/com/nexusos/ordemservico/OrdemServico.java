@@ -94,6 +94,14 @@ public class OrdemServico {
     @Column(columnDefinition = "text")
     private String descricaoFinalizacao;
 
+    @Column(columnDefinition = "text")
+    private String commitsFinalizacao;
+
+    private String branchFinalizacao;
+
+    @Column(columnDefinition = "text")
+    private String arquivosAlteradosFinalizacao;
+
     private Boolean aprovadaPeloCliente;
 
     private OffsetDateTime aprovadoPeloClienteEm;

@@ -237,14 +237,7 @@ export default function OrdemServicoDetalhePage() {
     }
 
     if (status === "FINALIZADA") {
-      const descricao = window.prompt("Informe o que foi feito para finalizar a OS:");
-
-      if (!descricao?.trim()) {
-        toast.error("Informe o que foi feito antes de finalizar a OS.");
-        return;
-      }
-
-      statusMutation.mutate({ status, descricao: descricao.trim() });
+      router.push(`/ordens-servico/${ordem.id}/finalizar`);
       return;
     }
 
@@ -403,8 +396,15 @@ export default function OrdemServicoDetalhePage() {
                     <CardHeader>
                       <CardTitle>Finalizacao</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <CampoDetalhe label="O que foi feito" value={ordem.descricaoFinalizacao} />
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <CampoDetalhe label="O que foi feito" value={ordem.descricaoFinalizacao} />
+                      </div>
+                      <CampoDetalhe label="Branch" value={ordem.branchFinalizacao} />
+                      <CampoDetalhe label="Commits ou links" value={ordem.commitsFinalizacao} />
+                      <div className="md:col-span-2">
+                        <CampoDetalhe label="Arquivos alterados" value={ordem.arquivosAlteradosFinalizacao} />
+                      </div>
                     </CardContent>
                   </Card>
                 ) : null}

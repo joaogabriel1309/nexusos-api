@@ -168,12 +168,21 @@ public class OrdemServicoService {
         validarTransicao(statusAnterior, request.status());
         os.setStatus(request.status());
         if (request.status() == StatusOS.FINALIZADA) {
+            if (request.descricao() == null || request.descricao().isBlank()) {
+                throw new RegraNegocioException("Informe o que foi feito antes de finalizar a OS.");
+            }
             os.setFinalizadoEm(OffsetDateTime.now());
-            os.setDescricaoFinalizacao(request.descricao());
+            os.setDescricaoFinalizacao(request.descricao().trim());
+            os.setCommitsFinalizacao(limparTextoOpcional(request.commitsFinalizacao()));
+            os.setBranchFinalizacao(limparTextoOpcional(request.branchFinalizacao()));
+            os.setArquivosAlteradosFinalizacao(limparTextoOpcional(request.arquivosAlteradosFinalizacao()));
         }
         if (request.status() != StatusOS.FINALIZADA) {
             os.setFinalizadoEm(null);
             os.setDescricaoFinalizacao(null);
+            os.setCommitsFinalizacao(null);
+            os.setBranchFinalizacao(null);
+            os.setArquivosAlteradosFinalizacao(null);
         }
         var usuario = request.usuarioId() != null ? usuarioService.buscarEntidade(request.usuarioId()) : null;
         var salva = ordemServicoRepository.save(os);
@@ -297,5 +306,9 @@ public class OrdemServicoService {
         if (projeto != null && projeto.getCliente() != null && !projeto.getCliente().getId().equals(clienteId)) {
             throw new RegraNegocioException("Projeto nao pertence ao cliente informado.");
         }
+    }
+
+    private String limparTextoOpcional(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 }

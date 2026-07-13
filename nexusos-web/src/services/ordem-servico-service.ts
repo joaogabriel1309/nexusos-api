@@ -10,6 +10,13 @@ type OrdemServicoUpdatePayload = OrdemServicoFormData & {
   estimativaHoras?: number | null;
 };
 
+export type OrdemServicoFinalizacaoPayload = {
+  descricao: string;
+  commitsFinalizacao?: string | null;
+  branchFinalizacao?: string | null;
+  arquivosAlteradosFinalizacao?: string | null;
+};
+
 function toRequest(payload: OrdemServicoFormData) {
   return {
     ...payload,
@@ -56,6 +63,17 @@ export const ordemServicoService = {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/status`, {
       status,
       descricao: descricao || "Status alterado pelo frontend."
+    });
+    return data;
+  },
+
+  async finalizar(id: string, payload: OrdemServicoFinalizacaoPayload) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/status`, {
+      status: "FINALIZADA",
+      descricao: payload.descricao,
+      commitsFinalizacao: payload.commitsFinalizacao || null,
+      branchFinalizacao: payload.branchFinalizacao || null,
+      arquivosAlteradosFinalizacao: payload.arquivosAlteradosFinalizacao || null
     });
     return data;
   },

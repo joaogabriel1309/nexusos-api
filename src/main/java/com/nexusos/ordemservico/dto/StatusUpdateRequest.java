@@ -7,6 +7,9 @@ import java.util.UUID;
 public record StatusUpdateRequest(
         @NotNull StatusOS status,
         UUID usuarioId,
-        String descricao
+        String descricao,
+        String commitsFinalizacao,
+        String branchFinalizacao,
+        String arquivosAlteradosFinalizacao
 ) {
 }

@@ -73,6 +73,9 @@ export type OrdemServico = {
   paga?: boolean;
   pagamentoIniciado?: boolean;
   descricaoFinalizacao?: string;
+  commitsFinalizacao?: string;
+  branchFinalizacao?: string;
+  arquivosAlteradosFinalizacao?: string;
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
