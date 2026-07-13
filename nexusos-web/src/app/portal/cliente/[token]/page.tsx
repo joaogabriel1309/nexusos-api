@@ -63,14 +63,6 @@ function descricaoCurta(ordem: PortalOrdemServico) {
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-function formatarData(data?: string) {
-  if (!data) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(data));
-}
-
 function formatarValor(valor?: number) {
   return valor != null ? moeda.format(valor) : "-";
 }
@@ -514,47 +506,86 @@ export default function PortalClientePage() {
                   </div>
                 ) : (
                   <>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>OS</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Pagamento</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {ordensPaginadas.map((ordem) => (
-                          <TableRow
-                            key={ordem.id}
-                            className="cursor-pointer"
-                            onClick={() => setOrdemSelecionada(ordem)}
-                          >
-                            <TableCell>
-                              <div className="max-w-[360px]">
-                                <div className="truncate font-medium" title={`${ordem.codigo}`}>
-                                  {descricaoCurta(ordem)}
-                                </div>
-                                <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
-                                  {ordem.descricao}
-                                </div>
+                    <div className="grid gap-3 md:hidden">
+                      {ordensPaginadas.map((ordem) => (
+                        <div
+                          key={ordem.id}
+                          role="button"
+                          tabIndex={0}
+                          className="rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={() => setOrdemSelecionada(ordem)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setOrdemSelecionada(ordem);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate font-medium" title={`${ordem.codigo}`}>
+                                {descricaoCurta(ordem)}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
-                                {statusLabels[ordem.status]}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <PagamentoBadge paga={ordem.paga} />
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatarValor(ordem.valorTotalEstimado)}
-                            </TableCell>
+                              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground" title={ordem.descricao}>
+                                {ordem.descricao}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                              {statusLabels[ordem.status]}
+                            </Badge>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <PagamentoBadge paga={ordem.paga} />
+                            <div className="font-medium">{formatarValor(ordem.valorTotalEstimado)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="hidden overflow-x-auto md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>OS</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Pagamento</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {ordensPaginadas.map((ordem) => (
+                            <TableRow
+                              key={ordem.id}
+                              className="cursor-pointer"
+                              onClick={() => setOrdemSelecionada(ordem)}
+                            >
+                              <TableCell>
+                                <div className="max-w-[360px]">
+                                  <div className="truncate font-medium" title={`${ordem.codigo}`}>
+                                    {descricaoCurta(ordem)}
+                                  </div>
+                                  <div className="truncate text-xs text-muted-foreground" title={ordem.descricao}>
+                                    {ordem.descricao}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                                  {statusLabels[ordem.status]}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <PagamentoBadge paga={ordem.paga} />
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatarValor(ordem.valorTotalEstimado)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                     <TablePagination
                       page={paginaAtual}
                       totalItems={ordensFiltradas.length}

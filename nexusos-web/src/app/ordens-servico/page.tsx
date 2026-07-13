@@ -480,8 +480,89 @@ function OrdensServicoPageContent() {
               ) : null}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <>
+              <div className="grid gap-3 md:hidden">
+                {ordensPaginadas.map((ordem) => (
+                  <div
+                    key={ordem.id}
+                    role="button"
+                    tabIndex={0}
+                    className="rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/ordens-servico/${ordem.id}`);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium" title={ordem.titulo}>
+                          {ordem.codigo} - {ordem.titulo}
+                        </div>
+                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground" title={ordem.descricao}>
+                          {ordem.descricao}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                        {statusLabels[ordem.status]}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 text-sm">
+                      <div>
+                        <div className="text-xs font-medium uppercase text-muted-foreground">Cliente</div>
+                        <div className="truncate" title={ordem.clienteNome}>
+                          {ordem.clienteNome}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium uppercase text-muted-foreground">Projeto</div>
+                        <div className="truncate" title={ordem.projetoNome || "Sem projeto"}>
+                          {ordem.projetoNome || "Sem projeto"}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <PagamentoBadge paga={ordem.paga} />
+                        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
+                          {formatarDataPrazo(ordem.prazo)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          router.push(`/ordens-servico/${ordem.id}`);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                        Detalhes
+                      </Button>
+                      {!isDesenvolvedor ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.push(`/ordens-servico/${ordem.id}/editar`);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-0">OS</TableHead>
@@ -565,8 +646,9 @@ function OrdensServicoPageContent() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
 
           {!isLoading && !isError && ordensFiltradas.length > 0 ? (

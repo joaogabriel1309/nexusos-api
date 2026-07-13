@@ -477,8 +477,84 @@ export default function OrdensServicoFinalizadasPage() {
                   Nenhuma OS encontrada para os filtros informados.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <>
+                  <div className="grid gap-3 md:hidden">
+                    {ordensPaginadas.map((ordem) => (
+                      <div
+                        key={ordem.id}
+                        role="button"
+                        tabIndex={0}
+                        className="rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => router.push(`/ordens-servico/${ordem.id}?origem=finalizadas`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            router.push(`/ordens-servico/${ordem.id}?origem=finalizadas`);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium" title={ordem.titulo}>
+                              {ordem.codigo} - {ordem.titulo}
+                            </div>
+                            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                              {ordem.descricaoFinalizacao || ordem.descricao}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={statusBadgeClasses.FINALIZADA}>
+                            {statusLabels.FINALIZADA}
+                          </Badge>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 text-sm">
+                          <div>
+                            <div className="text-xs font-medium uppercase text-muted-foreground">Cliente</div>
+                            <div className="truncate" title={ordem.clienteNome}>
+                              {ordem.clienteNome}
+                            </div>
+                            <div className="truncate text-xs text-muted-foreground" title={ordem.projetoNome || "Sem projeto"}>
+                              {ordem.projetoNome || "Sem projeto"}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <div className="text-xs font-medium uppercase text-muted-foreground">Finalizada em</div>
+                              <div>{formatarDataHora(ordem.finalizadoEm)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs font-medium uppercase text-muted-foreground">Horas</div>
+                              <div>{ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h` : "-"}</div>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={prioridadeVariant(ordem.prioridade)}>{prioridadeLabels[ordem.prioridade]}</Badge>
+                            <PagamentoBadge paga={ordem.paga} />
+                            <span className="rounded-md border px-2.5 py-1 text-xs font-semibold">
+                              {ordem.valorTotalEstimado != null ? moeda.format(ordem.valorTotalEstimado) : "-"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/ordens-servico/${ordem.id}?origem=finalizadas`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                            Detalhes
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden overflow-x-auto md:block">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>OS</TableHead>
@@ -551,8 +627,9 @@ export default function OrdensServicoFinalizadasPage() {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </div>
+                    </Table>
+                  </div>
+                </>
               )}
 
               {ordensFiltradas.length > 0 ? (
