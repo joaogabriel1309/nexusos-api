@@ -10,7 +10,6 @@ const notificacaoTipoLabels: Record<string, string> = {
   OS_SEM_RESPONSAVEL: "OS sem responsavel",
   OS_SEM_PRAZO: "OS sem prazo",
   OS_CRITICA: "OS critica",
-  OS_CRITICA_VENCIDA: "OS critica vencida",
   OS_PARADA: "OS parada",
   RESPONSAVEL_ALTERADO: "Responsavel alterado",
   COMENTARIO: "Comentario",
@@ -33,7 +32,6 @@ export function getNotificacaoTipoVariant(tipo: string): "default" | "warning" |
   switch (tipo) {
     case "PRAZO_VENCIDO":
     case "OS_CRITICA":
-    case "OS_CRITICA_VENCIDA":
     case "INTEGRACAO_FALHA":
       return "danger";
     case "PRAZO_PROXIMO":
