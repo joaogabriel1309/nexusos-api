@@ -5,7 +5,7 @@ import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Clock, Code2
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { prioridadeLabels, statusLabels, statusOptions } from "@/lib/os-labels";
 import { dashboardService } from "@/services/dashboard-service";
@@ -14,6 +14,7 @@ import type { PrioridadeOS, StatusOS } from "@/types";
 const resumoQueryKey = ["dashboard", "resumo"];
 const statusQueryKey = ["dashboard", "status"];
 const produtividadeQueryKey = ["dashboard", "produtividade"];
+const finalizadasMesQueryKey = ["dashboard", "finalizadas-por-mes"];
 
 const statusFluxo: StatusOS[] = [
   "RECEBIDA",
@@ -27,9 +28,82 @@ const statusFluxo: StatusOS[] = [
 ];
 
 const prioridades: PrioridadeOS[] = ["CRITICA", "ALTA", "MEDIA", "BAIXA"];
+const prioridadeCores: Record<PrioridadeOS, string> = {
+  CRITICA: "bg-red-500",
+  ALTA: "bg-orange-500",
+  MEDIA: "bg-sky-500",
+  BAIXA: "bg-emerald-500"
+};
+const statusCores = ["#0ea5e9", "#8b5cf6", "#d946ef", "#6366f1", "#2563eb", "#f59e0b", "#f97316", "#10b981"];
 
 function formatarHoras(valor?: number) {
   return `${Math.round(valor ?? 0)}h`;
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(value, 100));
+}
+
+function RingChart({ value, label }: { value: number; label: string }) {
+  const percent = clampPercent(value);
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (percent / 100) * circumference;
+
+  return (
+    <div className="flex items-center gap-4">
+      <svg viewBox="0 0 112 112" className="h-28 w-28 shrink-0">
+        <circle cx="56" cy="56" r={radius} className="fill-none stroke-secondary" strokeWidth="12" />
+        <circle
+          cx="56"
+          cy="56"
+          r={radius}
+          className="fill-none stroke-primary transition-all"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference - dash}`}
+          transform="rotate(-90 56 56)"
+        />
+        <text x="56" y="53" textAnchor="middle" className="fill-foreground text-xl font-semibold">
+          {percent.toFixed(0)}%
+        </text>
+        <text x="56" y="70" textAnchor="middle" className="fill-muted-foreground text-[10px]">
+          concluido
+        </text>
+      </svg>
+      <div>
+        <div className="text-sm font-medium">{label}</div>
+        <p className="mt-1 text-sm text-muted-foreground">Percentual de OS finalizadas em relacao ao total cadastrado.</p>
+      </div>
+    </div>
+  );
+}
+
+function MonthlyBarChart({ data }: { data: Array<{ mes: string; rotulo: string; total: number }> }) {
+  const max = Math.max(...data.map((item) => item.total), 1);
+
+  return (
+    <div className="flex h-72 items-end gap-3 rounded-md border bg-secondary/20 p-4">
+      {data.map((item) => {
+        const height = Math.max((item.total / max) * 100, item.total > 0 ? 8 : 2);
+        return (
+          <div key={item.mes} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+            <div className="flex h-48 w-full items-end">
+              <div
+                className="w-full rounded-t-md bg-primary shadow-sm transition-all"
+                style={{ height: `${height}%` }}
+                title={`${item.total} OS finalizadas`}
+              />
+            </div>
+            <div className="text-sm font-semibold">{item.total}</div>
+            <div className="w-full truncate text-center text-xs text-muted-foreground" title={item.rotulo}>
+              {item.rotulo}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -48,13 +122,20 @@ export default function DashboardPage() {
     queryFn: dashboardService.produtividade
   });
 
+  const finalizadasMesQuery = useQuery({
+    queryKey: finalizadasMesQueryKey,
+    queryFn: dashboardService.finalizadasPorMes
+  });
+
   const resumo = resumoQuery.data;
   const statusData = statusQuery.data ?? {};
   const produtividade = produtividadeQuery.data;
+  const finalizadasPorMes = finalizadasMesQuery.data ?? [];
   const emDesenvolvimento = statusData.EM_DESENVOLVIMENTO ?? 0;
   const maiorStatus = Math.max(...statusOptions.map((status) => statusData[status] ?? 0), 1);
-  const isLoading = resumoQuery.isLoading || statusQuery.isLoading || produtividadeQuery.isLoading;
-  const isError = resumoQuery.isError || statusQuery.isError || produtividadeQuery.isError;
+  const totalOs = resumo?.totalOs ?? 0;
+  const isLoading = resumoQuery.isLoading || statusQuery.isLoading || produtividadeQuery.isLoading || finalizadasMesQuery.isLoading;
+  const isError = resumoQuery.isError || statusQuery.isError || produtividadeQuery.isError || finalizadasMesQuery.isError;
 
   const metrics = [
     { title: "OS abertas", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} OS no total` },
@@ -70,6 +151,7 @@ export default function DashboardPage() {
     resumoQuery.refetch();
     statusQuery.refetch();
     produtividadeQuery.refetch();
+    finalizadasMesQuery.refetch();
   }
 
   return (
@@ -103,8 +185,10 @@ export default function DashboardPage() {
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => {
               const Icon = metric.icon;
+              const numericValue = typeof metric.value === "number" ? metric.value : Number.parseFloat(String(metric.value)) || 0;
+              const percent = totalOs > 0 ? Math.min((numericValue / totalOs) * 100, 100) : 0;
               return (
-                <Card key={metric.title}>
+                <Card key={metric.title} className="overflow-hidden">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">{metric.title}</CardTitle>
                     <Icon className="h-4 w-4 text-primary" />
@@ -112,6 +196,9 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="text-2xl font-semibold">{metric.value}</div>
                     <p className="mt-1 text-xs text-muted-foreground">{metric.hint}</p>
+                    <div className="mt-4 h-2 rounded-full bg-secondary">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -121,10 +208,11 @@ export default function DashboardPage() {
           <section className="mt-6 grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Fluxo operacional</CardTitle>
+                <CardTitle>Fluxo operacional por status</CardTitle>
+                <CardDescription>Distribuicao atual das OS em cada etapa do workflow.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {statusFluxo.map((status) => {
+                {statusFluxo.map((status, index) => {
                   const total = statusData[status] ?? 0;
                   const width = Math.max((total / maiorStatus) * 100, total > 0 ? 8 : 0);
 
@@ -132,7 +220,7 @@ export default function DashboardPage() {
                     <div key={status} className="flex items-center gap-3">
                       <div className="w-48 text-sm text-muted-foreground">{statusLabels[status]}</div>
                       <div className="h-2 flex-1 rounded-full bg-secondary">
-                        <div className="h-2 rounded-full bg-primary" style={{ width: `${width}%` }} />
+                        <div className="h-2 rounded-full" style={{ width: `${width}%`, backgroundColor: statusCores[index] }} />
                       </div>
                       <div className="w-10 text-right text-sm font-medium">{total}</div>
                     </div>
@@ -143,15 +231,47 @@ export default function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Prioridades</CardTitle>
+                <CardTitle>Saude da operacao</CardTitle>
+                <CardDescription>Conclusao geral das ordens cadastradas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RingChart value={produtividade?.percentualFinalizacao ?? 0} label={`${resumo?.osFinalizadas ?? 0} OS finalizadas`} />
+              </CardContent>
+            </Card>
+          </section>
+
+          <section className="mt-4 grid gap-4 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>OS finalizadas por mes</CardTitle>
+                <CardDescription>Volume de conclusoes nos ultimos 6 meses.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MonthlyBarChart data={finalizadasPorMes} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Prioridades em aberto</CardTitle>
+                <CardDescription>Distribuicao por criticidade operacional.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {prioridades.map((prioridade) => (
-                  <div key={prioridade} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{prioridadeLabels[prioridade]}</span>
-                    <span className="font-medium">{resumo?.osPorPrioridade?.[prioridade] ?? 0}</span>
-                  </div>
-                ))}
+                {prioridades.map((prioridade) => {
+                  const total = resumo?.osPorPrioridade?.[prioridade] ?? 0;
+                  const width = totalOs > 0 ? Math.max((total / totalOs) * 100, total > 0 ? 8 : 0) : 0;
+                  return (
+                    <div key={prioridade} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{prioridadeLabels[prioridade]}</span>
+                        <span className="font-medium">{total}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-secondary">
+                        <div className={`h-2 rounded-full ${prioridadeCores[prioridade]}`} style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </section>
@@ -160,6 +280,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>SLA por prioridade</CardTitle>
+                <CardDescription>Prazo padrao configurado para cada nivel de prioridade.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {prioridades.map((prioridade) => (

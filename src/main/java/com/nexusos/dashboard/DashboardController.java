@@ -1,8 +1,10 @@
 package com.nexusos.dashboard;
 
 import com.nexusos.dashboard.dto.DashboardResumoResponse;
+import com.nexusos.dashboard.dto.FinalizadasPorMesResponse;
 import com.nexusos.dashboard.dto.ProdutividadeResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,5 +39,12 @@ public class DashboardController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProdutividadeResponse> produtividade() {
         return ResponseEntity.ok(dashboardService.produtividade());
+    }
+
+    @Operation(summary = "Retorna OS finalizadas por mes")
+    @GetMapping("/finalizadas-por-mes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<FinalizadasPorMesResponse>> finalizadasPorMes() {
+        return ResponseEntity.ok(dashboardService.finalizadasPorMes());
     }
 }

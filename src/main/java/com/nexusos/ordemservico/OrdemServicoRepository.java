@@ -1,7 +1,8 @@
 package com.nexusos.ordemservico;
 
-import java.util.UUID;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,15 +29,21 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     long countByStatusNot(StatusOS status);
 
-    long countByPrioridade(PrioridadeOS prioridade);
-
     long countByStatusNotAndPrazoBefore(StatusOS status, LocalDate prazo);
 
     long countByStatusNotAndPrazo(StatusOS status, LocalDate prazo);
 
     long countByStatusNotAndResponsavelIsNull(StatusOS status);
 
+    long countByPrioridade(PrioridadeOS prioridade);
+
     long countByStatusNotAndPrioridadeAndPrazoBefore(StatusOS status, PrioridadeOS prioridade, LocalDate prazo);
+
+    long countByStatusAndFinalizadoEmGreaterThanEqualAndFinalizadoEmLessThan(
+            StatusOS status,
+            OffsetDateTime inicio,
+            OffsetDateTime fim
+    );
 
     @Query(value = """
             select coalesce(avg(extract(epoch from (finalizado_em - criado_em)) / 3600), 0)

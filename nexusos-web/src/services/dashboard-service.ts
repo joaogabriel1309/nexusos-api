@@ -22,6 +22,12 @@ export type Produtividade = {
 
 export type OsPorStatus = Partial<Record<StatusOS, number>>;
 
+export type FinalizadasPorMes = {
+  mes: string;
+  rotulo: string;
+  total: number;
+};
+
 export const dashboardService = {
   async resumo() {
     const response = await api.get<DashboardResumo>("/dashboard/resumo");
@@ -35,6 +41,11 @@ export const dashboardService = {
 
   async produtividade() {
     const response = await api.get<Produtividade>("/dashboard/produtividade");
+    return response.data;
+  },
+
+  async finalizadasPorMes() {
+    const response = await api.get<FinalizadasPorMes[]>("/dashboard/finalizadas-por-mes");
     return response.data;
   }
 };
