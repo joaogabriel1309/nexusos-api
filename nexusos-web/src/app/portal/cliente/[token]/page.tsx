@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { CheckCircle2, Copy, CreditCard, Loader2, QrCode, RefreshCcw, SearchCheck, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, CreditCard, Loader2, QrCode, RefreshCcw, SearchCheck, XCircle } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -309,8 +309,139 @@ export default function PortalClientePage() {
           </p>
         </header>
 
-        <Card>
-          <CardContent className="p-5">
+        {ordemSelecionada ? (
+          <Card>
+            <CardHeader className="space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle>{`${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}`}</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Dados completos da ordem de servico compartilhados com o cliente.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setOrdemSelecionada(null)}>
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className={statusBadgeClasses[ordemSelecionada.status]}>
+                  {statusLabels[ordemSelecionada.status]}
+                </Badge>
+                <Badge variant="outline">{prioridadeLabels[ordemSelecionada.prioridade]}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
+                <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
+                <CampoDetalhe label="Prazo" value={formatarData(ordemSelecionada.prazo)} />
+                <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
+                <CampoDetalhe label="Ultima atualizacao" value={formatarDataHora(ordemSelecionada.atualizadoEm)} />
+                <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
+                <div className="md:col-span-2">
+                  <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
+                </div>
+                <div className="md:col-span-2">
+                  <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
+                </div>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Valores</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <CampoDetalhe
+                      label="Horas estimadas"
+                      value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
+                    />
+                    <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
+                    <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
+                    <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
+                  </div>
+                  {podeIniciarPagamento(ordemSelecionada) ? (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {ordemSelecionada.pagamentoIniciado ? (
+                        <Button
+                          variant="outline"
+                          disabled={verificarPagamentoMutation.isPending}
+                          onClick={() => verificarPagamentoMutation.mutate(ordemSelecionada.id)}
+                        >
+                          {verificarPagamentoMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <SearchCheck className="h-4 w-4" />
+                          )}
+                          Verificar pagamento
+                        </Button>
+                      ) : null}
+                      <Button
+                        disabled={pagamentoMutation.isPending}
+                        onClick={() => pagamentoMutation.mutate(ordemSelecionada.id)}
+                      >
+                        {pagamentoMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CreditCard className="h-4 w-4" />
+                        )}
+                        Pagar
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={pixMutation.isPending}
+                        onClick={() => pixMutation.mutate(ordemSelecionada.id)}
+                      >
+                        {pixMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <QrCode className="h-4 w-4" />
+                        )}
+                        Pagar com Pix
+                      </Button>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Finalizacao</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    disabled={decisaoMutation.isPending}
+                    onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Aprovar OS
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={decisaoMutation.isPending}
+                    onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: false })}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reprovar OS
+                  </Button>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {!ordemSelecionada ? (
+          <Card>
+            <CardContent className="p-5">
             {portalQuery.isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-8 w-64" />
@@ -443,134 +574,9 @@ export default function PortalClientePage() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Dialog open={Boolean(ordemSelecionada)} onOpenChange={(open) => !open && setOrdemSelecionada(null)}>
-          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {ordemSelecionada ? `${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}` : "Detalhes da OS"}
-              </DialogTitle>
-              <DialogDescription>Dados completos da ordem de servico compartilhados com o cliente.</DialogDescription>
-            </DialogHeader>
-
-            {ordemSelecionada ? (
-              <div className="space-y-5">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={statusBadgeClasses[ordemSelecionada.status]}>
-                    {statusLabels[ordemSelecionada.status]}
-                  </Badge>
-                  <Badge variant="outline">{prioridadeLabels[ordemSelecionada.prioridade]}</Badge>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
-                  <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
-                  <CampoDetalhe label="Prazo" value={formatarData(ordemSelecionada.prazo)} />
-                  <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
-                  <CampoDetalhe label="Ultima atualizacao" value={formatarDataHora(ordemSelecionada.atualizadoEm)} />
-                  <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
-                  <div className="md:col-span-2">
-                    <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
-                  </div>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Valores</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-4">
-                      <CampoDetalhe
-                        label="Horas estimadas"
-                        value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
-                      />
-                      <CampoDetalhe label="Cobranca" value={ordemSelecionada.cobrar === false ? "Nao cobrar" : "Cobrar"} />
-                      <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
-                      <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
-                    </div>
-                    {podeIniciarPagamento(ordemSelecionada) ? (
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {ordemSelecionada.pagamentoIniciado ? (
-                          <Button
-                            variant="outline"
-                            disabled={verificarPagamentoMutation.isPending}
-                            onClick={() => verificarPagamentoMutation.mutate(ordemSelecionada.id)}
-                          >
-                            {verificarPagamentoMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <SearchCheck className="h-4 w-4" />
-                            )}
-                            Verificar pagamento
-                          </Button>
-                        ) : null}
-                        <Button
-                          disabled={pagamentoMutation.isPending}
-                          onClick={() => pagamentoMutation.mutate(ordemSelecionada.id)}
-                        >
-                          {pagamentoMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <CreditCard className="h-4 w-4" />
-                          )}
-                          Pagar
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          disabled={pixMutation.isPending}
-                          onClick={() => pixMutation.mutate(ordemSelecionada.id)}
-                        >
-                          {pixMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <QrCode className="h-4 w-4" />
-                          )}
-                          Pagar com Pix
-                        </Button>
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-
-                {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Finalizacao</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      disabled={decisaoMutation.isPending}
-                      onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Aprovar OS
-                    </Button>
-                    <Button
-                      variant="outline"
-                      disabled={decisaoMutation.isPending}
-                      onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: false })}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reprovar OS
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </DialogContent>
-        </Dialog>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Dialog open={Boolean(pixPagamento)} onOpenChange={(open) => !open && setPixPagamento(null)}>
           <DialogContent className="max-w-lg">

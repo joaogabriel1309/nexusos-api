@@ -1,18 +1,16 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Edit, Eye, FileSpreadsheet, FileText, Plus, RefreshCcw, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,12 +18,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { useAuth } from "@/providers/auth-provider";
-import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
-import type { OrdemServico, StatusOS } from "@/types";
+import type { StatusOS } from "@/types";
 
 const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
@@ -136,11 +133,8 @@ function OrdensTableSkeleton() {
 function OrdensServicoPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
   const { usuario } = useAuth();
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [ordemSelecionada, setOrdemSelecionada] = useState<OrdemServico | null>(null);
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
@@ -198,11 +192,6 @@ function OrdensServicoPageContent() {
       .map(([id, nome]) => ({ id, nome }))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [isDesenvolvedor, ordensQuery.data, projetos]);
-  const responsaveis = useMemo(
-    () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo),
-    [usuariosQuery.data]
-  );
-
   const ordensFiltradas = useMemo(() => {
     const termoBusca = normalizarBusca(busca);
 
@@ -256,31 +245,6 @@ function OrdensServicoPageContent() {
     setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
   }, [totalPaginas]);
 
-  const salvarMutation = useMutation({
-    mutationFn: (data: OrdemServicoFormData) => {
-      if (ordemSelecionada) {
-        return ordemServicoService.atualizar(ordemSelecionada.id, {
-          ...data,
-          entendimento: ordemSelecionada.entendimento,
-          impacto: ordemSelecionada.impacto,
-          riscos: ordemSelecionada.riscos,
-          estimativaHoras: ordemSelecionada.estimativaHoras ?? null
-        });
-      }
-
-      return ordemServicoService.criar(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      setDialogOpen(false);
-      setOrdemSelecionada(null);
-      toast.success(ordemSelecionada ? "OS atualizada com sucesso." : "OS cadastrada com sucesso.");
-    },
-    onError: () => {
-      toast.error("Nao foi possivel salvar a OS.");
-    }
-  });
-
   const isLoading =
     ordensQuery.isLoading || (!isDesenvolvedor && (clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading));
   const isError =
@@ -291,8 +255,7 @@ function OrdensServicoPageContent() {
       return;
     }
 
-    setOrdemSelecionada(null);
-    setDialogOpen(true);
+    router.push("/ordens-servico/nova");
   }
 
   function recarregar() {
@@ -590,8 +553,7 @@ function OrdensServicoPageContent() {
                               title="Editar OS"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                setOrdemSelecionada(ordem);
-                                setDialogOpen(true);
+                                router.push(`/ordens-servico/${ordem.id}/editar`);
                               }}
                             >
                               <Edit className="h-4 w-4" />
@@ -617,36 +579,6 @@ function OrdensServicoPageContent() {
           ) : null}
         </CardContent>
       </Card>
-
-      {!isDesenvolvedor ? (
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              setOrdemSelecionada(null);
-            }
-          }}
-        >
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>{ordemSelecionada ? "Editar OS" : "Cadastrar OS"}</DialogTitle>
-              <DialogDescription>
-                {ordemSelecionada ? "Atualize os dados principais da ordem de servico." : "Registre a demanda inicial para analise técnica."}
-              </DialogDescription>
-            </DialogHeader>
-            <OrdemServicoForm
-              clientes={clientes}
-              responsaveis={responsaveis}
-              projetos={projetos}
-              ordem={ordemSelecionada}
-              isSubmitting={salvarMutation.isPending}
-              onSubmit={(data) => salvarMutation.mutate(data)}
-            />
-          </DialogContent>
-        </Dialog>
-      ) : null}
-
     </AppShell>
   );
 }

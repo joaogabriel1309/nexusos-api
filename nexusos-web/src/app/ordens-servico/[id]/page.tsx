@@ -16,29 +16,21 @@ import {
   UserRound
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { OrdemServicoAnaliseForm } from "@/components/shared/ordem-servico-analise-form";
-import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
-import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
-import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 import { auditoriaService } from "@/services/auditoria-service";
-import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
-import { projetoService } from "@/services/projeto-service";
-import { usuarioService } from "@/services/usuario-service";
 import type { AuditoriaOS, PrioridadeOS, StatusOS } from "@/types";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
@@ -154,8 +146,6 @@ export default function OrdemServicoDetalhePage() {
   const { usuario } = useAuth();
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const id = params.id;
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [analiseDialogOpen, setAnaliseDialogOpen] = useState(false);
   const [osEmAcao, setOsEmAcao] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("informacoes");
 
@@ -175,68 +165,7 @@ export default function OrdemServicoDetalhePage() {
     enabled: Boolean(id)
   });
 
-  const clientesQuery = useQuery({
-    queryKey: ["clientes"],
-    queryFn: clienteService.listar,
-    enabled: !isDesenvolvedor
-  });
-
-  const projetosQuery = useQuery({
-    queryKey: ["projetos"],
-    queryFn: projetoService.listar,
-    enabled: !isDesenvolvedor
-  });
-
-  const usuariosQuery = useQuery({
-    queryKey: ["usuarios"],
-    queryFn: usuarioService.listar,
-    enabled: !isDesenvolvedor
-  });
-
   const ordem = ordemQuery.data;
-  const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
-  const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
-  const responsaveis = useMemo(
-    () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo),
-    [usuariosQuery.data]
-  );
-  const valorHoraAnalise = useMemo(() => {
-    if (isDesenvolvedor) {
-      return 0;
-    }
-
-    if (!ordem) {
-      return 0;
-    }
-
-    return clientes.find((cliente) => cliente.id === ordem.clienteId)?.valorHora ?? 0;
-  }, [clientes, isDesenvolvedor, ordem]);
-
-  const salvarMutation = useMutation({
-    mutationFn: (data: OrdemServicoFormData) => {
-      if (!ordem) {
-        throw new Error("OS nao carregada.");
-      }
-
-      return ordemServicoService.atualizar(ordem.id, {
-        ...data,
-        entendimento: ordem.entendimento,
-        impacto: ordem.impacto,
-        riscos: ordem.riscos,
-        estimativaHoras: ordem.estimativaHoras ?? null
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
-      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      setDialogOpen(false);
-      toast.success("OS atualizada com sucesso.");
-    },
-    onError: () => {
-      toast.error("Nao foi possivel salvar a OS.");
-    }
-  });
 
   const statusMutation = useMutation({
     mutationFn: ({ status, descricao }: { status: StatusOS; descricao?: string }) => {
@@ -257,26 +186,6 @@ export default function OrdemServicoDetalhePage() {
       toast.error("Transicao de status invalida ou nao permitida.");
     },
     onSettled: () => setOsEmAcao(false)
-  });
-
-  const analiseMutation = useMutation({
-    mutationFn: (data: OrdemServicoAnaliseFormData) => {
-      if (!ordem) {
-        throw new Error("OS nao carregada.");
-      }
-
-      return ordemServicoService.atualizarAnalise(ordem.id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
-      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      setAnaliseDialogOpen(false);
-      toast.success("Analise da OS salva com sucesso.");
-    },
-    onError: () => {
-      toast.error("Nao foi possivel salvar a analise da OS.");
-    }
   });
 
   const pagamentoMutation = useMutation({
@@ -405,11 +314,11 @@ export default function OrdemServicoDetalhePage() {
                 </Select>
                 {!isDesenvolvedor ? (
                   <>
-                    <Button variant="outline" onClick={() => setAnaliseDialogOpen(true)}>
+                    <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
                       <ClipboardCheck className="h-4 w-4" />
                       {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
                     </Button>
-                    <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                    <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
                       <Edit className="h-4 w-4" />
                       Editar
                     </Button>
@@ -568,46 +477,6 @@ export default function OrdemServicoDetalhePage() {
         </div>
       )}
 
-      {ordem && !isDesenvolvedor ? (
-        <>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Editar OS</DialogTitle>
-                <DialogDescription>Atualize os dados principais da ordem de servico.</DialogDescription>
-              </DialogHeader>
-              <OrdemServicoForm
-                clientes={clientes}
-                responsaveis={responsaveis}
-                projetos={projetos}
-                ordem={ordem}
-                isSubmitting={salvarMutation.isPending}
-                onSubmit={(data) => salvarMutation.mutate(data)}
-              />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={analiseDialogOpen} onOpenChange={setAnaliseDialogOpen}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>{ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}</DialogTitle>
-                <DialogDescription>
-                  {ordem.status === "EM_ANALISE"
-                    ? "Informe a estimativa de horas para calcular o valor previsto da ordem de servico."
-                    : "Consulte os dados de analise registrados para esta ordem de servico."}
-                </DialogDescription>
-              </DialogHeader>
-              <OrdemServicoAnaliseForm
-                ordem={ordem}
-                valorHora={valorHoraAnalise}
-                isSubmitting={analiseMutation.isPending}
-                readOnly={ordem.status !== "EM_ANALISE"}
-                onSubmit={(data) => analiseMutation.mutate(data)}
-              />
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : null}
     </AppShell>
   );
 }
