@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCcw } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Edit, Eye, FileSpreadsheet, FileText, Plus, RefreshCcw, Search } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
+import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { useAuth } from "@/providers/auth-provider";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
@@ -36,6 +36,7 @@ const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZ
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
 const itensPorPagina = 20;
+const csvSeparador = ";";
 
 function PagamentoBadge({ paga }: { paga?: boolean }) {
   return (
@@ -52,8 +53,89 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
   );
 }
 
-export default function OrdensServicoPage() {
+function normalizarBusca(valor?: string | number | null) {
+  return String(valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function escaparCsv(valor?: string | number | boolean | null) {
+  return `"${String(valor ?? "").replace(/"/g, '""')}"`;
+}
+
+function escaparHtml(valor?: string | number | null) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function baixarArquivo(nome: string, conteudo: string, tipo: string) {
+  const blob = new Blob([conteudo], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nome;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function OrdensTableSkeleton() {
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>OS</TableHead>
+            <TableHead>Cliente / Projeto</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Pagamento</TableHead>
+            <TableHead>Prazo</TableHead>
+            <TableHead className="text-right">Acoes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <TableRow key={index}>
+              <TableCell>
+                <Skeleton className="h-5 w-52" />
+                <Skeleton className="mt-2 h-4 w-72" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-2 h-4 w-32" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-7 w-32" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-7 w-24" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-7 w-28" />
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-2">
+                  <Skeleton className="h-9 w-9" />
+                  <Skeleton className="h-9 w-9" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function OrdensServicoPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { usuario } = useAuth();
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
@@ -62,6 +144,7 @@ export default function OrdensServicoPage() {
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
+  const [busca, setBusca] = useState(searchParams.get("busca") ?? "");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -121,6 +204,8 @@ export default function OrdensServicoPage() {
   );
 
   const ordensFiltradas = useMemo(() => {
+    const termoBusca = normalizarBusca(busca);
+
     return (ordensQuery.data ?? [])
       .filter((ordem) => {
         if (ordem.status === "FINALIZADA") {
@@ -136,11 +221,23 @@ export default function OrdensServicoPage() {
         const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
         const matchInicio = inicio && prazo ? prazo >= inicio : true;
         const matchFim = fim && prazo ? prazo <= fim : true;
+        const matchBusca = termoBusca
+          ? [
+              ordem.codigo,
+              ordem.titulo,
+              ordem.descricao,
+              ordem.clienteNome,
+              ordem.projetoNome,
+              ordem.responsavelNome,
+              statusLabels[ordem.status],
+              prioridadeLabels[ordem.prioridade]
+            ].some((valor) => normalizarBusca(valor).includes(termoBusca))
+          : true;
 
-        return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim;
+        return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim && matchBusca;
       })
       .sort((a, b) => b.codigo - a.codigo); // Ordena por código da OS do maior para o menor
-  }, [clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
+  }, [busca, clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
   const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
   const ordensPaginadas = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina;
@@ -149,7 +246,11 @@ export default function OrdensServicoPage() {
 
   useEffect(() => {
     setPaginaAtual(1);
-  }, [clienteFiltro, dataFim, dataInicio, projetoFiltro, statusFiltro]);
+  }, [busca, clienteFiltro, dataFim, dataInicio, projetoFiltro, statusFiltro]);
+
+  useEffect(() => {
+    setBusca(searchParams.get("busca") ?? "");
+  }, [searchParams]);
 
   useEffect(() => {
     setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
@@ -204,11 +305,99 @@ export default function OrdensServicoPage() {
   }
 
   function limparFiltros() {
+    setBusca("");
     setClienteFiltro("");
     setProjetoFiltro("");
     setStatusFiltro("");
     setDataInicio("");
     setDataFim("");
+  }
+
+  function exportarExcel() {
+    const cabecalho = ["OS", "Titulo", "Cliente", "Projeto", "Responsavel", "Status", "Prioridade", "Prazo", "Pagamento"];
+    const linhas = ordensFiltradas.map((ordem) =>
+      [
+        ordem.codigo,
+        ordem.titulo,
+        ordem.clienteNome,
+        ordem.projetoNome || "Sem projeto",
+        ordem.responsavelNome || "A definir",
+        statusLabels[ordem.status],
+        prioridadeLabels[ordem.prioridade],
+        formatarDataPrazo(ordem.prazo),
+        ordem.paga ? "Paga" : "Pendente"
+      ]
+        .map(escaparCsv)
+        .join(csvSeparador)
+    );
+
+    baixarArquivo(
+      `ordens-servico-${new Date().toISOString().slice(0, 10)}.csv`,
+      `\uFEFF${cabecalho.map(escaparCsv).join(csvSeparador)}\n${linhas.join("\n")}`,
+      "text/csv;charset=utf-8"
+    );
+  }
+
+  function exportarPdf() {
+    const janela = window.open("", "_blank");
+
+    if (!janela) {
+      toast.error("Nao foi possivel abrir a janela de impressao.");
+      return;
+    }
+
+    const linhas = ordensFiltradas
+      .map(
+        (ordem) => `
+          <tr>
+            <td>${ordem.codigo}</td>
+            <td>${escaparHtml(ordem.titulo)}</td>
+            <td>${escaparHtml(ordem.clienteNome)}</td>
+            <td>${escaparHtml(ordem.projetoNome || "Sem projeto")}</td>
+            <td>${statusLabels[ordem.status]}</td>
+            <td>${prioridadeLabels[ordem.prioridade]}</td>
+            <td>${formatarDataPrazo(ordem.prazo)}</td>
+          </tr>`
+      )
+      .join("");
+
+    janela.document.write(`
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Ordens de Servico</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
+            h1 { font-size: 22px; margin: 0 0 4px; }
+            p { color: #6b7280; margin: 0 0 24px; }
+            table { border-collapse: collapse; width: 100%; font-size: 12px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+            th { background: #f3f4f6; }
+          </style>
+        </head>
+        <body>
+          <h1>Ordens de Servico</h1>
+          <p>${ordensFiltradas.length} OS exportada(s) em ${new Intl.DateTimeFormat("pt-BR").format(new Date())}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>OS</th>
+                <th>Titulo</th>
+                <th>Cliente</th>
+                <th>Projeto</th>
+                <th>Status</th>
+                <th>Prioridade</th>
+                <th>Prazo</th>
+              </tr>
+            </thead>
+            <tbody>${linhas}</tbody>
+          </table>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    janela.document.close();
   }
 
   return (
@@ -228,6 +417,32 @@ export default function OrdensServicoPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por OS, titulo, cliente, responsavel..."
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={exportarPdf} disabled={isLoading || ordensFiltradas.length === 0}>
+                <FileText className="h-4 w-4" />
+                PDF
+              </Button>
+              <Button variant="outline" onClick={exportarExcel} disabled={isLoading || ordensFiltradas.length === 0}>
+                <FileSpreadsheet className="h-4 w-4" />
+                Excel
+              </Button>
+              <Button variant="outline" onClick={recarregar} disabled={isLoading}>
+                <RefreshCcw className="h-4 w-4" />
+                Atualizar
+              </Button>
+            </div>
+          </div>
+
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
             <Select
               value={clienteFiltro || todosClientesOption}
@@ -282,11 +497,7 @@ export default function OrdensServicoPage() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+            <OrdensTableSkeleton />
           ) : isError ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>Nao foi possivel carregar as ordens de servico.</span>
@@ -315,6 +526,7 @@ export default function OrdensServicoPage() {
                     <TableHead className="w-[190px]">Status</TableHead>
                     <TableHead className="w-[140px]">Pagamento</TableHead>
                     <TableHead className="w-[160px]">Prazo</TableHead>
+                    <TableHead className="w-[120px] text-right">Acoes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -356,6 +568,37 @@ export default function OrdensServicoPage() {
                         <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
                           {formatarDataPrazo(ordem.prazo)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Ver detalhes"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/ordens-servico/${ordem.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Ver detalhes</span>
+                          </Button>
+                          {!isDesenvolvedor ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Editar OS"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOrdemSelecionada(ordem);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Editar OS</span>
+                            </Button>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -405,5 +648,27 @@ export default function OrdensServicoPage() {
       ) : null}
 
     </AppShell>
+  );
+}
+
+export default function OrdensServicoPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell>
+          <PageHeader
+            title="Ordens de Serviço"
+            description="Acompanhe demandas técnicas por status, prioridade e responsável."
+          />
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <OrdensTableSkeleton />
+            </CardContent>
+          </Card>
+        </AppShell>
+      }
+    >
+      <OrdensServicoPageContent />
+    </Suspense>
   );
 }

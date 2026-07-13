@@ -1,7 +1,20 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ClipboardCheck, Edit, History, Loader2, RefreshCcw, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  CreditCard,
+  Edit,
+  History,
+  Loader2,
+  MessageSquare,
+  RefreshCcw,
+  Trash2,
+  UserRound
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -26,7 +39,7 @@ import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
-import type { PrioridadeOS, StatusOS } from "@/types";
+import type { AuditoriaOS, PrioridadeOS, StatusOS } from "@/types";
 
 function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
   if (prioridade === "CRITICA") return "danger";
@@ -74,6 +87,62 @@ function CampoPrazo({ prazo }: { prazo?: string }) {
     <div className={`rounded-md border p-4 ${prazoClasses(prazo)}`}>
       <div className="text-xs font-medium uppercase">Prazo</div>
       <div className="mt-2 text-sm font-semibold">{formatarDataPrazo(prazo)}</div>
+    </div>
+  );
+}
+
+function obterIconeEvento(tipoEvento: string) {
+  if (tipoEvento.includes("STATUS")) {
+    return CheckCircle2;
+  }
+
+  if (tipoEvento.includes("PAGAMENTO")) {
+    return CreditCard;
+  }
+
+  if (tipoEvento.includes("RESPONSAVEL") || tipoEvento.includes("ATRIBUID")) {
+    return UserRound;
+  }
+
+  if (tipoEvento.includes("COMENTARIO") || tipoEvento.includes("CHECKLIST")) {
+    return MessageSquare;
+  }
+
+  return Clock;
+}
+
+function TimelineEvento({ evento, isUltimo }: { evento: AuditoriaOS; isUltimo: boolean }) {
+  const Icone = obterIconeEvento(evento.tipoEvento);
+
+  return (
+    <div className="relative flex gap-4 pb-6 last:pb-0">
+      {!isUltimo ? <div className="absolute left-5 top-10 h-[calc(100%-2.5rem)] w-px bg-border" /> : null}
+      <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-background text-primary shadow-sm">
+        <Icone className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1 rounded-md border bg-secondary/30 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{evento.tipoEvento.replaceAll("_", " ")}</Badge>
+              <span className="text-xs text-muted-foreground">{evento.usuarioNome ?? "Sistema"}</span>
+            </div>
+            <div className="mt-2 text-sm font-medium">{evento.descricao}</div>
+          </div>
+          <div className="shrink-0 text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
+        </div>
+        {evento.statusAnterior || evento.statusNovo ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-md border bg-background px-2 py-1 text-muted-foreground">
+              {evento.statusAnterior ? statusLabels[evento.statusAnterior] : "-"}
+            </span>
+            <span className="text-muted-foreground">para</span>
+            <span className="rounded-md border bg-background px-2 py-1 font-medium">
+              {evento.statusNovo ? statusLabels[evento.statusNovo] : "-"}
+            </span>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -482,24 +551,9 @@ export default function OrdemServicoDetalhePage() {
                       Nenhum evento de auditoria registrado.
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {(auditoriaQuery.data ?? []).map((evento) => (
-                        <div key={evento.id} className="border-l-2 border-primary/30 pl-4">
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="text-sm font-semibold">{evento.tipoEvento.replaceAll("_", " ")}</div>
-                            <div className="text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
-                          </div>
-                          <div className="mt-1 text-sm text-muted-foreground">{evento.descricao}</div>
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <span>{evento.usuarioNome ?? "Sistema"}</span>
-                            {evento.statusAnterior || evento.statusNovo ? (
-                              <span>
-                                {evento.statusAnterior ? statusLabels[evento.statusAnterior] : "-"} para{" "}
-                                {evento.statusNovo ? statusLabels[evento.statusNovo] : "-"}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
+                    <div>
+                      {(auditoriaQuery.data ?? []).map((evento, index, eventos) => (
+                        <TimelineEvento key={evento.id} evento={evento} isUltimo={index === eventos.length - 1} />
                       ))}
                     </div>
                   )}

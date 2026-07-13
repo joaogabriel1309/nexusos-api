@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { type FormEvent, useState } from "react";
 import { getResumoNotificacao } from "@/lib/notificacao-labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   const router = useRouter();
   const queryClient = useQueryClient();
   const { logout, usuario } = useAuth();
+  const [buscaGlobal, setBuscaGlobal] = useState("");
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
   const notificacoesQuery = useQuery({
     queryKey: ["notificacoes"],
@@ -55,6 +57,13 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
     }
   }
 
+  function buscarGlobalmente(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const termo = buscaGlobal.trim();
+
+    router.push(termo ? `/ordens-servico?busca=${encodeURIComponent(termo)}` : "/ordens-servico");
+  }
+
   function formatarDataHora(data: string) {
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -69,10 +78,15 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         <SidebarIcon className="h-5 w-5" />
         <span className="sr-only">{sidebarCollapsed ? "Abrir menu lateral" : "Esconder menu lateral"}</span>
       </Button>
-      <div className="relative hidden w-full max-w-md md:block">
+      <form onSubmit={buscarGlobalmente} className="relative hidden w-full max-w-md md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Buscar OS, cliente ou responsável" />
-      </div>
+        <Input
+          className="pl-9"
+          placeholder="Buscar OS, cliente ou responsavel"
+          value={buscaGlobal}
+          onChange={(event) => setBuscaGlobal(event.target.value)}
+        />
+      </form>
       <div className="ml-auto flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
