@@ -114,9 +114,11 @@ function pagamentoFalhouNoRetorno(searchParams: ReturnType<typeof useSearchParam
 
 function CampoDetalhe({ label, value }: { label: string; value?: string | number | null }) {
   return (
-    <div className="rounded-md border bg-secondary/30 p-4">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-md border bg-secondary/30 p-4">
       <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
-      <div className="mt-2 whitespace-pre-wrap text-sm font-medium">{value ?? "-"}</div>
+      <div className="mt-2 whitespace-pre-wrap break-words text-sm font-medium [overflow-wrap:anywhere]">
+        {value ?? "-"}
+      </div>
     </div>
   );
 }
@@ -291,27 +293,29 @@ export default function PortalClientePage() {
   }, [totalPaginas]);
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto w-full max-w-6xl space-y-6">
-        <header className="space-y-2">
+    <main className="min-h-screen overflow-x-hidden bg-background px-4 py-8">
+      <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
+        <header className="min-w-0 space-y-2">
           <div className="text-sm font-semibold text-primary">NexusOS</div>
-          <h1 className="text-2xl font-semibold tracking-normal">Portal do Cliente</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="break-words text-2xl font-semibold tracking-normal [overflow-wrap:anywhere]">Portal do Cliente</h1>
+          <p className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
             Consulte o andamento das suas ordens de servico de forma online e segura.
           </p>
         </header>
 
         {ordemSelecionada ? (
-          <Card>
+          <Card className="min-w-0 max-w-full overflow-hidden">
             <CardHeader className="space-y-3">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <CardTitle>{`${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}`}</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <CardTitle className="break-words [overflow-wrap:anywhere]">
+                    {`${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}`}
+                  </CardTitle>
+                  <p className="mt-1 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
                     Dados completos da ordem de servico compartilhados com o cliente.
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setOrdemSelecionada(null)}>
+                <Button className="shrink-0" variant="outline" onClick={() => setOrdemSelecionada(null)}>
                   <ArrowLeft className="h-4 w-4" />
                   Voltar
                 </Button>
@@ -323,31 +327,31 @@ export default function PortalClientePage() {
                 <Badge variant="outline">{prioridadeLabels[ordemSelecionada.prioridade]}</Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-2">
+            <CardContent className="min-w-0 space-y-5">
+              <div className="grid min-w-0 gap-4 md:grid-cols-2">
                 <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
                 <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
                 <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
                 <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
-                <div className="md:col-span-2">
+                <div className="min-w-0 md:col-span-2">
                   <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
                 </div>
-                <div className="md:col-span-2">
+                <div className="min-w-0 md:col-span-2">
                   <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
                 </div>
                 {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
-                  <div className="md:col-span-2">
+                  <div className="min-w-0 md:col-span-2">
                     <CampoDetalhe label="O que foi feito" value={ordemSelecionada.descricaoFinalizacao} />
                   </div>
                 ) : null}
               </div>
 
-              <Card>
+              <Card className="min-w-0 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Valores</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-4">
+                  <div className="grid min-w-0 gap-4 md:grid-cols-4">
                     <CampoDetalhe
                       label="Horas estimadas"
                       value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
@@ -512,7 +516,7 @@ export default function PortalClientePage() {
                           key={ordem.id}
                           role="button"
                           tabIndex={0}
-                          className="rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="min-w-0 max-w-full overflow-hidden rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           onClick={() => setOrdemSelecionada(ordem)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
@@ -521,16 +525,16 @@ export default function PortalClientePage() {
                             }
                           }}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
                               <div className="truncate font-medium" title={`${ordem.codigo}`}>
                                 {descricaoCurta(ordem)}
                               </div>
-                              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground" title={ordem.descricao}>
+                              <div className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]" title={ordem.descricao}>
                                 {ordem.descricao}
                               </div>
                             </div>
-                            <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                            <Badge variant="outline" className={`shrink-0 ${statusBadgeClasses[ordem.status]}`}>
                               {statusLabels[ordem.status]}
                             </Badge>
                           </div>

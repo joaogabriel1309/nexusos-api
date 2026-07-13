@@ -487,7 +487,7 @@ function OrdensServicoPageContent() {
                     key={ordem.id}
                     role="button"
                     tabIndex={0}
-                    className="rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="min-w-0 max-w-full overflow-hidden rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -496,28 +496,28 @@ function OrdensServicoPageContent() {
                       }
                     }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
                         <div className="truncate font-medium" title={ordem.titulo}>
                           {ordem.codigo} - {ordem.titulo}
                         </div>
-                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground" title={ordem.descricao}>
+                        <div className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]" title={ordem.descricao}>
                           {ordem.descricao}
                         </div>
                       </div>
-                      <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                      <Badge variant="outline" className={`shrink-0 ${statusBadgeClasses[ordem.status]}`}>
                         {statusLabels[ordem.status]}
                       </Badge>
                     </div>
 
-                    <div className="mt-4 grid gap-3 text-sm">
-                      <div>
+                    <div className="mt-4 grid min-w-0 gap-3 text-sm">
+                      <div className="min-w-0">
                         <div className="text-xs font-medium uppercase text-muted-foreground">Cliente</div>
                         <div className="truncate" title={ordem.clienteNome}>
                           {ordem.clienteNome}
                         </div>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-xs font-medium uppercase text-muted-foreground">Projeto</div>
                         <div className="truncate" title={ordem.projetoNome || "Sem projeto"}>
                           {ordem.projetoNome || "Sem projeto"}
@@ -531,7 +531,7 @@ function OrdensServicoPageContent() {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex justify-end gap-2">
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"

@@ -67,16 +67,18 @@ function formatarValor(valor?: number) {
 
 function CampoDetalhe({ label, value }: { label: string; value?: string | number | null }) {
   return (
-    <div className="rounded-md border bg-secondary/30 p-4">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-md border bg-secondary/30 p-4">
       <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
-      <div className="mt-2 whitespace-pre-wrap text-sm font-medium">{value ?? "-"}</div>
+      <div className="mt-2 whitespace-pre-wrap break-words text-sm font-medium [overflow-wrap:anywhere]">
+        {value ?? "-"}
+      </div>
     </div>
   );
 }
 
 function CampoPrazo({ prazo }: { prazo?: string }) {
   return (
-    <div className={`rounded-md border p-4 ${prazoClasses(prazo)}`}>
+    <div className={`min-w-0 max-w-full overflow-hidden rounded-md border p-4 ${prazoClasses(prazo)}`}>
       <div className="text-xs font-medium uppercase">Prazo</div>
       <div className="mt-2 text-sm font-semibold">{formatarDataPrazo(prazo)}</div>
     </div>
@@ -107,19 +109,21 @@ function TimelineEvento({ evento, isUltimo }: { evento: AuditoriaOS; isUltimo: b
   const Icone = obterIconeEvento(evento.tipoEvento);
 
   return (
-    <div className="relative flex gap-4 pb-6 last:pb-0">
+    <div className="relative flex min-w-0 gap-4 pb-6 last:pb-0">
       {!isUltimo ? <div className="absolute left-5 top-10 h-[calc(100%-2.5rem)] w-px bg-border" /> : null}
       <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-background text-primary shadow-sm">
         <Icone className="h-4 w-4" />
       </div>
-      <div className="min-w-0 flex-1 rounded-md border bg-secondary/30 p-4">
+      <div className="min-w-0 flex-1 overflow-hidden rounded-md border bg-secondary/30 p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{evento.tipoEvento.replaceAll("_", " ")}</Badge>
               <span className="text-xs text-muted-foreground">{evento.usuarioNome ?? "Sistema"}</span>
             </div>
-            <div className="mt-2 text-sm font-medium">{evento.descricao}</div>
+            <div className="mt-2 whitespace-pre-wrap break-words text-sm font-medium [overflow-wrap:anywhere]">
+              {evento.descricao}
+            </div>
           </div>
           <div className="shrink-0 text-xs text-muted-foreground">{formatarDataHora(evento.criadoEm)}</div>
         </div>
