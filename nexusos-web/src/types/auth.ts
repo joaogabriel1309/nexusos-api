@@ -4,6 +4,8 @@ export type LoginRequest = {
 };
 
 export type AuthUsuario = {
+  id: string;
+  nome: string;
   email: string;
   perfil: "ADMIN" | "DESENVOLVEDOR";
 };

@@ -155,6 +155,7 @@ function securityAgent(root, execution) {
   for (const file of files) {
     const absolute = join(root, file);
     if (!existsSync(absolute)) continue;
+    if (file.replace(/\\/g, "/") === "tools/agents/orchestrator.mjs") continue;
     const content = readFileSync(absolute, "utf8");
     if (/(ghp_|github_pat_|glpat-|PRIVATE KEY|BEGIN RSA|JWT_SECRET=|PASSWORD=)/i.test(content)) {
       findings.push({ severity: "CRITICAL", title: "Possivel segredo no codigo", description: "Padrao sensivel encontrado.", file, line: null, recommendation: "Remova o segredo e use variaveis de ambiente." });
@@ -188,8 +189,9 @@ function testAgent(root, execution) {
     commands.push(process.platform === "win32" ? ".\\mvnw.cmd test" : "./mvnw test");
   }
   if (existsSync(join(root, "nexusos-web", "package.json"))) {
-    commands.push("pnpm --dir nexusos-web typecheck");
-    commands.push("pnpm --dir nexusos-web build");
+    const frontendUsesNpm = existsSync(join(root, "nexusos-web", "package-lock.json"));
+    commands.push(frontendUsesNpm ? "npm --prefix nexusos-web run typecheck" : "pnpm --dir nexusos-web typecheck");
+    commands.push(frontendUsesNpm ? "npm --prefix nexusos-web run build" : "pnpm --dir nexusos-web build");
   }
   const results = commands.map((command) => summarizeCommand(run(command, { cwd: root, timeoutMs: 900000 })));
   const failed = results.filter((item) => item.code !== 0);
