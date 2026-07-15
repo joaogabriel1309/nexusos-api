@@ -24,26 +24,32 @@ const instruction = [
   "Ao terminar, deixe as alteracoes no working tree para o orquestrador revisar."
 ].join("\n");
 
-function cmdQuote(value) {
-  return `"${String(value).replace(/"/g, '\\"')}"`;
-}
-
 const result = process.platform === "win32"
   ? spawnSync(
       "cmd.exe",
-      ["/d", "/s", "/c", `codex.cmd exec --sandbox workspace-write ${cmdQuote(instruction)}`],
+      ["/d", "/s", "/c", "codex.cmd exec --sandbox workspace-write"],
       {
-        stdio: "inherit",
+        input: instruction,
+        encoding: "utf8",
         env
       }
     )
   : spawnSync(
       "codex",
-      ["exec", "--sandbox", "workspace-write", instruction],
+      ["exec", "--sandbox", "workspace-write"],
       {
-        stdio: "inherit",
+        input: instruction,
+        encoding: "utf8",
         env
       }
     );
+
+if (result.stdout) {
+  process.stdout.write(result.stdout);
+}
+
+if (result.stderr) {
+  process.stderr.write(result.stderr);
+}
 
 process.exit(result.status ?? 1);
