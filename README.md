@@ -70,4 +70,18 @@ pnpm agents:list
 
 O fluxo gera especificacao, cria branch de tarefa, executa revisao de seguranca, testes/build e, quando aprovado, cria push e Pull Request via GitHub CLI (`gh`). O merge nunca e realizado automaticamente.
 
+Para ativar o braco programador automatico com Codex CLI, configure:
+
+```bash
+AGENTS_DEVELOPER_PROVIDER=codex
+```
+
+Pode ser no terminal ou no `.env` da raiz.
+
+Ou use um comando customizado:
+
+```bash
+AGENTS_DEVELOPER_COMMAND="codex exec --full-auto {prompt}"
+```
+
 Documentacao completa em `docs/agents/`.

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { cwd } from "node:process";
-import { listRuntime, loadExecution, repositoryFacts, STATES } from "./core.mjs";
+import { listRuntime, loadDotEnv, loadExecution, repositoryFacts, STATES } from "./core.mjs";
 import { resumeTask, startTask } from "./orchestrator.mjs";
 
 const root = cwd();
+loadDotEnv(root);
 const [command, ...args] = process.argv.slice(2);
 
 try {

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -9,6 +10,7 @@ import {
   branchNameFor,
   createExecutionId,
   isCommittableFile,
+  loadDotEnv,
   newExecution,
   redact,
   safeAddCommand,
@@ -38,6 +40,28 @@ test("redige tokens e variaveis sensiveis", () => {
   const text = "GH_TOKEN=ghp_1234567890123456789012345678901234567890";
   assert.equal(redact(text).includes("ghp_"), false);
   assert.equal(redact(text).includes("[REDACTED]"), true);
+});
+
+test("carrega variaveis locais do .env sem sobrescrever ambiente", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-"));
+  const original = process.env.AGENTS_TEST_KEEP;
+  try {
+    process.env.AGENTS_TEST_KEEP = "original";
+    writeFileSync(join(root, ".env"), "AGENTS_TEST_VALUE=ok\nAGENTS_TEST_KEEP=novo\nGH_TOKEN=secret-token\n");
+    const loaded = loadDotEnv(root);
+    assert.equal(process.env.AGENTS_TEST_VALUE, "ok");
+    assert.equal(process.env.AGENTS_TEST_KEEP, "original");
+    assert.equal(loaded.GH_TOKEN, "[REDACTED]");
+  } finally {
+    if (original === undefined) {
+      delete process.env.AGENTS_TEST_KEEP;
+    } else {
+      process.env.AGENTS_TEST_KEEP = original;
+    }
+    delete process.env.AGENTS_TEST_VALUE;
+    delete process.env.GH_TOKEN;
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("gera git add somente com arquivos explicitamente informados", () => {

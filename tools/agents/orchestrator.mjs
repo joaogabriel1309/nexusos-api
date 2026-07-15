@@ -12,6 +12,7 @@ import {
   runtimeFile,
   safeAddCommand,
   saveExecution,
+  shellQuote,
   summarizeCommand,
   transition
 } from "./core.mjs";
@@ -112,14 +113,19 @@ function developerAgent(root, execution) {
   ensureTaskBranch(root, execution);
 
   const commandsExecuted = [];
-  const developerCommand = process.env.AGENTS_DEVELOPER_COMMAND;
+  const promptFile = writeDeveloperPrompt(root, execution);
+  const developerCommand = resolveDeveloperCommand(root, execution, promptFile);
   if (developerCommand) {
-    const result = run(developerCommand, { cwd: root, timeoutMs: Number(process.env.AGENTS_DEVELOPER_TIMEOUT_MS ?? 600000) });
+    const result = run(developerCommand, {
+      cwd: root,
+      timeoutMs: Number(process.env.AGENTS_DEVELOPER_TIMEOUT_MS ?? 600000),
+      env: developerEnvironment(root, execution, promptFile)
+    });
     commandsExecuted.push(summarizeCommand(result));
     if (result.code !== 0) {
       execution.developerOutput = { status: "failed", commandsExecuted, knownLimitations: ["Comando de desenvolvimento retornou erro."] };
       saveExecution(root, execution);
-      throw new Error("Agente desenvolvedor falhou ao executar AGENTS_DEVELOPER_COMMAND.");
+      throw new Error("Agente desenvolvedor falhou ao executar o comando programador configurado.");
     }
   }
 
@@ -136,7 +142,8 @@ function developerAgent(root, execution) {
     commandsExecuted,
     testsCreated: files.filter((file) => file.includes("/test/") || file.includes("\\test\\") || file.endsWith(".test.mjs")),
     testsExecuted: [],
-    knownLimitations: developerCommand ? [] : ["Sem comando de desenvolvimento automatico configurado."]
+    promptFile,
+    knownLimitations: developerCommand ? [] : ["Sem comando programador configurado. Defina AGENTS_DEVELOPER_COMMAND ou AGENTS_DEVELOPER_PROVIDER=codex."]
   };
   saveExecution(root, execution);
 
@@ -145,6 +152,110 @@ function developerAgent(root, execution) {
     return;
   }
   transition(root, execution, STATES.WAITING_FOR_SECURITY_REVIEW, "Implementacao detectada");
+}
+
+function resolveDeveloperCommand(root, execution, promptFile) {
+  if (process.env.AGENTS_DEVELOPER_COMMAND) {
+    return renderDeveloperCommand(process.env.AGENTS_DEVELOPER_COMMAND, root, execution, promptFile);
+  }
+
+  if (process.env.AGENTS_DEVELOPER_PROVIDER === "codex") {
+    return renderDeveloperCommand(
+      "codex exec --full-auto {prompt}",
+      root,
+      execution,
+      promptFile
+    );
+  }
+
+  return "";
+}
+
+export function renderDeveloperCommand(template, root, execution, promptFile) {
+  const executionFile = runtimeFile(root, execution, "execution.json");
+  const prompt = readFileSync(promptFile, "utf8");
+  const replacements = {
+    id: execution.id,
+    branch: execution.branch,
+    targetBranch: execution.targetBranch,
+    request: execution.originalRequest,
+    prompt,
+    promptFile,
+    executionFile,
+    root
+  };
+
+  const referencesContext = template.includes("{prompt}") || template.includes("{promptFile}") || template.includes("{executionFile}");
+  const rendered = Object.entries(replacements).reduce(
+    (command, [key, value]) => command.replaceAll(`{${key}}`, shellQuote(value)),
+    template
+  );
+
+  if (!referencesContext && process.env.AGENTS_DEVELOPER_ALLOW_RAW_COMMAND !== "true") {
+    throw new Error("AGENTS_DEVELOPER_COMMAND deve usar {prompt}, {promptFile} ou {executionFile}. Use AGENTS_DEVELOPER_ALLOW_RAW_COMMAND=true para liberar comando bruto.");
+  }
+
+  return rendered;
+}
+
+function developerEnvironment(root, execution, promptFile) {
+  return {
+    AGENTS_EXECUTION_ID: execution.id,
+    AGENTS_EXECUTION_FILE: runtimeFile(root, execution, "execution.json"),
+    AGENTS_DEVELOPER_PROMPT_FILE: promptFile,
+    AGENTS_BRANCH: execution.branch,
+    AGENTS_TARGET_BRANCH: execution.targetBranch,
+    AGENTS_ORIGINAL_REQUEST: execution.originalRequest
+  };
+}
+
+export function writeDeveloperPrompt(root, execution) {
+  const promptFile = runtimeFile(root, execution, "developer-prompt.md");
+  const content = `# Agente Desenvolvedor
+
+Voce esta implementando uma tarefa no projeto NexusOS.
+
+## Pedido original
+
+${execution.originalRequest}
+
+## Execucao
+
+- ID: ${execution.id}
+- Branch da tarefa: ${execution.branch}
+- Branch de destino: ${execution.targetBranch}
+- Arquivo de estado: ${runtimeFile(root, execution, "execution.json")}
+
+## Especificacao do PO
+
+\`\`\`json
+${JSON.stringify(execution.poOutput, null, 2)}
+\`\`\`
+
+## Contexto tecnico
+
+\`\`\`json
+${JSON.stringify(execution.projectAnalysis, null, 2)}
+\`\`\`
+
+## Regras obrigatorias
+
+- Trabalhe apenas dentro do repositorio.
+- Nao use comandos destrutivos.
+- Nao faca commit, push, merge ou Pull Request. O agente de entrega fara isso.
+- Nao adicione tokens, senhas ou segredos.
+- Preserve contratos existentes sempre que possivel.
+- Crie ou ajuste testes quando a mudanca pedir.
+- Ao terminar, deixe os arquivos alterados no working tree para o orquestrador revisar.
+
+## Validacoes esperadas
+
+- Backend: .\\\\mvnw.cmd test
+- Frontend: npm --prefix nexusos-web run typecheck
+- Frontend: npm --prefix nexusos-web run build
+`;
+  writeFileSync(promptFile, content);
+  return promptFile;
 }
 
 function securityAgent(root, execution) {

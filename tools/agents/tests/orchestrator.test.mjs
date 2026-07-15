@@ -1,0 +1,65 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { newExecution } from "../core.mjs";
+import { renderDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+
+function fakeExecution(root) {
+  const execution = newExecution(root, "Criar tela de teste");
+  execution.branch = "feat/tela-teste";
+  execution.targetBranch = "master";
+  execution.poOutput = {
+    title: "Criar tela de teste",
+    requirements: ["Implementar tela"],
+    acceptanceCriteria: ["Build aprovado"]
+  };
+  execution.projectAnalysis = {
+    frontend: "Next.js",
+    backend: "Spring Boot"
+  };
+  return execution;
+}
+
+test("gera prompt tecnico para o braco programador", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  try {
+    const execution = fakeExecution(root);
+    const promptFile = writeDeveloperPrompt(root, execution);
+    assert.equal(existsSync(promptFile), true);
+    const content = readFileSync(promptFile, "utf8");
+    assert.match(content, /Agente Desenvolvedor/);
+    assert.match(content, /Criar tela de teste/);
+    assert.match(content, /Nao faca commit, push, merge ou Pull Request/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("renderiza comando com placeholders de contexto", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  try {
+    const execution = fakeExecution(root);
+    const promptFile = writeDeveloperPrompt(root, execution);
+    const command = renderDeveloperCommand("codex exec --full-auto {promptFile}", root, execution, promptFile);
+    assert.match(command, /codex exec --full-auto/);
+    assert.match(command, /developer-prompt\.md/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("bloqueia comando programador sem contexto por padrao", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  try {
+    const execution = fakeExecution(root);
+    const promptFile = writeDeveloperPrompt(root, execution);
+    assert.throws(
+      () => renderDeveloperCommand("codex exec --full-auto faca algo", root, execution, promptFile),
+      /deve usar/
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

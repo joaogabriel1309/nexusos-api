@@ -47,6 +47,28 @@ export function redact(value = "") {
   return SECRET_PATTERNS.reduce((text, pattern) => text.replace(pattern, "[REDACTED]"), String(value));
 }
 
+export function loadDotEnv(root, fileName = ".env") {
+  const file = join(root, fileName);
+  if (!existsSync(file)) {
+    return {};
+  }
+
+  const loaded = {};
+  const lines = readFileSync(file, "utf8").split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] !== undefined) continue;
+    const value = rawValue.replace(/^['"]|['"]$/g, "");
+    process.env[key] = value;
+    loaded[key] = key.includes("TOKEN") || key.includes("PASSWORD") || key.includes("SECRET") ? "[REDACTED]" : value;
+  }
+  return loaded;
+}
+
 export function assertSafeCommand(command) {
   const hit = BANNED_COMMANDS.find((pattern) => pattern.test(command));
   if (hit) {

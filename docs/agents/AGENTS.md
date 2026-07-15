@@ -6,7 +6,23 @@ Analisa o pedido, contexto do projeto, modulos afetados, regras de negocio, risc
 
 ## Desenvolvedor
 
-Cria branch de tarefa, executa `AGENTS_DEVELOPER_COMMAND` quando configurado e registra arquivos alterados. Sem esse comando, deixa a execucao em `WAITING_FOR_DEVELOPMENT` para que a implementacao seja feita na branch e retomada com `pnpm agents:resume`.
+Cria branch de tarefa, gera `.agents/runtime/<ID>/developer-prompt.md`, executa o braco programador quando configurado e registra arquivos alterados.
+
+Formas de ativar:
+
+- `AGENTS_DEVELOPER_PROVIDER=codex`: usa `codex exec --full-auto {prompt}`.
+- `AGENTS_DEVELOPER_COMMAND=...`: usa um comando customizado.
+
+Placeholders aceitos no comando:
+
+- `{prompt}`: conteudo completo do prompt tecnico.
+- `{promptFile}`: caminho do arquivo `developer-prompt.md`.
+- `{executionFile}`: caminho do `execution.json`.
+- `{id}`, `{branch}`, `{targetBranch}`, `{request}`, `{root}`.
+
+Por seguranca, comandos customizados precisam usar `{prompt}`, `{promptFile}` ou `{executionFile}`. Para liberar comando bruto, configure `AGENTS_DEVELOPER_ALLOW_RAW_COMMAND=true`.
+
+Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implementacao manual na branch e retomada com `pnpm agents:resume`.
 
 ## Seguranca
 
