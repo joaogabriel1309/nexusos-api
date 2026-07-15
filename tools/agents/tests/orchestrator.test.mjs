@@ -50,6 +50,34 @@ test("renderiza comando com placeholders de contexto", () => {
   }
 });
 
+test("usa runner local para provider codex", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  const previousProvider = process.env.AGENTS_DEVELOPER_PROVIDER;
+  const previousCommand = process.env.AGENTS_DEVELOPER_COMMAND;
+  try {
+    delete process.env.AGENTS_DEVELOPER_COMMAND;
+    process.env.AGENTS_DEVELOPER_PROVIDER = "codex";
+    const execution = fakeExecution(root);
+    const promptFile = writeDeveloperPrompt(root, execution);
+    const command = resolveDeveloperCommand(root, execution, promptFile);
+    assert.match(command, /codex-developer-runner\.mjs/);
+    assert.match(command, /developer-prompt\.md/);
+    assert.doesNotMatch(command, /# Agente Desenvolvedor/);
+  } finally {
+    if (previousProvider === undefined) {
+      delete process.env.AGENTS_DEVELOPER_PROVIDER;
+    } else {
+      process.env.AGENTS_DEVELOPER_PROVIDER = previousProvider;
+    }
+    if (previousCommand === undefined) {
+      delete process.env.AGENTS_DEVELOPER_COMMAND;
+    } else {
+      process.env.AGENTS_DEVELOPER_COMMAND = previousCommand;
+    }
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("bloqueia comando programador sem contexto por padrao", () => {
   const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
   try {

@@ -182,7 +182,7 @@ function resolveDeveloperCommand(root, execution, promptFile) {
 
   if (process.env.AGENTS_DEVELOPER_PROVIDER === "codex") {
     return renderDeveloperCommand(
-      "codex exec --full-auto {prompt}",
+      "node tools/agents/codex-developer-runner.mjs {promptFile}",
       root,
       execution,
       promptFile
@@ -220,7 +220,11 @@ export function renderDeveloperCommand(template, root, execution, promptFile) {
 }
 
 function developerEnvironment(root, execution, promptFile) {
+  const npmBin = process.env.APPDATA ? `${process.env.APPDATA}\\npm` : "";
+  const pathKey = process.platform === "win32" ? "Path" : "PATH";
+  const currentPath = process.env[pathKey] || process.env.PATH || "";
   return {
+    [pathKey]: npmBin ? `${npmBin}${process.platform === "win32" ? ";" : ":"}${currentPath}` : currentPath,
     AGENTS_EXECUTION_ID: execution.id,
     AGENTS_EXECUTION_FILE: runtimeFile(root, execution, "execution.json"),
     AGENTS_DEVELOPER_PROMPT_FILE: promptFile,
