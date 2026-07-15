@@ -56,3 +56,18 @@ Os endpoints internos usam JWT Bearer Token. O login inicial e realizado em:
 ```http
 POST /api/v1/auth/login
 ```
+
+## Sistema local de agentes
+
+O projeto possui um orquestrador local para fluxo de agentes de desenvolvimento com GitHub:
+
+```bash
+pnpm agents:task "Implemente upload de imagens nas Ordens de Servico"
+pnpm agents:status AGT-2026-0001
+pnpm agents:resume AGT-2026-0001
+pnpm agents:list
+```
+
+O fluxo gera especificacao, cria branch de tarefa, executa revisao de seguranca, testes/build e, quando aprovado, cria push e Pull Request via GitHub CLI (`gh`). O merge nunca e realizado automaticamente.
+
+Documentacao completa em `docs/agents/`.

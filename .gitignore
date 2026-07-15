@@ -1,9 +1,12 @@
 HELP.md
 target/
+node_modules/
+.pnpm-store/
 uploads/
 .env
 *.log
 *.pid
+.agents/runtime/
 .DS_Store
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
