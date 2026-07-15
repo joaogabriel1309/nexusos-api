@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { renderDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -46,6 +46,34 @@ test("renderiza comando com placeholders de contexto", () => {
     assert.match(command, /codex exec --full-auto/);
     assert.match(command, /developer-prompt\.md/);
   } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("usa runner local para provider codex", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  const previousProvider = process.env.AGENTS_DEVELOPER_PROVIDER;
+  const previousCommand = process.env.AGENTS_DEVELOPER_COMMAND;
+  try {
+    delete process.env.AGENTS_DEVELOPER_COMMAND;
+    process.env.AGENTS_DEVELOPER_PROVIDER = "codex";
+    const execution = fakeExecution(root);
+    const promptFile = writeDeveloperPrompt(root, execution);
+    const command = resolveDeveloperCommand(root, execution, promptFile);
+    assert.match(command, /codex-developer-runner\.mjs/);
+    assert.match(command, /developer-prompt\.md/);
+    assert.doesNotMatch(command, /# Agente Desenvolvedor/);
+  } finally {
+    if (previousProvider === undefined) {
+      delete process.env.AGENTS_DEVELOPER_PROVIDER;
+    } else {
+      process.env.AGENTS_DEVELOPER_PROVIDER = previousProvider;
+    }
+    if (previousCommand === undefined) {
+      delete process.env.AGENTS_DEVELOPER_COMMAND;
+    } else {
+      process.env.AGENTS_DEVELOPER_COMMAND = previousCommand;
+    }
     rmSync(root, { recursive: true, force: true });
   }
 });
