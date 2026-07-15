@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { renderDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { developerAutomationDiagnostics, renderDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -59,6 +59,17 @@ test("bloqueia comando programador sem contexto por padrao", () => {
       () => renderDeveloperCommand("codex exec --full-auto faca algo", root, execution, promptFile),
       /deve usar/
     );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("gera diagnostico quando braco programador nao esta configurado", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  try {
+    const diagnostics = developerAutomationDiagnostics(root);
+    assert.equal(Array.isArray(diagnostics), true);
+    assert.match(diagnostics[0], /Braco programador nao configurado/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
