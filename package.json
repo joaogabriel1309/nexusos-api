@@ -1,0 +1,13 @@
+{
+  "name": "nexusos-agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "agents:task": "node tools/agents/cli.mjs task",
+    "agents:status": "node tools/agents/cli.mjs status",
+    "agents:resume": "node tools/agents/cli.mjs resume",
+    "agents:list": "node tools/agents/cli.mjs list",
+    "test:agents": "node --test tools/agents/tests/*.test.mjs"
+  }
+}
