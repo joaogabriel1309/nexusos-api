@@ -4,6 +4,7 @@ import com.nexusos.portalcliente.dto.PortalAprovacaoRequest;
 import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
 import com.nexusos.portalcliente.dto.PortalPagamentoConfirmacaoRequest;
+import com.nexusos.portalcliente.dto.PortalReprovacaoRequest;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
 import com.nexusos.pagamento.dto.PagamentoPixResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,9 +46,8 @@ public class PortalClienteController {
     @PatchMapping("/ordens-servico/{ordemServicoId}/reprovar")
     public ResponseEntity<PortalOrdemServicoResponse> reprovar(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
-            @RequestBody(required = false) PortalAprovacaoRequest request) {
-        return ResponseEntity.ok(portalClienteService.reprovar(token, ordemServicoId,
-                request != null ? request.observacao() : null));
+            @RequestBody @Valid PortalReprovacaoRequest request) {
+        return ResponseEntity.ok(portalClienteService.reprovar(token, ordemServicoId, request.observacao()));
     }
 
     @Operation(summary = "Inicia pagamento da OS no Mercado Pago")

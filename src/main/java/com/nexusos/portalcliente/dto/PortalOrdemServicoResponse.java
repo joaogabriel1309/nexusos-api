@@ -29,7 +29,8 @@ public record PortalOrdemServicoResponse(
         OffsetDateTime atualizadoEm,
         OffsetDateTime finalizadoEm,
         Boolean aprovadaPeloCliente,
-        OffsetDateTime aprovadoPeloClienteEm
+        OffsetDateTime aprovadoPeloClienteEm,
+        String observacaoAprovacaoCliente
 ) {
     public static PortalOrdemServicoResponse from(OrdemServico os) {
         return new PortalOrdemServicoResponse(
@@ -53,7 +54,8 @@ public record PortalOrdemServicoResponse(
                 os.getAtualizadoEm(),
                 os.getFinalizadoEm(),
                 os.getAprovadaPeloCliente(),
-                os.getAprovadoPeloClienteEm()
+                os.getAprovadoPeloClienteEm(),
+                os.getObservacaoAprovacaoCliente()
         );
     }
 }

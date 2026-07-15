@@ -15,10 +15,10 @@ export const portalClienteService = {
     return response.data;
   },
 
-  async reprovar(token: string, ordemServicoId: string) {
+  async reprovar(token: string, ordemServicoId: string, motivo: string) {
     const response = await api.patch<PortalOrdemServico>(
       `/portal/clientes/${token}/ordens-servico/${ordemServicoId}/reprovar`,
-      {}
+      { observacao: motivo }
     );
     return response.data;
   },

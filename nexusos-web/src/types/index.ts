@@ -103,6 +103,7 @@ export type PortalOrdemServico = {
   finalizadoEm?: string;
   aprovadaPeloCliente?: boolean;
   aprovadoPeloClienteEm?: string;
+  observacaoAprovacaoCliente?: string;
 };
 
 export type PortalCliente = {

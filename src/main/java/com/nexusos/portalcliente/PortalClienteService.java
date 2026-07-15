@@ -2,6 +2,7 @@ package com.nexusos.portalcliente;
 
 import com.nexusos.cliente.ClienteService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
+import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.OrdemServicoService;
 import com.nexusos.pagamento.MercadoPagoService;
@@ -39,7 +40,10 @@ public class PortalClienteService {
 
     @Transactional
     public PortalOrdemServicoResponse reprovar(String token, UUID ordemServicoId, String observacao) {
-        return registrarDecisao(token, ordemServicoId, false, observacao);
+        if (observacao == null || observacao.isBlank()) {
+            throw new RegraNegocioException("Informe o motivo da solicitacao de ajuste.");
+        }
+        return registrarDecisao(token, ordemServicoId, false, observacao.trim());
     }
 
     @Transactional
