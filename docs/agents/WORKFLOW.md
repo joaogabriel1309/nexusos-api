@@ -18,3 +18,7 @@ pnpm agents:resume AGT-2026-0001
 ```
 
 Isso permite continuar apos implementacao manual, falha corrigida, login no GitHub CLI ou interrupcao local.
+
+## Braco programador
+
+Antes da etapa de desenvolvimento, o orquestrador grava um prompt tecnico em `.agents/runtime/<ID>/developer-prompt.md`. O comando programador recebe esse contexto por `{prompt}`, `{promptFile}` ou `{executionFile}` e deve deixar as alteracoes no working tree, sem commit/push.

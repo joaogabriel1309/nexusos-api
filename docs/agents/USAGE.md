@@ -26,10 +26,20 @@ pnpm agents:list
 
 ## Automacao do desenvolvimento
 
-Opcionalmente configure:
+Para usar o braco programador com Codex CLI:
 
 ```bash
-AGENTS_DEVELOPER_COMMAND="comando seguro que implementa a tarefa"
+AGENTS_DEVELOPER_PROVIDER=codex
 ```
 
-Sem esse comando, o fluxo cria a especificacao e a branch, depois aguarda implementacao externa.
+Essas variaveis podem ser definidas no terminal ou no `.env` da raiz do projeto. O CLI carrega o `.env` automaticamente sem sobrescrever variaveis ja existentes no ambiente.
+
+Ou configure um comando customizado:
+
+```bash
+AGENTS_DEVELOPER_COMMAND="codex exec --full-auto {prompt}"
+```
+
+Placeholders disponiveis: `{prompt}`, `{promptFile}`, `{executionFile}`, `{id}`, `{branch}`, `{targetBranch}`, `{request}`, `{root}`.
+
+Sem provedor/comando, o fluxo cria a especificacao e a branch, depois aguarda implementacao externa.
