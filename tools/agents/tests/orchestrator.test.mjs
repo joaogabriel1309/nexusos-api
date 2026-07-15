@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { developerAutomationDiagnostics, renderDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");

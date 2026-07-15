@@ -175,7 +175,7 @@ export function developerAutomationDiagnostics(root) {
   return diagnostics;
 }
 
-function resolveDeveloperCommand(root, execution, promptFile) {
+export function resolveDeveloperCommand(root, execution, promptFile) {
   if (process.env.AGENTS_DEVELOPER_COMMAND) {
     return renderDeveloperCommand(process.env.AGENTS_DEVELOPER_COMMAND, root, execution, promptFile);
   }
