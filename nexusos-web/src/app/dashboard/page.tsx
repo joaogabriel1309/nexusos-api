@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Clock, Code2, RefreshCcw, UserX } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, ClipboardList, Clock, Code2, RefreshCcw, UserX } from "lucide-react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,15 @@ function formatarHoras(valor?: number) {
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(value, 100));
+}
+
+function ordensHref(params: Record<string, string>) {
+  const search = new URLSearchParams(params);
+  return `/ordens-servico?${search.toString()}`;
+}
+
+function statusHref(status: StatusOS) {
+  return status === "FINALIZADA" ? "/ordens-servico/finalizadas" : ordensHref({ status });
 }
 
 function RingChart({ value, label }: { value: number; label: string }) {
@@ -137,14 +147,32 @@ export default function DashboardPage() {
   const isLoading = resumoQuery.isLoading || statusQuery.isLoading || produtividadeQuery.isLoading || finalizadasMesQuery.isLoading;
   const isError = resumoQuery.isError || statusQuery.isError || produtividadeQuery.isError || finalizadasMesQuery.isError;
 
-  const metrics = [
-    { title: "OS abertas", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} OS no total` },
-    { title: "Em desenvolvimento", value: emDesenvolvimento, icon: Code2, hint: "status atual" },
-    { title: "Finalizadas", value: resumo?.osFinalizadas ?? 0, icon: CheckCircle2, hint: `${produtividade?.percentualFinalizacao.toFixed(1) ?? "0.0"}% do total` },
+  const metrics: Array<{
+    title: string;
+    value: number | string;
+    icon: typeof ClipboardList;
+    hint: string;
+    href?: string;
+  }> = [
+    { title: "OS abertas", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} OS no total`, href: "/ordens-servico" },
+    { title: "Em desenvolvimento", value: emDesenvolvimento, icon: Code2, hint: "status atual", href: ordensHref({ status: "EM_DESENVOLVIMENTO" }) },
+    {
+      title: "Finalizadas",
+      value: resumo?.osFinalizadas ?? 0,
+      icon: CheckCircle2,
+      hint: `${produtividade?.percentualFinalizacao.toFixed(1) ?? "0.0"}% do total`,
+      href: "/ordens-servico/finalizadas"
+    },
     { title: "Tempo medio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "ate finalizacao" },
-    { title: "OS vencidas", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado" },
-    { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atencao no dia" },
-    { title: "Sem responsavel", value: resumo?.osSemResponsavel ?? 0, icon: UserX, hint: "precisam de atribuicao" }
+    { title: "OS vencidas", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado", href: ordensHref({ prazo: "vencidas" }) },
+    { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atencao no dia", href: ordensHref({ prazo: "hoje" }) },
+    {
+      title: "Sem responsavel",
+      value: resumo?.osSemResponsavel ?? 0,
+      icon: UserX,
+      hint: "precisam de atribuicao",
+      href: ordensHref({ responsavel: "sem-responsavel" })
+    }
   ];
 
   function recarregar() {
@@ -187,11 +215,14 @@ export default function DashboardPage() {
               const Icon = metric.icon;
               const numericValue = typeof metric.value === "number" ? metric.value : Number.parseFloat(String(metric.value)) || 0;
               const percent = totalOs > 0 ? Math.min((numericValue / totalOs) * 100, 100) : 0;
-              return (
-                <Card key={metric.title} className="overflow-hidden">
+              const card = (
+                <Card className="h-full overflow-hidden transition-colors group-hover:border-primary/40 group-hover:bg-secondary/30">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">{metric.title}</CardTitle>
-                    <Icon className="h-4 w-4 text-primary" />
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary" />
+                      {metric.href ? <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" /> : null}
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-semibold">{metric.value}</div>
@@ -201,6 +232,14 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
+              );
+
+              return metric.href ? (
+                <Link key={metric.title} href={metric.href} className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {card}
+                </Link>
+              ) : (
+                <div key={metric.title}>{card}</div>
               );
             })}
           </section>
@@ -217,13 +256,18 @@ export default function DashboardPage() {
                   const width = Math.max((total / maiorStatus) * 100, total > 0 ? 8 : 0);
 
                   return (
-                    <div key={status} className="flex items-center gap-3">
+                    <Link
+                      key={status}
+                      href={statusHref(status)}
+                      className="group flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       <div className="w-48 text-sm text-muted-foreground">{statusLabels[status]}</div>
                       <div className="h-2 flex-1 rounded-full bg-secondary">
                         <div className="h-2 rounded-full" style={{ width: `${width}%`, backgroundColor: statusCores[index] }} />
                       </div>
                       <div className="w-10 text-right text-sm font-medium">{total}</div>
-                    </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                    </Link>
                   );
                 })}
               </CardContent>
@@ -261,15 +305,22 @@ export default function DashboardPage() {
                   const total = resumo?.osPorPrioridade?.[prioridade] ?? 0;
                   const width = totalOs > 0 ? Math.max((total / totalOs) * 100, total > 0 ? 8 : 0) : 0;
                   return (
-                    <div key={prioridade} className="space-y-2">
+                    <Link
+                      key={prioridade}
+                      href={ordensHref({ prioridade })}
+                      className="group block space-y-2 rounded-md p-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">{prioridadeLabels[prioridade]}</span>
-                        <span className="font-medium">{total}</span>
+                        <span className="flex items-center gap-2 font-medium">
+                          {total}
+                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-secondary">
                         <div className={`h-2 rounded-full ${prioridadeCores[prioridade]}`} style={{ width: `${width}%` }} />
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </CardContent>

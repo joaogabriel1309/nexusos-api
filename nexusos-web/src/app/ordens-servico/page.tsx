@@ -15,25 +15,49 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
+import { prioridadeLabels, prioridadeOptions, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { useAuth } from "@/providers/auth-provider";
 import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
-import type { StatusOS } from "@/types";
+import type { PrioridadeOS, StatusOS } from "@/types";
 
 const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
 const projetosQueryKey = ["projetos"];
 const usuariosQueryKey = ["usuarios"];
 const todosOption = "__todos__";
-const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA");
+type StatusFiltro = Exclude<StatusOS, "FINALIZADA">;
+const statusFiltroOptions = statusOptions.filter((status) => status !== "FINALIZADA") as StatusFiltro[];
 const todosClientesOption = "__todos_clientes__";
 const todosProjetosOption = "__todos_projetos__";
+const todosResponsaveisOption = "__todos_responsaveis__";
+const semResponsavelOption = "sem-responsavel";
 const itensPorPagina = 20;
 const csvSeparador = ";";
+
+type PrazoFiltro = "" | "vencidas" | "hoje" | "proximas" | "sem-prazo";
+
+const prazoFiltroLabels: Record<Exclude<PrazoFiltro, "">, string> = {
+  vencidas: "OS vencidas",
+  hoje: "Vencem hoje",
+  proximas: "Prazo proximo",
+  "sem-prazo": "Sem prazo"
+};
+
+function isStatusFiltro(value: string | null): value is StatusFiltro {
+  return statusFiltroOptions.includes(value as StatusFiltro);
+}
+
+function isPrioridadeFiltro(value: string | null): value is PrioridadeOS {
+  return prioridadeOptions.includes(value as PrioridadeOS);
+}
+
+function isPrazoFiltro(value: string | null): value is Exclude<PrazoFiltro, ""> {
+  return value === "vencidas" || value === "hoje" || value === "proximas" || value === "sem-prazo";
+}
 
 function PagamentoBadge({ paga }: { paga?: boolean }) {
   return (
@@ -137,7 +161,10 @@ function OrdensServicoPageContent() {
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [projetoFiltro, setProjetoFiltro] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
+  const [statusFiltro, setStatusFiltro] = useState<StatusFiltro | "">("");
+  const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
+  const [prazoFiltro, setPrazoFiltro] = useState<PrazoFiltro>("");
+  const [responsavelFiltro, setResponsavelFiltro] = useState("");
   const [busca, setBusca] = useState(searchParams.get("busca") ?? "");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
@@ -192,8 +219,28 @@ function OrdensServicoPageContent() {
       .map(([id, nome]) => ({ id, nome }))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [isDesenvolvedor, ordensQuery.data, projetos]);
+  const usuariosFiltroOptions = useMemo(() => {
+    if (!isDesenvolvedor) {
+      return (usuariosQuery.data ?? []).filter((item) => item.ativo);
+    }
+
+    return Array.from(
+      new Map(
+        (ordensQuery.data ?? [])
+          .filter((ordem) => ordem.responsavelId && ordem.responsavelNome)
+          .map((ordem) => [ordem.responsavelId as string, ordem.responsavelNome as string])
+      ).entries()
+    )
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [isDesenvolvedor, ordensQuery.data, usuariosQuery.data]);
   const ordensFiltradas = useMemo(() => {
     const termoBusca = normalizarBusca(busca);
+    const hoje = new Date();
+    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+    const limiteProximo = new Date(inicioHoje);
+    limiteProximo.setDate(limiteProximo.getDate() + 3);
 
     return (ordensQuery.data ?? [])
       .filter((ordem) => {
@@ -208,6 +255,28 @@ function OrdensServicoPageContent() {
         const matchCliente = clienteFiltro ? ordem.clienteId === clienteFiltro : true;
         const matchProjeto = projetoFiltro ? ordem.projetoId === projetoFiltro : true;
         const matchStatus = statusFiltro ? ordem.status === statusFiltro : true;
+        const matchPrioridade = prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true;
+        const matchResponsavel = responsavelFiltro
+          ? responsavelFiltro === semResponsavelOption
+            ? !ordem.responsavelId
+            : ordem.responsavelId === responsavelFiltro
+          : true;
+        const matchPrazo =
+          prazoFiltro === "vencidas"
+            ? prazo
+              ? prazo < inicioHoje
+              : false
+            : prazoFiltro === "hoje"
+              ? prazo
+                ? prazo >= inicioHoje && prazo <= fimHoje
+                : false
+              : prazoFiltro === "proximas"
+                ? prazo
+                  ? prazo > fimHoje && prazo <= limiteProximo
+                  : false
+                : prazoFiltro === "sem-prazo"
+                  ? !prazo
+                  : true;
         const matchInicio = inicio && prazo ? prazo >= inicio : true;
         const matchFim = fim && prazo ? prazo <= fim : true;
         const matchBusca = termoBusca
@@ -223,10 +292,31 @@ function OrdensServicoPageContent() {
             ].some((valor) => normalizarBusca(valor).includes(termoBusca))
           : true;
 
-        return matchCliente && matchProjeto && matchStatus && matchInicio && matchFim && matchBusca;
+        return (
+          matchCliente &&
+          matchProjeto &&
+          matchStatus &&
+          matchPrioridade &&
+          matchResponsavel &&
+          matchPrazo &&
+          matchInicio &&
+          matchFim &&
+          matchBusca
+        );
       })
       .sort((a, b) => b.codigo - a.codigo); // Ordena por código da OS do maior para o menor
-  }, [busca, clienteFiltro, dataFim, dataInicio, ordensQuery.data, projetoFiltro, statusFiltro]);
+  }, [
+    busca,
+    clienteFiltro,
+    dataFim,
+    dataInicio,
+    ordensQuery.data,
+    prazoFiltro,
+    prioridadeFiltro,
+    projetoFiltro,
+    responsavelFiltro,
+    statusFiltro
+  ]);
   const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
   const ordensPaginadas = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina;
@@ -235,10 +325,18 @@ function OrdensServicoPageContent() {
 
   useEffect(() => {
     setPaginaAtual(1);
-  }, [busca, clienteFiltro, dataFim, dataInicio, projetoFiltro, statusFiltro]);
+  }, [busca, clienteFiltro, dataFim, dataInicio, prazoFiltro, prioridadeFiltro, projetoFiltro, responsavelFiltro, statusFiltro]);
 
   useEffect(() => {
     setBusca(searchParams.get("busca") ?? "");
+    setClienteFiltro(searchParams.get("cliente") ?? "");
+    setProjetoFiltro(searchParams.get("projeto") ?? "");
+    setStatusFiltro(isStatusFiltro(searchParams.get("status")) ? (searchParams.get("status") as StatusFiltro) : "");
+    setPrioridadeFiltro(isPrioridadeFiltro(searchParams.get("prioridade")) ? (searchParams.get("prioridade") as PrioridadeOS) : "");
+    setPrazoFiltro(isPrazoFiltro(searchParams.get("prazo")) ? (searchParams.get("prazo") as Exclude<PrazoFiltro, "">) : "");
+    setResponsavelFiltro(searchParams.get("responsavel") ?? "");
+    setDataInicio(searchParams.get("inicio") ?? "");
+    setDataFim(searchParams.get("fim") ?? "");
   }, [searchParams]);
 
   useEffect(() => {
@@ -272,9 +370,29 @@ function OrdensServicoPageContent() {
     setClienteFiltro("");
     setProjetoFiltro("");
     setStatusFiltro("");
+    setPrioridadeFiltro("");
+    setPrazoFiltro("");
+    setResponsavelFiltro("");
     setDataInicio("");
     setDataFim("");
+    router.replace("/ordens-servico");
   }
+
+  const filtrosAtivos = [
+    busca ? `Busca: ${busca}` : null,
+    clienteFiltro ? "Cliente filtrado" : null,
+    projetoFiltro ? "Projeto filtrado" : null,
+    statusFiltro ? `Status: ${statusLabels[statusFiltro]}` : null,
+    prioridadeFiltro ? `Prioridade: ${prioridadeLabels[prioridadeFiltro]}` : null,
+    prazoFiltro ? prazoFiltroLabels[prazoFiltro] : null,
+    responsavelFiltro
+      ? responsavelFiltro === semResponsavelOption
+        ? "Sem responsavel"
+        : "Responsavel filtrado"
+      : null,
+    dataInicio ? `Inicio: ${formatarDataPrazo(dataInicio)}` : null,
+    dataFim ? `Fim: ${formatarDataPrazo(dataFim)}` : null
+  ].filter((filtro): filtro is string => Boolean(filtro));
 
   function exportarExcel() {
     const cabecalho = ["OS", "Titulo", "Cliente", "Projeto", "Responsavel", "Status", "Prioridade", "Prazo", "Pagamento"];
@@ -406,7 +524,7 @@ function OrdensServicoPageContent() {
             </div>
           </div>
 
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(160px,1fr)_150px_150px_auto]">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Select
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -439,7 +557,7 @@ function OrdensServicoPageContent() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusOS))}>
+            <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusFiltro))}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -452,12 +570,68 @@ function OrdensServicoPageContent() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={prioridadeFiltro || todosOption}
+              onValueChange={(value) => setPrioridadeFiltro(value === todosOption ? "" : (value as PrioridadeOS))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={todosOption}>Todas as prioridades</SelectItem>
+                {prioridadeOptions.map((prioridade) => (
+                  <SelectItem key={prioridade} value={prioridade}>
+                    {prioridadeLabels[prioridade]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={prazoFiltro || todosOption} onValueChange={(value) => setPrazoFiltro(value === todosOption ? "" : (value as PrazoFiltro))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Prazo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={todosOption}>Todos os prazos</SelectItem>
+                <SelectItem value="vencidas">OS vencidas</SelectItem>
+                <SelectItem value="hoje">Vencem hoje</SelectItem>
+                <SelectItem value="proximas">Prazo proximo</SelectItem>
+                <SelectItem value="sem-prazo">Sem prazo</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={responsavelFiltro || todosResponsaveisOption}
+              onValueChange={(value) => setResponsavelFiltro(value === todosResponsaveisOption ? "" : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Responsavel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={todosResponsaveisOption}>Todos os responsaveis</SelectItem>
+                <SelectItem value={semResponsavelOption}>Sem responsavel</SelectItem>
+                {usuariosFiltroOptions.map((responsavel) => (
+                  <SelectItem key={responsavel.id} value={responsavel.id}>
+                    {responsavel.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
             <Input type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
             <Button variant="outline" onClick={limparFiltros} className="w-full sm:w-auto">
               Limpar
             </Button>
           </div>
+
+          {filtrosAtivos.length > 0 ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>Filtros aplicados:</span>
+              {filtrosAtivos.map((filtro) => (
+                <Badge key={filtro} variant="outline">
+                  {filtro}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
 
           {isLoading ? (
             <OrdensTableSkeleton />
