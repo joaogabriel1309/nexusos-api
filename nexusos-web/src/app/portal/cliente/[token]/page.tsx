@@ -135,6 +135,8 @@ export default function PortalClientePage() {
   const [projetoFiltro, setProjetoFiltro] = useState("");
   const [ordemSelecionada, setOrdemSelecionada] = useState<PortalOrdemServico | null>(null);
   const [pixPagamento, setPixPagamento] = useState<PagamentoPixResponse | null>(null);
+  const [dialogAjusteAberto, setDialogAjusteAberto] = useState(false);
+  const [motivoAjuste, setMotivoAjuste] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
   const queryKey = ["portal-cliente", token];
@@ -145,15 +147,20 @@ export default function PortalClientePage() {
   });
 
   const decisaoMutation = useMutation({
-    mutationFn: ({ ordemId, aprovado }: { ordemId: string; aprovado: boolean }) => {
-      return aprovado ? portalClienteService.aprovar(token, ordemId) : portalClienteService.reprovar(token, ordemId);
+    mutationFn: ({ ordemId, aprovado, motivo }: { ordemId: string; aprovado: boolean; motivo?: string }) => {
+      return aprovado
+        ? portalClienteService.aprovar(token, ordemId)
+        : portalClienteService.reprovar(token, ordemId, motivo ?? "");
     },
-    onSuccess: () => {
+    onSuccess: (ordemAtualizada, variaveis) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Decisao registrada com sucesso.");
+      setOrdemSelecionada(ordemAtualizada);
+      setDialogAjusteAberto(false);
+      setMotivoAjuste("");
+      toast.success(variaveis.aprovado ? "OS aprovada com sucesso." : "Solicitacao de ajuste enviada.");
     },
-    onError: () => {
-      toast.error("Nao foi possivel registrar sua decisao.");
+    onError: (error) => {
+      toast.error(mensagemErro(error, "Nao foi possivel registrar sua decisao."));
     }
   });
 
@@ -328,6 +335,20 @@ export default function PortalClientePage() {
               </div>
             </CardHeader>
             <CardContent className="min-w-0 space-y-5">
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle>Resumo da entrega</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p className="whitespace-pre-wrap break-words font-medium">
+                    {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.textoAnalise || ordemSelecionada.descricao}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Confira abaixo o que foi feito, os valores e os proximos passos antes de registrar sua decisao.
+                  </p>
+                </CardContent>
+              </Card>
+
               <div className="grid min-w-0 gap-4 md:grid-cols-2">
                 <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
                 <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
@@ -404,23 +425,33 @@ export default function PortalClientePage() {
               </Card>
 
               {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    disabled={decisaoMutation.isPending}
-                    onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Aprovar OS
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={decisaoMutation.isPending}
-                    onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: false })}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Reprovar OS
-                  </Button>
-                </div>
+                <Card className="border-primary/30">
+                  <CardHeader>
+                    <CardTitle>Proximos passos</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Ao aprovar, a OS segue para execucao. Se algo precisar mudar, solicite um ajuste e descreva o motivo para a equipe revisar.
+                    </p>
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <Button
+                        variant="outline"
+                        disabled={decisaoMutation.isPending}
+                        onClick={() => setDialogAjusteAberto(true)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Solicitar ajuste
+                      </Button>
+                      <Button
+                        disabled={decisaoMutation.isPending}
+                        onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
+                      >
+                        {decisaoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        Aprovar entrega
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : null}
             </CardContent>
           </Card>
@@ -661,6 +692,46 @@ export default function PortalClientePage() {
                 </div>
               </div>
             ) : null}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={dialogAjusteAberto} onOpenChange={setDialogAjusteAberto}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Solicitar ajuste</DialogTitle>
+              <DialogDescription>
+                Explique o que precisa ser revisto. O motivo sera enviado para a equipe responsavel e a OS voltara para analise.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <label htmlFor="motivo-ajuste" className="text-sm font-medium">Motivo do ajuste</label>
+              <Textarea
+                id="motivo-ajuste"
+                value={motivoAjuste}
+                maxLength={2000}
+                className="min-h-32 resize-y"
+                placeholder="Descreva de forma objetiva o que precisa ser alterado."
+                onChange={(event) => setMotivoAjuste(event.target.value)}
+              />
+              <div className="text-right text-xs text-muted-foreground">{motivoAjuste.length}/2000</div>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" disabled={decisaoMutation.isPending} onClick={() => setDialogAjusteAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={decisaoMutation.isPending || !motivoAjuste.trim() || !ordemSelecionada}
+                onClick={() => ordemSelecionada && decisaoMutation.mutate({
+                  ordemId: ordemSelecionada.id,
+                  aprovado: false,
+                  motivo: motivoAjuste.trim()
+                })}
+              >
+                {decisaoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Enviar solicitacao
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
