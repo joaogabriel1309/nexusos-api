@@ -115,6 +115,7 @@ function developerAgent(root, execution) {
   const commandsExecuted = [];
   const promptFile = writeDeveloperPrompt(root, execution);
   const developerCommand = resolveDeveloperCommand(root, execution, promptFile);
+  const developerDiagnostics = developerCommand ? [] : developerAutomationDiagnostics(root);
   if (developerCommand) {
     const result = run(developerCommand, {
       cwd: root,
@@ -143,7 +144,9 @@ function developerAgent(root, execution) {
     testsCreated: files.filter((file) => file.includes("/test/") || file.includes("\\test\\") || file.endsWith(".test.mjs")),
     testsExecuted: [],
     promptFile,
-    knownLimitations: developerCommand ? [] : ["Sem comando programador configurado. Defina AGENTS_DEVELOPER_COMMAND ou AGENTS_DEVELOPER_PROVIDER=codex."]
+    developerAutomationEnabled: Boolean(developerCommand),
+    developerDiagnostics,
+    knownLimitations: developerCommand ? [] : developerDiagnostics
   };
   saveExecution(root, execution);
 
@@ -154,7 +157,25 @@ function developerAgent(root, execution) {
   transition(root, execution, STATES.WAITING_FOR_SECURITY_REVIEW, "Implementacao detectada");
 }
 
-export function resolveDeveloperCommand(root, execution, promptFile) {
+export function developerAutomationDiagnostics(root) {
+  const diagnostics = [
+    "Braco programador nao configurado. Defina AGENTS_DEVELOPER_PROVIDER=codex ou AGENTS_DEVELOPER_COMMAND com {prompt}, {promptFile} ou {executionFile}."
+  ];
+  const codexVersion = run("codex --version", { cwd: root, timeoutMs: 15000 });
+  if (codexVersion.code !== 0) {
+    diagnostics.push(
+      "Codex CLI nao esta acessivel pelo terminal. Instale/autentique o Codex CLI ou configure AGENTS_DEVELOPER_COMMAND para outro runner de IA."
+    );
+    if (codexVersion.stderr || codexVersion.stdout) {
+      diagnostics.push(`Diagnostico codex --version: ${(codexVersion.stderr || codexVersion.stdout).split(/\r?\n/)[0]}`);
+    }
+  } else {
+    diagnostics.push("Codex CLI parece disponivel. Configure AGENTS_DEVELOPER_PROVIDER=codex no .env da raiz e rode pnpm agents:resume <ID>.");
+  }
+  return diagnostics;
+}
+
+function resolveDeveloperCommand(root, execution, promptFile) {
   if (process.env.AGENTS_DEVELOPER_COMMAND) {
     return renderDeveloperCommand(process.env.AGENTS_DEVELOPER_COMMAND, root, execution, promptFile);
   }
