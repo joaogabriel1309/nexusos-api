@@ -42,7 +42,9 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     @Query("""
             select os from OrdemServico os
-            where os.responsavel.id = :responsavelId and os.status <> :status
+            where os.responsavel.id = :responsavelId
+              and os.status <> :status
+              and os.status <> com.nexusos.ordemservico.StatusOS.CANCELADA
             order by os.sequenciaExecucao asc nulls last, os.atualizadoEm desc, os.codigo desc
             """)
     List<OrdemServico> findFilaByResponsavelId(UUID responsavelId, StatusOS status);
@@ -50,6 +52,8 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
     Optional<OrdemServico> findByIdAndResponsavelEmail(UUID id, String email);
 
     List<OrdemServico> findByResponsavelIsNotNullAndStatusNot(StatusOS status);
+
+    List<OrdemServico> findByResponsavelIsNotNullAndStatusNotIn(List<StatusOS> status);
 
     List<OrdemServico> findByClienteIdOrderByAtualizadoEmDesc(UUID clienteId);
 
@@ -62,11 +66,19 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     long countByStatusNot(StatusOS status);
 
+    long countByStatusNotIn(List<StatusOS> status);
+
     long countByStatusNotAndPrazoBefore(StatusOS status, LocalDate prazo);
+
+    long countByStatusNotInAndPrazoBefore(List<StatusOS> status, LocalDate prazo);
 
     long countByStatusNotAndPrazo(StatusOS status, LocalDate prazo);
 
+    long countByStatusNotInAndPrazo(List<StatusOS> status, LocalDate prazo);
+
     long countByStatusNotAndResponsavelIsNull(StatusOS status);
+
+    long countByStatusNotInAndResponsavelIsNull(List<StatusOS> status);
 
     long countByPrioridade(PrioridadeOS prioridade);
 

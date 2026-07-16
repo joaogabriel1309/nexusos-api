@@ -7,6 +7,7 @@ import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
+import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
@@ -48,6 +49,7 @@ public class OrdemServicoService {
         TRANSICOES.put(StatusOS.EM_TESTE, Set.of(StatusOS.AGUARDANDO_PAGAMENTO, StatusOS.EM_DESENVOLVIMENTO));
         TRANSICOES.put(StatusOS.AGUARDANDO_PAGAMENTO, Set.of(StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO));
         TRANSICOES.put(StatusOS.FINALIZADA, Set.of());
+        TRANSICOES.put(StatusOS.CANCELADA, Set.of());
     }
 
     private final OrdemServicoRepository ordemServicoRepository;
@@ -224,6 +226,28 @@ public class OrdemServicoService {
         auditoriaService.registrar(salva, administrador, "REABERTURA",
                 "OS reaberta. Motivo: " + motivo, StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
         notificacaoService.notificarReabertura(salva, motivo);
+        return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional
+    public OrdemServicoResponse cancelar(UUID id, CancelamentoOrdemServicoRequest request) {
+        var os = buscarEntidade(id);
+        if (os.getStatus() == StatusOS.FINALIZADA) {
+            throw new RegraNegocioException("Uma OS finalizada nao pode ser cancelada.");
+        }
+        if (os.getStatus() == StatusOS.CANCELADA) {
+            throw new RegraNegocioException("A OS ja esta cancelada.");
+        }
+
+        var statusAnterior = os.getStatus();
+        var motivo = request.motivo().trim();
+        var administrador = usuarioService.buscarAutenticado();
+        os.setStatus(StatusOS.CANCELADA);
+        os.setSequenciaExecucao(null);
+        var salva = ordemServicoRepository.save(os);
+        auditoriaService.registrar(salva, administrador, "CANCELAMENTO",
+                "OS cancelada. Motivo: " + motivo, statusAnterior, StatusOS.CANCELADA);
+        notificacaoService.notificarStatus(salva);
         return OrdemServicoResponse.from(salva);
     }
 

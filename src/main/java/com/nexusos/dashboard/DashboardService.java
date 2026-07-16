@@ -32,14 +32,15 @@ public class DashboardService {
     public DashboardResumoResponse resumo() {
         var total = ordemServicoRepository.count();
         var finalizadas = ordemServicoRepository.countByStatus(StatusOS.FINALIZADA);
+        var encerradas = List.of(StatusOS.FINALIZADA, StatusOS.CANCELADA);
         var hoje = LocalDate.now();
         return new DashboardResumoResponse(
                 total,
-                total - finalizadas,
+                ordemServicoRepository.countByStatusNotIn(encerradas),
                 finalizadas,
-                ordemServicoRepository.countByStatusNotAndPrazoBefore(StatusOS.FINALIZADA, hoje),
-                ordemServicoRepository.countByStatusNotAndPrazo(StatusOS.FINALIZADA, hoje),
-                ordemServicoRepository.countByStatusNotAndResponsavelIsNull(StatusOS.FINALIZADA),
+                ordemServicoRepository.countByStatusNotInAndPrazoBefore(encerradas, hoje),
+                ordemServicoRepository.countByStatusNotInAndPrazo(encerradas, hoje),
+                ordemServicoRepository.countByStatusNotInAndResponsavelIsNull(encerradas),
                 osPorPrioridade(),
                 slaPrioridadeService.listarDiasPorPrioridade(),
                 ordemServicoRepository.calcularTempoMedioFinalizacaoHoras()

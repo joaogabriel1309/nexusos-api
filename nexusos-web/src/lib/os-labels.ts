@@ -8,7 +8,8 @@ export const statusLabels: Record<StatusOS, string> = {
   EM_DESENVOLVIMENTO: "Em desenvolvimento",
   EM_TESTE: "Em teste",
   AGUARDANDO_PAGAMENTO: "Aguardando pagamento",
-  FINALIZADA: "Finalizada"
+  FINALIZADA: "Finalizada",
+  CANCELADA: "Cancelada"
 };
 
 export const statusBadgeClasses: Record<StatusOS, string> = {
@@ -19,7 +20,8 @@ export const statusBadgeClasses: Record<StatusOS, string> = {
   EM_DESENVOLVIMENTO: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300",
   EM_TESTE: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   AGUARDANDO_PAGAMENTO: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/60 dark:text-orange-300",
-  FINALIZADA: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+  FINALIZADA: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+  CANCELADA: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300"
 };
 
 export const prioridadeLabels: Record<PrioridadeOS, string> = {

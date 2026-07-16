@@ -1,6 +1,7 @@
 package com.nexusos.ordemservico;
 
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
+import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
@@ -86,6 +87,14 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> reabrir(@PathVariable UUID id,
             @Valid @RequestBody ReaberturaOrdemServicoRequest request) {
         return ResponseEntity.ok(ordemServicoService.reabrir(id, request));
+    }
+
+    @Operation(summary = "Cancela uma ordem de servico preservando seu historico")
+    @PatchMapping("/{id}/cancelar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrdemServicoResponse> cancelar(@PathVariable UUID id,
+            @Valid @RequestBody CancelamentoOrdemServicoRequest request) {
+        return ResponseEntity.ok(ordemServicoService.cancelar(id, request));
     }
 
     @Operation(summary = "Atualiza analise tecnica da ordem de servico")

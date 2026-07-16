@@ -68,6 +68,10 @@ const portalStatus: Record<StatusOS, { label: string; orientacao: string }> = {
   FINALIZADA: {
     label: "Serviço concluído",
     orientacao: "Este pedido foi concluído e não exige nenhuma ação."
+  },
+  CANCELADA: {
+    label: "Pedido cancelado",
+    orientacao: "Este pedido foi cancelado e não seguirá para as próximas etapas."
   }
 };
 

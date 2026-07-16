@@ -3,6 +3,7 @@ package com.nexusos.ordemservico;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
+import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
@@ -13,6 +14,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 class OrdemServicoControllerTest {
+
+    @Test
+    void cancelarExigePerfilAdmin() throws NoSuchMethodException {
+        var metodo = OrdemServicoController.class.getMethod(
+                "cancelar", UUID.class, CancelamentoOrdemServicoRequest.class);
+        assertThat(metodo.getAnnotation(PreAuthorize.class).value()).isEqualTo("hasRole('ADMIN')");
+    }
+
+    @Test
+    void motivoDoCancelamentoEhObrigatorio() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            assertThat(factory.getValidator().validate(new CancelamentoOrdemServicoRequest("  "))).hasSize(1);
+        }
+    }
 
     @Test
     void reabrirExigePerfilAdmin() throws NoSuchMethodException {

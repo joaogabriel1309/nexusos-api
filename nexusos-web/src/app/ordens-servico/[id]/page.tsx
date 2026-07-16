@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
+  Ban,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -135,7 +136,8 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
       description: "Reabre a execução caso ainda exista ajuste pendente."
     }
   ],
-  FINALIZADA: []
+  FINALIZADA: [],
+  CANCELADA: []
 };
 
 const statusWorkflowOrder: StatusOS[] = [
@@ -334,6 +336,8 @@ export default function OrdemServicoDetalhePage() {
   const [confirmacaoExclusaoOpen, setConfirmacaoExclusaoOpen] = useState(false);
   const [reaberturaOpen, setReaberturaOpen] = useState(false);
   const [motivoReabertura, setMotivoReabertura] = useState("");
+  const [cancelamentoOpen, setCancelamentoOpen] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("status");
 
   const detalheQueryKey = ["ordens-servico", id];
@@ -430,6 +434,22 @@ export default function OrdemServicoDetalhePage() {
       toast.success("OS reaberta com sucesso.");
     },
     onError: () => toast.error("Nao foi possivel reabrir a OS.")
+  });
+
+  const cancelamentoMutation = useMutation({
+    mutationFn: () => {
+      if (!ordem) throw new Error("OS nao carregada.");
+      return ordemServicoService.cancelar(ordem.id, motivoCancelamento.trim());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      setCancelamentoOpen(false);
+      setMotivoCancelamento("");
+      toast.success("OS cancelada com sucesso.");
+    },
+    onError: () => toast.error("Nao foi possivel cancelar a OS.")
   });
 
   const excluirMutation = useMutation({
@@ -574,9 +594,9 @@ export default function OrdemServicoDetalhePage() {
                         ) : null}
                       </div>
                     ) : (
-              <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">
-                        <p>Esta OS está finalizada. Não existem próximas etapas operacionais disponíveis.</p>
-                        {!isDesenvolvedor ? (
+              <div className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm text-foreground">
+                        <p>Esta OS está {ordem.status === "CANCELADA" ? "cancelada" : "finalizada"}. Não existem próximas etapas operacionais disponíveis.</p>
+                        {!isDesenvolvedor && ordem.status === "FINALIZADA" ? (
                           <Button variant="outline" onClick={() => setReaberturaOpen(true)}>
                             <RefreshCcw className="h-4 w-4" /> Reabrir OS
                           </Button>
@@ -619,6 +639,14 @@ export default function OrdemServicoDetalhePage() {
                                 <Edit className="h-4 w-4" />
                                 Editar
                               </Button>
+                            ) : null}
+                            {!isDesenvolvedor ? (
+                              ordem.status !== "FINALIZADA" && ordem.status !== "CANCELADA" ? (
+                                <Button variant="destructive" disabled={osEmAcao} onClick={() => setCancelamentoOpen(true)}>
+                                  <Ban className="h-4 w-4" />
+                                  Cancelar OS
+                                </Button>
+                              ) : null
                             ) : null}
                             {!isDesenvolvedor ? (
                               <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
@@ -876,6 +904,30 @@ export default function OrdemServicoDetalhePage() {
               onClick={() => reaberturaMutation.mutate()}>
               {reaberturaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
               Confirmar reabertura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={cancelamentoOpen} onOpenChange={setCancelamentoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar ordem de serviço</DialogTitle>
+            <DialogDescription>
+              A OS sairá do fluxo operacional, mas seus dados e histórico serão preservados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="motivo-cancelamento" className="text-sm font-medium">Motivo do cancelamento</label>
+            <Textarea id="motivo-cancelamento" maxLength={1000} value={motivoCancelamento}
+              onChange={(event) => setMotivoCancelamento(event.target.value)}
+              placeholder="Descreva por que a OS não deve continuar" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelamentoOpen(false)}>Voltar</Button>
+            <Button variant="destructive" disabled={!motivoCancelamento.trim() || cancelamentoMutation.isPending}
+              onClick={() => cancelamentoMutation.mutate()}>
+              {cancelamentoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+              Confirmar cancelamento
             </Button>
           </DialogFooter>
         </DialogContent>

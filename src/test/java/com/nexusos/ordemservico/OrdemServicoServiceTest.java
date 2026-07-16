@@ -13,6 +13,7 @@ import com.nexusos.email.EmailService;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
+import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
@@ -55,6 +56,38 @@ class OrdemServicoServiceTest {
     @AfterEach
     void limparContexto() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void adminCancelaOsComMotivoEAuditoria() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var administrador = com.nexusos.usuario.Usuario.builder().id(UUID.randomUUID()).build();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder().id(id).codigo(22L).status(StatusOS.EM_DESENVOLVIMENTO)
+                .cliente(cliente).sequenciaExecucao(3L).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(usuarioService.buscarAutenticado()).thenReturn(administrador);
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        ordemServicoService.cancelar(id, new CancelamentoOrdemServicoRequest("  Nao sera mais necessaria  "));
+
+        assertThat(ordem.getStatus()).isEqualTo(StatusOS.CANCELADA);
+        assertThat(ordem.getSequenciaExecucao()).isNull();
+        verify(auditoriaService).registrar(ordem, administrador, "CANCELAMENTO",
+                "OS cancelada. Motivo: Nao sera mais necessaria", StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA);
+        verify(notificacaoService).notificarStatus(ordem);
+    }
+
+    @Test
+    void rejeitaCancelamentoDeOsFinalizada() {
+        var id = UUID.randomUUID();
+        var ordem = OrdemServico.builder().id(id).status(StatusOS.FINALIZADA).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+
+        assertThatThrownBy(() -> ordemServicoService.cancelar(id, new CancelamentoOrdemServicoRequest("Motivo")))
+                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizada");
+        verify(ordemServicoRepository, never()).save(ordem);
     }
 
     @Test

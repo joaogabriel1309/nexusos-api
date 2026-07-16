@@ -83,6 +83,11 @@ export const ordemServicoService = {
     return data;
   },
 
+  async cancelar(id: string, motivo: string) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/cancelar`, { motivo });
+    return data;
+  },
+
   async atualizarAnalise(id: string, payload: OrdemServicoAnaliseFormData) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/analise`, {
       entendimento: payload.textoAnalise || null,

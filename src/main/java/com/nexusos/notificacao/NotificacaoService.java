@@ -404,7 +404,8 @@ public class NotificacaoService {
     @Transactional
     public void gerarNotificacoesDePrazo() {
         var hoje = LocalDate.now();
-        var ordens = ordemServicoRepository.findByResponsavelIsNotNullAndStatusNot(StatusOS.FINALIZADA);
+        var ordens = ordemServicoRepository.findByResponsavelIsNotNullAndStatusNotIn(
+                List.of(StatusOS.FINALIZADA, StatusOS.CANCELADA));
 
         for (var ordem : ordens) {
             if (ordem.getPrazo() == null) {

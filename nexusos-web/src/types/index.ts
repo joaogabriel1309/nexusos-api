@@ -8,7 +8,8 @@ export type StatusOS =
   | "EM_DESENVOLVIMENTO"
   | "EM_TESTE"
   | "AGUARDANDO_PAGAMENTO"
-  | "FINALIZADA";
+  | "FINALIZADA"
+  | "CANCELADA";
 
 export type PrioridadeOS = "BAIXA" | "MEDIA" | "ALTA" | "CRITICA";
 
