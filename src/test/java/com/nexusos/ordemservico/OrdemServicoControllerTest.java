@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
+import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import jakarta.validation.Validation;
 import java.util.UUID;
@@ -12,6 +13,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 class OrdemServicoControllerTest {
+
+    @Test
+    void reabrirExigePerfilAdmin() throws NoSuchMethodException {
+        var metodo = OrdemServicoController.class.getMethod(
+                "reabrir", UUID.class, ReaberturaOrdemServicoRequest.class);
+        assertThat(metodo.getAnnotation(PreAuthorize.class).value()).isEqualTo("hasRole('ADMIN')");
+    }
+
+    @Test
+    void motivoDaReaberturaEhObrigatorio() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            assertThat(factory.getValidator().validate(new ReaberturaOrdemServicoRequest("  "))).hasSize(1);
+        }
+    }
 
     @Test
     void atualizarAnalisePermiteAdminEDesenvolvedor() throws NoSuchMethodException {

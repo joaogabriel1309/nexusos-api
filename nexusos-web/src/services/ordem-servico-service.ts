@@ -78,6 +78,11 @@ export const ordemServicoService = {
     return data;
   },
 
+  async reabrir(id: string, motivo: string) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/reabrir`, { motivo });
+    return data;
+  },
+
   async atualizarAnalise(id: string, payload: OrdemServicoAnaliseFormData) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/analise`, {
       entendimento: payload.textoAnalise || null,

@@ -28,6 +28,8 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { prioridadeLabels, statusBadgeClasses, statusLabels } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { cn } from "@/lib/utils";
@@ -330,6 +332,8 @@ export default function OrdemServicoDetalhePage() {
   const id = params.id;
   const [osEmAcao, setOsEmAcao] = useState(false);
   const [confirmacaoExclusaoOpen, setConfirmacaoExclusaoOpen] = useState(false);
+  const [reaberturaOpen, setReaberturaOpen] = useState(false);
+  const [motivoReabertura, setMotivoReabertura] = useState("");
   const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("status");
 
   const detalheQueryKey = ["ordens-servico", id];
@@ -410,6 +414,22 @@ export default function OrdemServicoDetalhePage() {
     onError: () => {
       toast.error("Não foi possível atualizar o pagamento da OS.");
     }
+  });
+
+  const reaberturaMutation = useMutation({
+    mutationFn: () => {
+      if (!ordem) throw new Error("OS nao carregada.");
+      return ordemServicoService.reabrir(ordem.id, motivoReabertura.trim());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      setReaberturaOpen(false);
+      setMotivoReabertura("");
+      toast.success("OS reaberta com sucesso.");
+    },
+    onError: () => toast.error("Nao foi possivel reabrir a OS.")
   });
 
   const excluirMutation = useMutation({
@@ -554,8 +574,13 @@ export default function OrdemServicoDetalhePage() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                        Esta OS está finalizada. Não existem próximas etapas operacionais disponíveis.
+                      <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        <p>Esta OS está finalizada. Não existem próximas etapas operacionais disponíveis.</p>
+                        {!isDesenvolvedor ? (
+                          <Button variant="outline" onClick={() => setReaberturaOpen(true)}>
+                            <RefreshCcw className="h-4 w-4" /> Reabrir OS
+                          </Button>
+                        ) : null}
                       </div>
                     )}
 
@@ -831,6 +856,30 @@ export default function OrdemServicoDetalhePage() {
         onConfirm={() => ordem && excluirMutation.mutate()}
         onOpenChange={setConfirmacaoExclusaoOpen}
       />
+      <Dialog open={reaberturaOpen} onOpenChange={setReaberturaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reabrir ordem de serviço</DialogTitle>
+            <DialogDescription>
+              A OS voltará para desenvolvimento. A finalização anterior permanecerá no histórico.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="motivo-reabertura" className="text-sm font-medium">Motivo da reabertura</label>
+            <Textarea id="motivo-reabertura" maxLength={1000} value={motivoReabertura}
+              onChange={(event) => setMotivoReabertura(event.target.value)}
+              placeholder="Descreva por que a OS precisa ser reaberta" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReaberturaOpen(false)}>Cancelar</Button>
+            <Button disabled={!motivoReabertura.trim() || reaberturaMutation.isPending}
+              onClick={() => reaberturaMutation.mutate()}>
+              {reaberturaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              Confirmar reabertura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
