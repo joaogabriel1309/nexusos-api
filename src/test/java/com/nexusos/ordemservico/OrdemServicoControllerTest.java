@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
+import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import jakarta.validation.Validation;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,26 @@ class OrdemServicoControllerTest {
     void prioridadeNulaEhEntradaInvalida() {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             var violacoes = factory.getValidator().validate(new PrioridadeUpdateRequest(null));
+
+            assertThat(violacoes).hasSize(1);
+        }
+    }
+
+    @Test
+    void atualizarSequenciaExigePerfilAdmin() throws NoSuchMethodException {
+        var metodo = OrdemServicoController.class.getMethod(
+                "atualizarSequencia",
+                UUID.class,
+                SequenciaUpdateRequest.class
+        );
+
+        assertThat(metodo.getAnnotation(PreAuthorize.class).value()).isEqualTo("hasRole('ADMIN')");
+    }
+
+    @Test
+    void sequenciaMenorQueUmEhEntradaInvalida() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            var violacoes = factory.getValidator().validate(new SequenciaUpdateRequest(0));
 
             assertThat(violacoes).hasSize(1);
         }

@@ -99,5 +99,10 @@ export const ordemServicoService = {
   async atualizarPrioridade(id: string, prioridade: PrioridadeOS) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/prioridade`, { prioridade });
     return data;
+  },
+
+  async atualizarSequencia(id: string, posicao: number) {
+    const { data } = await api.patch<OrdemServico[]>(`/ordens-servico/${id}/sequencia`, { posicao });
+    return data;
   }
 };

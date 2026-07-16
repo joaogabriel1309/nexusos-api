@@ -7,6 +7,7 @@ import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.PagamentoUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
+import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -99,6 +100,14 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> atualizarPrioridade(@PathVariable UUID id,
             @Valid @RequestBody PrioridadeUpdateRequest request) {
         return ResponseEntity.ok(ordemServicoService.atualizarPrioridade(id, request));
+    }
+
+    @Operation(summary = "Altera a posicao da ordem na fila do desenvolvedor")
+    @PatchMapping("/{id}/sequencia")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<OrdemServicoResponse>> atualizarSequencia(@PathVariable UUID id,
+            @Valid @RequestBody SequenciaUpdateRequest request) {
+        return ResponseEntity.ok(ordemServicoService.atualizarSequencia(id, request));
     }
 
     @Operation(summary = "Atualiza pagamento da ordem de servico")

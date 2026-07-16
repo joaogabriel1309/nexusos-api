@@ -14,6 +14,13 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     List<OrdemServico> findByResponsavelEmailOrderByAtualizadoEmDesc(String email);
 
+    @Query("""
+            select os from OrdemServico os
+            where os.responsavel.id = :responsavelId and os.status <> :status
+            order by os.sequenciaExecucao asc nulls last, os.atualizadoEm desc, os.codigo desc
+            """)
+    List<OrdemServico> findFilaByResponsavelId(UUID responsavelId, StatusOS status);
+
     Optional<OrdemServico> findByIdAndResponsavelEmail(UUID id, String email);
 
     List<OrdemServico> findByResponsavelIsNotNullAndStatusNot(StatusOS status);

@@ -67,6 +67,8 @@ public class OrdemServico {
 
     private LocalDate prazo;
 
+    private Long sequenciaExecucao;
+
     @Column(columnDefinition = "text")
     private String entendimento;
 
