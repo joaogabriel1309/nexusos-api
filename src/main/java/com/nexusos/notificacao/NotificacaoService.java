@@ -55,6 +55,7 @@ public class NotificacaoService {
     private static final String TIPO_USUARIO = "USUARIO";
     private static final String TIPO_CLIENTE = "CLIENTE";
     private static final String TIPO_PROJETO = "PROJETO";
+    private static final String TIPO_REABERTURA = "REABERTURA";
 
     private final NotificacaoRepository notificacaoRepository;
     private final PreferenciaNotificacaoRepository preferenciaNotificacaoRepository;
@@ -234,6 +235,16 @@ public class NotificacaoService {
                 TIPO_STATUS,
                 "Status da OS atualizado",
                 "A OS " + ordemServico.getCodigo() + " agora esta em " + ordemServico.getStatus() + "."
+        );
+    }
+
+    @Transactional
+    public void notificarReabertura(OrdemServico ordemServico, String motivo) {
+        notificarAdmins(
+                ordemServico,
+                TIPO_REABERTURA,
+                "OS reaberta",
+                "A OS " + ordemServico.getCodigo() + " foi reaberta. Motivo: " + motivo
         );
     }
 

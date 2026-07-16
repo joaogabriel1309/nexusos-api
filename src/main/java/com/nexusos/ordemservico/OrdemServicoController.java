@@ -7,6 +7,7 @@ import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.PagamentoUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
+import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
@@ -77,6 +78,14 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> atualizarStatus(@PathVariable UUID id,
             @Valid @RequestBody StatusUpdateRequest request) {
         return ResponseEntity.ok(ordemServicoService.atualizarStatus(id, request));
+    }
+
+    @Operation(summary = "Reabre uma ordem de servico finalizada")
+    @PatchMapping("/{id}/reabrir")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrdemServicoResponse> reabrir(@PathVariable UUID id,
+            @Valid @RequestBody ReaberturaOrdemServicoRequest request) {
+        return ResponseEntity.ok(ordemServicoService.reabrir(id, request));
     }
 
     @Operation(summary = "Atualiza analise tecnica da ordem de servico")

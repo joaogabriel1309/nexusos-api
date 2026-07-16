@@ -12,6 +12,7 @@ import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
+import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
@@ -206,6 +207,23 @@ public class OrdemServicoService {
             emailService.enviarOrdemServicoFinalizada(salva);
             whatsappService.enviarOrdemServicoFinalizada(salva);
         }
+        return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional
+    public OrdemServicoResponse reabrir(UUID id, ReaberturaOrdemServicoRequest request) {
+        var os = buscarEntidade(id);
+        if (os.getStatus() != StatusOS.FINALIZADA) {
+            throw new RegraNegocioException("Somente uma OS finalizada pode ser reaberta.");
+        }
+
+        var motivo = request.motivo().trim();
+        var administrador = usuarioService.buscarAutenticado();
+        os.setStatus(StatusOS.EM_DESENVOLVIMENTO);
+        var salva = ordemServicoRepository.save(os);
+        auditoriaService.registrar(salva, administrador, "REABERTURA",
+                "OS reaberta. Motivo: " + motivo, StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
+        notificacaoService.notificarReabertura(salva, motivo);
         return OrdemServicoResponse.from(salva);
     }
 
