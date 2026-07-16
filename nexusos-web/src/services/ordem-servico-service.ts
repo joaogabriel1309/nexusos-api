@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { OrdemServico, StatusOS } from "@/types";
+import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 
@@ -93,6 +93,11 @@ export const ordemServicoService = {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/pagamento`, {
       paga
     });
+    return data;
+  },
+
+  async atualizarPrioridade(id: string, prioridade: PrioridadeOS) {
+    const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/prioridade`, { prioridade });
     return data;
   }
 };

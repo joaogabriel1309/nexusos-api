@@ -3,7 +3,7 @@ import type { PerfilUsuario } from "@/types";
 
 export const navigationItems = [
   { title: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["DESENVOLVEDOR"] },
+  { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
   { title: "Ordens de Servico", href: "/ordens-servico", icon: ClipboardList },
   { title: "OS Finalizadas", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },
   { title: "Notificacoes", href: "/notificacoes", icon: Bell },

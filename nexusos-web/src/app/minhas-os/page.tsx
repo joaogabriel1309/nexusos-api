@@ -1,9 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, CalendarClock, ClipboardList, Clock, Code2, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } fro
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
 import { useAuth } from "@/providers/auth-provider";
 import { ordemServicoService } from "@/services/ordem-servico-service";
+import { usuarioService } from "@/services/usuario-service";
 import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 
 const ordensQueryKey = ["minhas-os"];
@@ -99,25 +101,28 @@ function MetricaCard({
   );
 }
 
-function OrdemCard({ ordem }: { ordem: OrdemServico }) {
+function OrdemCard({ ordem, podeAlterarPrioridade, onPrioridadeChange, atualizando }: {
+  ordem: OrdemServico;
+  podeAlterarPrioridade: boolean;
+  onPrioridadeChange: (ordem: OrdemServico, prioridade: PrioridadeOS) => void;
+  atualizando: boolean;
+}) {
   const router = useRouter();
 
   return (
-    <button
-      type="button"
-      className="w-full rounded-md border bg-background p-4 text-left shadow-sm transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
-    >
+    <div className="w-full rounded-md border bg-background p-4 text-left shadow-sm">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="min-w-0">
+        <button type="button" className="min-w-0 flex-1 text-left hover:text-primary" onClick={() => router.push(`/ordens-servico/${ordem.id}`)}>
           <div className="truncate font-semibold" title={ordem.titulo}>
             {ordem.codigo} - {ordem.titulo}
           </div>
           <div className="mt-1 truncate text-sm text-muted-foreground" title={ordem.clienteNome}>
             {ordem.clienteNome} {ordem.projetoNome ? `- ${ordem.projetoNome}` : ""}
           </div>
-        </div>
-        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
+        <button type="button" aria-label={`Abrir OS ${ordem.codigo}`} onClick={() => router.push(`/ordens-servico/${ordem.id}`)}>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
@@ -130,7 +135,17 @@ function OrdemCard({ ordem }: { ordem: OrdemServico }) {
           {formatarDataPrazo(ordem.prazo)}
         </span>
       </div>
-    </button>
+      {podeAlterarPrioridade ? (
+        <div className="mt-3 max-w-48">
+          <Select value={ordem.prioridade} disabled={atualizando} onValueChange={(value) => onPrioridadeChange(ordem, value as PrioridadeOS)}>
+            <SelectTrigger aria-label={`Prioridade da OS ${ordem.codigo}`}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {prioridades.map((prioridade) => <SelectItem key={prioridade} value={prioridade}>{prioridadeLabels[prioridade]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -144,22 +159,54 @@ function EmptyState() {
 
 export default function MinhasOsPage() {
   const { usuario } = useAuth();
+  const queryClient = useQueryClient();
+  const isAdmin = usuario?.perfil === "ADMIN";
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
+  const [responsavelFiltro, setResponsavelFiltro] = useState("");
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
     queryFn: ordemServicoService.listar
   });
 
+  const usuariosQuery = useQuery({
+    queryKey: ["usuarios", "minhas-os"],
+    queryFn: usuarioService.listar,
+    enabled: isAdmin
+  });
+
+  const responsaveis = useMemo(() => (usuariosQuery.data ?? []).filter((item) => item.ativo), [usuariosQuery.data]);
+  const responsavelSelecionadoId = isAdmin ? (responsavelFiltro || responsaveis[0]?.id || "") : usuario?.id;
+  const responsavelSelecionado = responsaveis.find((item) => item.id === responsavelSelecionadoId);
+
+  const prioridadeMutation = useMutation({
+    mutationFn: ({ id, prioridade }: { id: string; prioridade: PrioridadeOS }) => ordemServicoService.atualizarPrioridade(id, prioridade),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      toast.success("Prioridade atualizada.");
+    },
+    onError: () => toast.error("Nao foi possivel atualizar a prioridade.")
+  });
+
   const minhasOrdens = useMemo(() => {
     return (ordensQuery.data ?? [])
       .filter((ordem) => ordem.status !== "FINALIZADA")
-      .filter((ordem) => (usuario?.id ? ordem.responsavelId === usuario.id : true))
+      .filter((ordem) => (responsavelSelecionadoId ? ordem.responsavelId === responsavelSelecionadoId : false))
       .filter((ordem) => (statusFiltro ? ordem.status === statusFiltro : true))
       .filter((ordem) => (prioridadeFiltro ? ordem.prioridade === prioridadeFiltro : true))
       .sort(ordenarFila);
-  }, [ordensQuery.data, prioridadeFiltro, statusFiltro, usuario?.id]);
+  }, [ordensQuery.data, prioridadeFiltro, responsavelSelecionadoId, statusFiltro]);
+
+  const renderOrdem = (ordem: OrdemServico) => (
+    <OrdemCard
+      key={ordem.id}
+      ordem={ordem}
+      podeAlterarPrioridade={isAdmin}
+      atualizando={prioridadeMutation.isPending && prioridadeMutation.variables?.id === ordem.id}
+      onPrioridadeChange={(item, prioridade) => prioridadeMutation.mutate({ id: item.id, prioridade })}
+    />
+  );
 
   const vencidas = minhasOrdens.filter((ordem) => classificarPrazo(ordem.prazo) === "vencidas");
   const hoje = minhasOrdens.filter((ordem) => classificarPrazo(ordem.prazo) === "hoje");
@@ -179,7 +226,7 @@ export default function MinhasOsPage() {
     <AppShell>
       <PageHeader
         title="Minhas OS"
-        description={`Fila tecnica de ${usuario?.nome ?? "desenvolvedor"} organizada por prioridade, prazo e status.`}
+        description={`Fila tecnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuario") : (usuario?.nome ?? "desenvolvedor")} organizada por prioridade, prazo e status.`}
         actions={
           <Button variant="outline" onClick={recarregar} disabled={ordensQuery.isLoading}>
             <RefreshCcw className="h-4 w-4" />
@@ -215,6 +262,14 @@ export default function MinhasOsPage() {
 
           <Card className="mt-5">
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row">
+              {isAdmin ? (
+                <Select value={responsavelSelecionadoId} onValueChange={setResponsavelFiltro} disabled={usuariosQuery.isLoading || responsaveis.length === 0}>
+                  <SelectTrigger className="sm:w-64"><SelectValue placeholder="Selecione o usuario" /></SelectTrigger>
+                  <SelectContent>
+                    {responsaveis.map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : null}
               <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusOS))}>
                 <SelectTrigger className="sm:w-64">
                   <SelectValue placeholder="Status" />
@@ -263,7 +318,7 @@ export default function MinhasOsPage() {
                 <CardDescription>Fila ordenada por prazo, criticidade e etapa atual.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {minhasOrdens.length > 0 ? minhasOrdens.slice(0, 12).map((ordem) => <OrdemCard key={ordem.id} ordem={ordem} />) : <EmptyState />}
+                {minhasOrdens.length > 0 ? minhasOrdens.slice(0, 12).map(renderOrdem) : <EmptyState />}
               </CardContent>
             </Card>
 
@@ -274,7 +329,7 @@ export default function MinhasOsPage() {
                   <CardDescription>Vencidas e com prazo para o dia atual.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {[...vencidas, ...hoje].length > 0 ? [...vencidas, ...hoje].slice(0, 6).map((ordem) => <OrdemCard key={ordem.id} ordem={ordem} />) : <EmptyState />}
+                  {[...vencidas, ...hoje].length > 0 ? [...vencidas, ...hoje].slice(0, 6).map(renderOrdem) : <EmptyState />}
                 </CardContent>
               </Card>
 
@@ -318,7 +373,7 @@ export default function MinhasOsPage() {
                 <CardDescription>OS que precisam avancar de etapa ou receber alguma decisao.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {aguardandoAcao.length > 0 ? aguardandoAcao.slice(0, 6).map((ordem) => <OrdemCard key={ordem.id} ordem={ordem} />) : <EmptyState />}
+                {aguardandoAcao.length > 0 ? aguardandoAcao.slice(0, 6).map(renderOrdem) : <EmptyState />}
               </CardContent>
             </Card>
 
@@ -328,7 +383,7 @@ export default function MinhasOsPage() {
                 <CardDescription>OS que ja estao em trabalho tecnico ativo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {emDesenvolvimento.length > 0 ? emDesenvolvimento.slice(0, 6).map((ordem) => <OrdemCard key={ordem.id} ordem={ordem} />) : <EmptyState />}
+                {emDesenvolvimento.length > 0 ? emDesenvolvimento.slice(0, 6).map(renderOrdem) : <EmptyState />}
               </CardContent>
             </Card>
           </section>
