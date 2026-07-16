@@ -14,10 +14,11 @@ import {
   MessageSquare,
   RefreshCcw,
   Trash2,
-  UserRound
+  UserRound,
+  Link2
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
@@ -341,6 +342,12 @@ export default function OrdemServicoDetalhePage() {
     enabled: Boolean(id)
   });
 
+  const todasOrdensQuery = useQuery({
+    queryKey: ordensQueryKey,
+    queryFn: ordemServicoService.listar,
+    enabled: !isDesenvolvedor
+  });
+
   const auditoriaQuery = useQuery({
     queryKey: auditoriaQueryKey,
     queryFn: () => auditoriaService.listarPorOrdemServico(id),
@@ -348,6 +355,22 @@ export default function OrdemServicoDetalhePage() {
   });
 
   const ordem = ordemQuery.data;
+  const [vinculosSelecionados, setVinculosSelecionados] = useState<string[]>([]);
+
+  useEffect(() => {
+    setVinculosSelecionados(ordem?.ordensVinculadas.map((vinculada) => vinculada.id) ?? []);
+  }, [ordem]);
+
+  const vinculosMutation = useMutation({
+    mutationFn: () => ordemServicoService.atualizarVinculos(id, vinculosSelecionados),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detalheQueryKey });
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
+      toast.success("Vínculos atualizados com sucesso.");
+    },
+    onError: () => toast.error("Não foi possível atualizar os vínculos.")
+  });
 
   const statusMutation = useMutation({
     mutationFn: ({ status, descricao }: { status: StatusOS; descricao?: string }) => {
@@ -613,6 +636,7 @@ export default function OrdemServicoDetalhePage() {
             ) : null}
 
             {abaAtiva === "informacoes" ? (
+              <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Informações da OS</CardTitle>
@@ -629,6 +653,48 @@ export default function OrdemServicoDetalhePage() {
                   <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> OS vinculadas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {ordem.ordensVinculadas.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Nenhuma OS vinculada.</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {ordem.ordensVinculadas.map((vinculada) => (
+                        <Button key={vinculada.id} variant="outline" size="sm" onClick={() => router.push(`/ordens-servico/${vinculada.id}`)}>
+                          OS {vinculada.codigo} - {vinculada.titulo} · {statusLabels[vinculada.status]}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {!isDesenvolvedor ? (
+                    <div className="space-y-2 border-t pt-4">
+                      <label className="text-sm font-medium" htmlFor="ordens-vinculadas">Gerenciar vínculos</label>
+                      <select
+                        id="ordens-vinculadas"
+                        multiple
+                        className="min-h-36 w-full rounded-md border bg-background p-2 text-sm"
+                        value={vinculosSelecionados}
+                        onChange={(event) => setVinculosSelecionados(Array.from(event.currentTarget.selectedOptions, (option) => option.value))}
+                      >
+                        {(todasOrdensQuery.data ?? []).filter((item) => item.id !== ordem.id).map((item) => (
+                          <option key={item.id} value={item.id}>OS {item.codigo} - {item.titulo} ({statusLabels[item.status]})</option>
+                        ))}
+                      </select>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">Use Ctrl/Cmd para selecionar mais de uma OS.</span>
+                        <Button size="sm" disabled={vinculosMutation.isPending || todasOrdensQuery.isLoading} onClick={() => vinculosMutation.mutate()}>
+                          {vinculosMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                          Salvar vínculos
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+              </div>
             ) : null}
 
             {abaAtiva === "textos" ? (

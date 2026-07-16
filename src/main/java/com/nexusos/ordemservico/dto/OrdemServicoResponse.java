@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.Comparator;
+import java.util.List;
 
 public record OrdemServicoResponse(
         UUID id,
@@ -39,9 +41,14 @@ public record OrdemServicoResponse(
         String observacaoAprovacaoCliente,
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm,
-        OffsetDateTime finalizadoEm
+        OffsetDateTime finalizadoEm,
+        List<OrdemServicoVinculadaResponse> ordensVinculadas
 ) {
     public static OrdemServicoResponse from(OrdemServico os) {
+        return from(os, null);
+    }
+
+    public static OrdemServicoResponse from(OrdemServico os, String emailResponsavelVisivel) {
         var responsavel = os.getResponsavel();
         var projeto = os.getProjeto();
         return new OrdemServicoResponse(
@@ -75,7 +82,14 @@ public record OrdemServicoResponse(
                 os.getObservacaoAprovacaoCliente(),
                 os.getCriadoEm(),
                 os.getAtualizadoEm(),
-                os.getFinalizadoEm()
+                os.getFinalizadoEm(),
+                os.getOrdensVinculadas().stream()
+                        .filter(vinculada -> emailResponsavelVisivel == null
+                                || vinculada.getResponsavel() != null
+                                && emailResponsavelVisivel.equals(vinculada.getResponsavel().getEmail()))
+                        .map(OrdemServicoVinculadaResponse::from)
+                        .sorted(Comparator.comparing(OrdemServicoVinculadaResponse::codigo))
+                        .toList()
         );
     }
 }

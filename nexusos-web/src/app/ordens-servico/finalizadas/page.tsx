@@ -501,6 +501,14 @@ export default function OrdensServicoFinalizadasPage() {
                             <div className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                               {ordem.descricaoFinalizacao || ordem.descricao}
                             </div>
+                            {ordem.ordensVinculadas.length > 0 ? (
+                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                <div className="font-medium">OS vinculadas</div>
+                                {ordem.ordensVinculadas.map((item) => (
+                                  <div key={item.id}>OS {item.codigo} - {item.titulo} · {statusLabels[item.status]}</div>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                           <Badge variant="outline" className={`shrink-0 ${statusBadgeClasses.FINALIZADA}`}>
                             {statusLabels.FINALIZADA}
@@ -587,6 +595,13 @@ export default function OrdensServicoFinalizadasPage() {
                               <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                                 {ordem.descricaoFinalizacao || ordem.descricao}
                               </div>
+                              {ordem.ordensVinculadas.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {ordem.ordensVinculadas.map((item) => (
+                                    <Badge key={item.id} variant="outline">OS {item.codigo} - {item.titulo} · {statusLabels[item.status]}</Badge>
+                                  ))}
+                                </div>
+                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell>

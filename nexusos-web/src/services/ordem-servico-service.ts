@@ -104,5 +104,10 @@ export const ordemServicoService = {
   async atualizarSequencia(id: string, posicao: number) {
     const { data } = await api.patch<OrdemServico[]>(`/ordens-servico/${id}/sequencia`, { posicao });
     return data;
+  },
+
+  async atualizarVinculos(id: string, ordemServicoIds: string[]) {
+    const { data } = await api.put<OrdemServico>(`/ordens-servico/${id}/vinculos`, { ordemServicoIds });
+    return data;
   }
 };
