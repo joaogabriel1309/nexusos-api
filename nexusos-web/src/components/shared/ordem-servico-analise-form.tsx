@@ -5,10 +5,12 @@ import { Calculator, Save } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { TemplateSelector } from "@/components/shared/template-selector";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoAnaliseSchema, type OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
+import { combinarComTextoAtual } from "@/lib/templates";
 import type { OrdemServico } from "@/types";
 
 type OrdemServicoAnaliseFormProps = {
@@ -112,6 +114,11 @@ export function OrdemServicoAnaliseForm({
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel>Texto da Análise</FormLabel>
+                  <TemplateSelector
+                    tipo="ANALISE_TECNICA"
+                    disabled={readOnly}
+                    onApply={(conteudo) => form.setValue("textoAnalise", combinarComTextoAtual(field.value ?? "", conteudo), { shouldDirty: true, shouldValidate: true })}
+                  />
                   <FormControl>
                     <Textarea
                       className="min-h-40"
