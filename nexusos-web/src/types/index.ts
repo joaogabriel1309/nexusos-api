@@ -89,6 +89,14 @@ export type OrdemServico = {
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
+  ordensVinculadas: OrdemServicoVinculada[];
+};
+
+export type OrdemServicoVinculada = {
+  id: string;
+  codigo: number;
+  titulo: string;
+  status: StatusOS;
 };
 
 export type PortalOrdemServico = {

@@ -17,6 +17,7 @@ import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
+import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.UsuarioService;
 import com.nexusos.whatsapp.WhatsappService;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -172,6 +174,41 @@ class OrdemServicoServiceTest {
         assertThatThrownBy(() -> ordemServicoService.atualizarSequencia(ordem.getId(), new SequenciaUpdateRequest(2)))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("entre 1 e 1");
+    }
+
+    @Test
+    void adminAtualizaVinculosNosDoisSentidos() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var principal = criarOrdemFila(1L, 1L, null, cliente);
+        var vinculada = criarOrdemFila(2L, 2L, null, cliente);
+        when(ordemServicoRepository.findById(principal.getId())).thenReturn(Optional.of(principal));
+        when(ordemServicoRepository.findAllById(Set.of(vinculada.getId()))).thenReturn(List.of(vinculada));
+        when(ordemServicoRepository.save(principal)).thenReturn(principal);
+        when(ordemServicoRepository.save(vinculada)).thenReturn(vinculada);
+
+        var resposta = ordemServicoService.atualizarVinculos(
+                principal.getId(), new VinculosUpdateRequest(Set.of(vinculada.getId())));
+
+        assertThat(principal.getOrdensVinculadas()).containsExactly(vinculada);
+        assertThat(vinculada.getOrdensVinculadas()).containsExactly(principal);
+        assertThat(resposta.ordensVinculadas()).extracting(item -> item.codigo()).containsExactly(2L);
+        verify(auditoriaService).registrar(principal, null, "VINCULOS",
+                "Vinculos entre ordens de servico atualizados.", null, principal.getStatus());
+    }
+
+    @Test
+    void rejeitaAutorrelacionamento() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var ordem = OrdemServico.builder().id(id).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+
+        assertThatThrownBy(() -> ordemServicoService.atualizarVinculos(id, new VinculosUpdateRequest(Set.of(id))))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("ela mesma");
+
+        verify(ordemServicoRepository, never()).findAllById(org.mockito.ArgumentMatchers.any());
     }
 
     private OrdemServico criarOrdemFila(long codigo, long sequencia, com.nexusos.usuario.Usuario responsavel,

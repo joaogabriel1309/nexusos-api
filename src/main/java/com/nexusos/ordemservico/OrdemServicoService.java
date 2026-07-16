@@ -14,6 +14,7 @@ import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
+import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.LinkedHashSet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -68,12 +70,16 @@ public class OrdemServicoService {
                 ? ordemServicoRepository.findByResponsavelEmailOrderByAtualizadoEmDesc(email)
                 : ordemServicoRepository.findAllByOrderByAtualizadoEmDesc();
 
-        return ordens.stream().map(OrdemServicoResponse::from).toList();
+        return ordens.stream()
+                .map(ordem -> OrdemServicoResponse.from(ordem, desenvolvedor ? email : null))
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public OrdemServicoResponse buscarPorId(UUID id) {
-        return OrdemServicoResponse.from(buscarEntidade(id));
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        var email = authentication != null ? authentication.getName() : null;
+        return OrdemServicoResponse.from(buscarEntidade(id), ehDesenvolvedor() ? email : null);
     }
 
     @Transactional
@@ -325,6 +331,35 @@ public class OrdemServicoService {
                 paga ? "OS marcada como paga." : "OS marcada como nao paga.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarPagamento(salva, paga);
+        return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional
+    public OrdemServicoResponse atualizarVinculos(UUID id, VinculosUpdateRequest request) {
+        var os = buscarEntidade(id);
+        if (request.ordemServicoIds().contains(id)) {
+            throw new RegraNegocioException("Uma OS nao pode ser vinculada a ela mesma.");
+        }
+
+        var novasVinculadas = new LinkedHashSet<>(ordemServicoRepository.findAllById(request.ordemServicoIds()));
+        if (novasVinculadas.size() != request.ordemServicoIds().size()) {
+            throw new RecursoNaoEncontradoException("Uma ou mais ordens de servico vinculadas nao foram encontradas.");
+        }
+
+        var anteriores = new LinkedHashSet<>(os.getOrdensVinculadas());
+        anteriores.stream().filter(anterior -> !novasVinculadas.contains(anterior)).forEach(anterior -> {
+            anterior.getOrdensVinculadas().remove(os);
+            ordemServicoRepository.save(anterior);
+        });
+        novasVinculadas.forEach(vinculada -> {
+            vinculada.getOrdensVinculadas().add(os);
+            ordemServicoRepository.save(vinculada);
+        });
+        os.getOrdensVinculadas().clear();
+        os.getOrdensVinculadas().addAll(novasVinculadas);
+        var salva = ordemServicoRepository.save(os);
+        auditoriaService.registrar(salva, salva.getResponsavel(), "VINCULOS",
+                "Vinculos entre ordens de servico atualizados.", null, salva.getStatus());
         return OrdemServicoResponse.from(salva);
     }
 

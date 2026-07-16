@@ -9,6 +9,7 @@ import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
+import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -116,5 +117,13 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> atualizarPagamento(@PathVariable UUID id,
             @Valid @RequestBody PagamentoUpdateRequest request) {
         return ResponseEntity.ok(ordemServicoService.atualizarPagamento(id, request.paga()));
+    }
+
+    @Operation(summary = "Substitui os vinculos da ordem de servico")
+    @PutMapping("/{id}/vinculos")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrdemServicoResponse> atualizarVinculos(@PathVariable UUID id,
+            @Valid @RequestBody VinculosUpdateRequest request) {
+        return ResponseEntity.ok(ordemServicoService.atualizarVinculos(id, request));
     }
 }

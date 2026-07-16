@@ -10,6 +10,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -18,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -118,6 +122,15 @@ public class OrdemServico {
     private OffsetDateTime atualizadoEm;
 
     private OffsetDateTime finalizadoEm;
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(
+            name = "ordens_servico_vinculos",
+            joinColumns = @JoinColumn(name = "ordem_servico_id"),
+            inverseJoinColumns = @JoinColumn(name = "ordem_servico_vinculada_id")
+    )
+    private Set<OrdemServico> ordensVinculadas = new LinkedHashSet<>();
 
     @PrePersist
     void prePersist() {
