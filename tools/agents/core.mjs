@@ -133,8 +133,13 @@ export function saveExecution(root, execution) {
 
 export function transition(root, execution, status, detail = "") {
   execution.status = status;
-  execution.history.push({ at: nowIso(), status, detail });
+  const at = nowIso();
+  execution.history.push({ at, status, detail });
   saveExecution(root, execution);
+  if (process.env.AGENTS_PROGRESS === "1") {
+    const message = detail ? `${status} - ${detail}` : status;
+    console.log(`[${new Date(at).toLocaleTimeString()}] ${message}`);
+  }
 }
 
 export function newExecution(root, originalRequest) {

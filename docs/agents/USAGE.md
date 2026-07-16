@@ -6,6 +6,14 @@
 pnpm agents:task "Implemente upload de imagens nas Ordens de Servico"
 ```
 
+Durante `task` e `resume`, o CLI mostra o progresso ao vivo: analise, desenvolvimento, seguranca, testes, commit e push.
+
+Para desativar a saida progressiva:
+
+```bash
+AGENTS_PROGRESS=0 pnpm agents:task "Descricao"
+```
+
 ## Consultar status
 
 ```bash

@@ -12,6 +12,7 @@ try {
     const request = args.join(" ").trim();
     if (!request) throw new Error('Uso: pnpm agents:task "Descricao da tarefa"');
     preflight();
+    enableProgress();
     const execution = await startTask(root, request);
     printReport(execution);
   } else if (command === "status") {
@@ -21,6 +22,7 @@ try {
   } else if (command === "resume") {
     const id = args[0];
     if (!id) throw new Error("Uso: pnpm agents:resume ID_DA_EXECUCAO");
+    enableProgress();
     const execution = await resumeTask(root, id);
     printReport(execution);
   } else if (command === "list") {
@@ -38,6 +40,10 @@ try {
 } catch (error) {
   console.error(`Erro: ${error.message}`);
   process.exitCode = 1;
+}
+
+function enableProgress() {
+  process.env.AGENTS_PROGRESS = process.env.AGENTS_PROGRESS ?? "1";
 }
 
 function preflight() {

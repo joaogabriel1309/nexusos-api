@@ -115,12 +115,14 @@ function developerAgent(root, execution) {
   const developerCommand = resolveDeveloperCommand(root, execution, promptFile);
   const developerDiagnostics = developerCommand ? [] : developerAutomationDiagnostics(root);
   if (developerCommand) {
+    progress("Executando braco programador");
     const result = run(developerCommand, {
       cwd: root,
       timeoutMs: Number(process.env.AGENTS_DEVELOPER_TIMEOUT_MS ?? 600000),
       env: developerEnvironment(root, execution, promptFile)
     });
     commandsExecuted.push(summarizeCommand(result));
+    progress(result.code === 0 ? "Braco programador finalizado" : "Braco programador falhou");
     if (result.code !== 0) {
       execution.developerOutput = { status: "failed", commandsExecuted, knownLimitations: ["Comando de desenvolvimento retornou erro."] };
       saveExecution(root, execution);
@@ -327,7 +329,12 @@ function testAgent(root, execution) {
     commands.push(frontendUsesNpm ? "npm --prefix nexusos-web run typecheck" : "pnpm --dir nexusos-web typecheck");
     commands.push(frontendUsesNpm ? "npm --prefix nexusos-web run build" : "pnpm --dir nexusos-web build");
   }
-  const results = commands.map((command) => summarizeCommand(run(command, { cwd: root, timeoutMs: 900000 })));
+  const results = commands.map((command) => {
+    progress(`Executando: ${command}`);
+    const result = summarizeCommand(run(command, { cwd: root, timeoutMs: 900000 }));
+    progress(result.code === 0 ? `Aprovado: ${command}` : `Falhou: ${command}`);
+    return result;
+  });
   const failed = results.filter((item) => item.code !== 0);
   execution.testOutput = {
     status: failed.length ? "rejected" : "approved",
@@ -436,6 +443,12 @@ function inferModules(request) {
 function titleFromRequest(request) {
   const normalized = request.trim().replace(/\.$/, "");
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function progress(message) {
+  if (process.env.AGENTS_PROGRESS === "1") {
+    console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+  }
 }
 
 function conventionalTitle(request) {
