@@ -430,7 +430,12 @@ export default function OrdemServicoDetalhePage() {
   function voltarParaListagem() {
     const origem = new URLSearchParams(window.location.search).get("origem");
 
-    router.push(origem === "finalizadas" ? "/ordens-servico/finalizadas" : "/ordens-servico");
+    if (origem === "finalizadas") {
+      router.push("/ordens-servico/finalizadas");
+      return;
+    }
+
+    router.push(origem === "minhas-os" ? "/minhas-os" : "/ordens-servico");
   }
 
   return (
