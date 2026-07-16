@@ -29,7 +29,7 @@ export default function LoginPage() {
       toast.success("Login realizado com sucesso");
       router.push("/dashboard");
     } catch {
-      toast.error("Nao foi possivel entrar com essas credenciais");
+      toast.error("Não foi possível entrar com essas credenciais");
     }
   }
 
@@ -43,7 +43,7 @@ export default function LoginPage() {
             </div>
             <div>
               <CardTitle>NexusOS</CardTitle>
-              <CardDescription>Acesse o painel de workflow tecnico</CardDescription>
+              <CardDescription>Acesse o painel de workflow técnico</CardDescription>
             </div>
           </div>
         </CardHeader>

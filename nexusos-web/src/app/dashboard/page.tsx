@@ -163,11 +163,11 @@ export default function DashboardPage() {
       hint: `${produtividade?.percentualFinalizacao.toFixed(1) ?? "0.0"}% do total`,
       href: "/ordens-servico/finalizadas"
     },
-    { title: "Tempo medio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "ate finalizacao" },
+    { title: "Tempo médio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "até finalização" },
     { title: "OS vencidas", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado", href: ordensHref({ prazo: "vencidas" }) },
-    { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atencao no dia", href: ordensHref({ prazo: "hoje" }) },
+    { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atenção no dia", href: ordensHref({ prazo: "hoje" }) },
     {
-      title: "Sem responsavel",
+      title: "Sem responsável",
       value: resumo?.osSemResponsavel ?? 0,
       icon: UserX,
       hint: "precisam de atribuicao",
@@ -184,7 +184,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Dashboard" description="Visao executiva das ordens de servico e produtividade tecnica." />
+      <PageHeader title="Dashboard" description="Visão executiva das ordens de serviço e produtividade técnica." />
 
       {isLoading ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -201,7 +201,7 @@ export default function DashboardPage() {
       ) : isError ? (
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Nao foi possivel carregar os dados do dashboard.</span>
+            <span>Não foi possível carregar os dados do dashboard.</span>
             <Button variant="outline" size="sm" onClick={recarregar}>
               <RefreshCcw className="h-4 w-4" />
               Tentar novamente
@@ -276,7 +276,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Saude da operacao</CardTitle>
-                <CardDescription>Conclusao geral das ordens cadastradas.</CardDescription>
+                <CardDescription>Conclusão geral das ordens cadastradas.</CardDescription>
               </CardHeader>
               <CardContent>
                 <RingChart value={produtividade?.percentualFinalizacao ?? 0} label={`${resumo?.osFinalizadas ?? 0} OS finalizadas`} />

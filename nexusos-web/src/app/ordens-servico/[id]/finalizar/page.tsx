@@ -47,7 +47,7 @@ export default function FinalizarOrdemServicoPage() {
   const finalizarMutation = useMutation({
     mutationFn: (payload: OrdemServicoFinalizacaoPayload) => {
       if (!ordem) {
-        throw new Error("OS nao carregada.");
+        throw new Error("OS não carregada.");
       }
 
       return ordemServicoService.finalizar(ordem.id, payload);
@@ -60,7 +60,7 @@ export default function FinalizarOrdemServicoPage() {
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
-      toast.error("Nao foi possivel finalizar a OS.");
+      toast.error("Não foi possível finalizar a OS.");
     }
   });
 
@@ -72,7 +72,7 @@ export default function FinalizarOrdemServicoPage() {
     event.preventDefault();
 
     if (!descricao.trim()) {
-      toast.error("Informe a descricao do que foi feito.");
+      toast.error("Informe a descrição do que foi feito.");
       return;
     }
 
@@ -88,7 +88,7 @@ export default function FinalizarOrdemServicoPage() {
     <AppShell>
       <PageHeader
         title={ordem ? `Finalizar OS ${ordem.codigo}` : "Finalizar OS"}
-        description="Registre o que foi entregue e os detalhes tecnicos usados na conclusao da ordem de servico."
+        description="Registre o que foi entregue e os detalhes técnicos usados na conclusão da ordem de serviço."
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
@@ -99,7 +99,7 @@ export default function FinalizarOrdemServicoPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dados da finalizacao</CardTitle>
+          <CardTitle>Dados da finalização</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
           {ordemQuery.isLoading ? (
@@ -110,7 +110,7 @@ export default function FinalizarOrdemServicoPage() {
             </div>
           ) : ordemQuery.isError || !ordem ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar a OS para finalizacao.</span>
+              <span>Não foi possível carregar a OS para finalização.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
@@ -127,7 +127,7 @@ export default function FinalizarOrdemServicoPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="descricao-finalizacao">
-                  Descricao do que foi feito
+                  Descrição do que foi feito
                 </label>
                 <Textarea
                   id="descricao-finalizacao"

@@ -52,7 +52,7 @@ export default function ClientesPage() {
       toast.success(clienteSelecionado ? "Cliente atualizado com sucesso." : "Cliente cadastrado com sucesso.");
     },
     onError: () => {
-      toast.error("Nao foi possivel salvar o cliente. Verifique os dados e tente novamente.");
+      toast.error("Não foi possível salvar o cliente. Verifique os dados e tente novamente.");
     }
   });
 
@@ -63,7 +63,7 @@ export default function ClientesPage() {
       toast.success("Cliente inativado com sucesso.");
     },
     onError: () => {
-      toast.error("Nao foi possivel inativar o cliente.");
+      toast.error("Não foi possível inativar o cliente.");
     }
   });
 
@@ -75,7 +75,7 @@ export default function ClientesPage() {
       toast.success("Link de acesso do cliente gerado.");
     },
     onError: () => {
-      toast.error("Nao foi possivel gerar o link do cliente.");
+      toast.error("Não foi possível gerar o link do cliente.");
     }
   });
 
@@ -150,7 +150,7 @@ export default function ClientesPage() {
               </div>
             ) : clientesQuery.isError ? (
               <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>Nao foi possivel carregar os clientes.</span>
+                <span>Não foi possível carregar os clientes.</span>
                 <Button variant="outline" size="sm" onClick={() => clientesQuery.refetch()}>
                   <RefreshCcw className="h-4 w-4" />
                   Tentar novamente
@@ -177,7 +177,7 @@ export default function ClientesPage() {
                       <TableHead>E-mail OS</TableHead>
                       <TableHead>WhatsApp OS</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[190px] text-right">Acoes</TableHead>
+                      <TableHead className="w-[190px] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

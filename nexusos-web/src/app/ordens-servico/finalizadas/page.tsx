@@ -105,7 +105,7 @@ function FinalizadasTableSkeleton() {
             <TableHead>Finalizada em</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Pagamento</TableHead>
-            <TableHead className="text-right">Acoes</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -265,10 +265,10 @@ export default function OrdensServicoFinalizadasPage() {
   function exportarExcel() {
     const cabecalho = [
       "OS",
-      "Titulo",
+      "Título",
       "Cliente",
       "Projeto",
-      "Responsavel",
+      "Responsável",
       "Prioridade",
       "Finalizada em",
       "Horas",
@@ -346,7 +346,7 @@ export default function OrdensServicoFinalizadasPage() {
             <thead>
               <tr>
                 <th>OS</th>
-                <th>Titulo</th>
+                <th>Título</th>
                 <th>Cliente</th>
                 <th>Projeto</th>
                 <th>Prioridade</th>
@@ -368,7 +368,7 @@ export default function OrdensServicoFinalizadasPage() {
     <AppShell>
       <PageHeader
         title="OS Finalizadas"
-        description="Consulte ordens encerradas, data de finalizacao e resumo do que foi feito."
+        description="Consulte ordens encerradas, data de finalização e resumo do que foi feito."
       />
 
       <Card>
@@ -377,7 +377,7 @@ export default function OrdensServicoFinalizadasPage() {
             <FinalizadasTableSkeleton />
           ) : ordensQuery.isError || (!isDesenvolvedor && projetosQuery.isError) ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar as OS finalizadas.</span>
+              <span>Não foi possível carregar as OS finalizadas.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
@@ -392,7 +392,7 @@ export default function OrdensServicoFinalizadasPage() {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Buscar por OS, cliente, responsavel, finalizacao..."
+                    placeholder="Buscar por OS, cliente, responsável, finalização..."
                     value={busca}
                     onChange={(event) => setBusca(event.target.value)}
                   />
@@ -564,7 +564,7 @@ export default function OrdensServicoFinalizadasPage() {
                         <TableHead className="w-[120px]">Horas</TableHead>
                         <TableHead className="w-[140px]">Valor</TableHead>
                         <TableHead className="w-[130px]">Pagamento</TableHead>
-                        <TableHead className="w-[90px] text-right">Acoes</TableHead>
+                        <TableHead className="w-[90px] text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

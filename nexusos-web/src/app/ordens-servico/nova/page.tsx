@@ -57,7 +57,7 @@ export default function NovaOrdemServicoPage() {
       router.push(`/ordens-servico/${ordem.id}`);
     },
     onError: () => {
-      toast.error("Nao foi possivel salvar a OS.");
+      toast.error("Não foi possível salvar a OS.");
     }
   });
 
@@ -71,7 +71,7 @@ export default function NovaOrdemServicoPage() {
     <AppShell>
       <PageHeader
         title="Nova OS"
-        description="Registre a demanda inicial para analise tecnica."
+        description="Registre a demanda inicial para análise técnica."
         actions={
           <Button variant="outline" onClick={() => router.push("/ordens-servico")}>
             <ArrowLeft className="h-4 w-4" />
@@ -83,7 +83,7 @@ export default function NovaOrdemServicoPage() {
       <Card>
         <CardContent className="p-4 sm:p-6">
           {isDesenvolvedor ? (
-            <div className="text-sm text-muted-foreground">Seu perfil nao pode cadastrar OS.</div>
+          <div className="text-sm text-muted-foreground">Seu perfil não pode cadastrar OS.</div>
           ) : isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />
@@ -92,7 +92,7 @@ export default function NovaOrdemServicoPage() {
             </div>
           ) : isError ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar os dados para cadastro.</span>
+              <span>Não foi possível carregar os dados para cadastro.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente

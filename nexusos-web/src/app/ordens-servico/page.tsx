@@ -43,7 +43,7 @@ type PrazoFiltro = "" | "vencidas" | "hoje" | "proximas" | "sem-prazo";
 const prazoFiltroLabels: Record<Exclude<PrazoFiltro, "">, string> = {
   vencidas: "OS vencidas",
   hoje: "Vencem hoje",
-  proximas: "Prazo proximo",
+  proximas: "Prazo próximo",
   "sem-prazo": "Sem prazo"
 };
 
@@ -117,7 +117,7 @@ function OrdensTableSkeleton() {
             <TableHead>Status</TableHead>
             <TableHead>Pagamento</TableHead>
             <TableHead>Prazo</TableHead>
-            <TableHead className="text-right">Acoes</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -387,15 +387,15 @@ function OrdensServicoPageContent() {
     prazoFiltro ? prazoFiltroLabels[prazoFiltro] : null,
     responsavelFiltro
       ? responsavelFiltro === semResponsavelOption
-        ? "Sem responsavel"
-        : "Responsavel filtrado"
+        ? "Sem responsável"
+        : "Responsável filtrado"
       : null,
     dataInicio ? `Inicio: ${formatarDataPrazo(dataInicio)}` : null,
     dataFim ? `Fim: ${formatarDataPrazo(dataFim)}` : null
   ].filter((filtro): filtro is string => Boolean(filtro));
 
   function exportarExcel() {
-    const cabecalho = ["OS", "Titulo", "Cliente", "Projeto", "Responsavel", "Status", "Prioridade", "Prazo", "Pagamento"];
+    const cabecalho = ["OS", "Título", "Cliente", "Projeto", "Responsável", "Status", "Prioridade", "Prazo", "Pagamento"];
     const linhas = ordensFiltradas.map((ordem) =>
       [
         ordem.codigo,
@@ -423,7 +423,7 @@ function OrdensServicoPageContent() {
     const janela = window.open("", "_blank");
 
     if (!janela) {
-      toast.error("Nao foi possivel abrir a janela de impressao.");
+      toast.error("Não foi possível abrir a janela de impressão.");
       return;
     }
 
@@ -464,7 +464,7 @@ function OrdensServicoPageContent() {
             <thead>
               <tr>
                 <th>OS</th>
-                <th>Titulo</th>
+                <th>Título</th>
                 <th>Cliente</th>
                 <th>Projeto</th>
                 <th>Status</th>
@@ -594,7 +594,7 @@ function OrdensServicoPageContent() {
                 <SelectItem value={todosOption}>Todos os prazos</SelectItem>
                 <SelectItem value="vencidas">OS vencidas</SelectItem>
                 <SelectItem value="hoje">Vencem hoje</SelectItem>
-                <SelectItem value="proximas">Prazo proximo</SelectItem>
+                <SelectItem value="proximas">Prazo próximo</SelectItem>
                 <SelectItem value="sem-prazo">Sem prazo</SelectItem>
               </SelectContent>
             </Select>
@@ -603,11 +603,11 @@ function OrdensServicoPageContent() {
               onValueChange={(value) => setResponsavelFiltro(value === todosResponsaveisOption ? "" : value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Responsavel" />
+                <SelectValue placeholder="Responsável" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={todosResponsaveisOption}>Todos os responsaveis</SelectItem>
-                <SelectItem value={semResponsavelOption}>Sem responsavel</SelectItem>
+                <SelectItem value={semResponsavelOption}>Sem responsável</SelectItem>
                 {usuariosFiltroOptions.map((responsavel) => (
                   <SelectItem key={responsavel.id} value={responsavel.id}>
                     {responsavel.nome}
@@ -637,7 +637,7 @@ function OrdensServicoPageContent() {
             <OrdensTableSkeleton />
           ) : isError ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar as ordens de servico.</span>
+              <span>Não foi possível carregar as ordens de serviço.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
@@ -744,7 +744,7 @@ function OrdensServicoPageContent() {
                     <TableHead className="w-[190px]">Status</TableHead>
                     <TableHead className="w-[140px]">Pagamento</TableHead>
                     <TableHead className="w-[160px]">Prazo</TableHead>
-                    <TableHead className="w-[120px] text-right">Acoes</TableHead>
+                    <TableHead className="w-[120px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -82,7 +82,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
-          placeholder="Buscar OS, cliente ou responsavel"
+            placeholder="Buscar OS, cliente ou responsável"
           value={buscaGlobal}
           onChange={(event) => setBuscaGlobal(event.target.value)}
         />
