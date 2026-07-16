@@ -131,6 +131,7 @@ function developerAgent(root, execution) {
   }
 
   const files = changedFiles(root);
+  progressChangedFiles(files);
   execution.developerOutput = {
     status: files.length > 0 ? "completed" : "waiting_for_external_implementation",
     branch: execution.branch,
@@ -448,6 +449,18 @@ function titleFromRequest(request) {
 function progress(message) {
   if (process.env.AGENTS_PROGRESS === "1") {
     console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+  }
+}
+
+function progressChangedFiles(files) {
+  if (process.env.AGENTS_PROGRESS !== "1") return;
+  if (files.length === 0) {
+    progress("Nenhum arquivo alterado pelo braco programador");
+    return;
+  }
+  progress(`${files.length} arquivo${files.length === 1 ? "" : "s"} alterado${files.length === 1 ? "" : "s"} pelo braco programador:`);
+  for (const file of files) {
+    console.log(`  - ${file}`);
   }
 }
 
