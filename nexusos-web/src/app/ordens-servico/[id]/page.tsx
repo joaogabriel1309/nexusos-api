@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
+import { MensagemClienteComposer } from "@/components/shared/mensagem-cliente-composer";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -661,6 +662,17 @@ export default function OrdemServicoDetalhePage() {
                       <div className="md:col-span-2">
                         <CampoDetalhe label="Arquivos alterados" value={ordem.arquivosAlteradosFinalizacao} />
                       </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {!isDesenvolvedor ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Mensagem ao cliente</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <MensagemClienteComposer />
                     </CardContent>
                   </Card>
                 ) : null}

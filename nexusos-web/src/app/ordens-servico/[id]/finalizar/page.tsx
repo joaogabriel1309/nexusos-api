@@ -7,12 +7,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { TemplateSelector } from "@/components/shared/template-selector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoService, type OrdemServicoFinalizacaoPayload } from "@/services/ordem-servico-service";
+import { combinarComTextoAtual } from "@/lib/templates";
 
 export default function FinalizarOrdemServicoPage() {
   const params = useParams<{ id: string }>();
@@ -129,6 +131,10 @@ export default function FinalizarOrdemServicoPage() {
                 <label className="text-sm font-medium" htmlFor="descricao-finalizacao">
                   Descrição do que foi feito
                 </label>
+                <TemplateSelector
+                  tipo="FINALIZACAO"
+                  onApply={(conteudo) => setDescricao((atual) => combinarComTextoAtual(atual, conteudo))}
+                />
                 <Textarea
                   id="descricao-finalizacao"
                   value={descricao}

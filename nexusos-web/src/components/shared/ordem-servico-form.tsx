@@ -5,11 +5,13 @@ import { Save } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { TemplateSelector } from "@/components/shared/template-selector";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoSchema, type OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
+import { combinarComTextoAtual } from "@/lib/templates";
 import type { Cliente, OrdemServico, PrioridadeOS, Projeto, Usuario } from "@/types";
 
 const responsavelNaoAtribuido = "__none__";
@@ -208,6 +210,10 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
             render={({ field }) => (
               <FormItem className="md:col-span-2">
                 <FormLabel>Descrição</FormLabel>
+                <TemplateSelector
+                  tipo="DESCRICAO_OS"
+                  onApply={(conteudo) => form.setValue("descricao", combinarComTextoAtual(field.value, conteudo), { shouldDirty: true, shouldValidate: true })}
+                />
                 <FormControl>
                   <Textarea placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
                 </FormControl>
