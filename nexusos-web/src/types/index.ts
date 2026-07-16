@@ -152,6 +152,23 @@ export type NotificacaoPagina = {
   itens: Notificacao[];
 };
 
+export type TipoPreferenciaNotificacao =
+  | "OS_ATRIBUIDA"
+  | "PRAZO_VENCIDO"
+  | "APROVACAO_CLIENTE"
+  | "PAGAMENTO"
+  | "COMENTARIO"
+  | "ALTERACAO_STATUS";
+
+export type PreferenciaNotificacao = {
+  tipo: TipoPreferenciaNotificacao;
+  habilitada: boolean;
+};
+
+export type PreferenciasNotificacao = {
+  preferencias: PreferenciaNotificacao[];
+};
+
 export type AuditoriaOS = {
   id: string;
   ordemServicoId: string;
