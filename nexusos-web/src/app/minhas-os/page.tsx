@@ -189,9 +189,9 @@ export default function MinhasOsPage() {
         const atualizadas = new Map(fila.map((ordem) => [ordem.id, ordem]));
         return atuais.map((ordem) => atualizadas.get(ordem.id) ?? ordem);
       });
-      toast.success("Sequencia de execucao atualizada.");
+      toast.success("Sequência de execução atualizada.");
     },
-    onError: () => toast.error("Nao foi possivel atualizar a sequencia.")
+    onError: () => toast.error("Não foi possível atualizar a sequência.")
   });
 
   const minhasOrdens = useMemo(() => {
@@ -228,7 +228,7 @@ export default function MinhasOsPage() {
     <AppShell>
       <PageHeader
         title="Minhas OS"
-        description={`Fila tecnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuario") : (usuario?.nome ?? "desenvolvedor")} na sequencia definida para execucao.`}
+        description={`Fila técnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuário") : (usuario?.nome ?? "desenvolvedor")} na sequência definida para execução.`}
         actions={
           <Button variant="outline" onClick={recarregar} disabled={ordensQuery.isLoading}>
             <RefreshCcw className="h-4 w-4" />
@@ -246,7 +246,7 @@ export default function MinhasOsPage() {
       ) : ordensQuery.isError ? (
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Nao foi possivel carregar suas ordens de servico.</span>
+            <span>Não foi possível carregar suas ordens de serviço.</span>
             <Button variant="outline" size="sm" onClick={recarregar}>
               <RefreshCcw className="h-4 w-4" />
               Tentar novamente
@@ -258,15 +258,15 @@ export default function MinhasOsPage() {
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <MetricaCard title="Vencidas" value={vencidas.length} description="Precisam de prioridade imediata." icon={AlertTriangle} tone="danger" />
             <MetricaCard title="Para hoje" value={hoje.length} description="Devem ser tratadas neste dia." icon={CalendarClock} tone="warning" />
-            <MetricaCard title="Aguardam acao" value={aguardandoAcao.length} description="Dependem de uma proxima etapa." icon={Clock} />
-            <MetricaCard title="Em desenvolvimento" value={emDesenvolvimento.length} description="Trabalho tecnico em andamento." icon={Code2} tone="success" />
+            <MetricaCard title="Aguardam ação" value={aguardandoAcao.length} description="Dependem de uma próxima etapa." icon={Clock} />
+            <MetricaCard title="Em desenvolvimento" value={emDesenvolvimento.length} description="Trabalho técnico em andamento." icon={Code2} tone="success" />
           </section>
 
           <Card className="mt-5">
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row">
               {isAdmin ? (
                 <Select value={responsavelSelecionadoId} onValueChange={setResponsavelFiltro} disabled={usuariosQuery.isLoading || responsaveis.length === 0}>
-                  <SelectTrigger className="sm:w-64"><SelectValue placeholder="Selecione o usuario" /></SelectTrigger>
+                  <SelectTrigger className="sm:w-64"><SelectValue placeholder="Selecione o usuário" /></SelectTrigger>
                   <SelectContent>
                     {responsaveis.map((item) => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}
                   </SelectContent>
@@ -316,8 +316,8 @@ export default function MinhasOsPage() {
           <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
             <Card>
               <CardHeader>
-                <CardTitle>Prioridade de execucao</CardTitle>
-                <CardDescription>{podeReordenar ? "Arraste as OS ou use as setas para definir a sequencia do desenvolvedor." : "Remova os filtros de status e prioridade para reordenar a fila."}</CardDescription>
+                <CardTitle>Prioridade de execução</CardTitle>
+                <CardDescription>{podeReordenar ? "Arraste as OS ou use as setas para definir a sequência do desenvolvedor." : "Remova os filtros de status e prioridade para reordenar a fila."}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {minhasOrdens.length > 0 ? minhasOrdens.map((ordem, index) => (
@@ -386,8 +386,8 @@ export default function MinhasOsPage() {
           <section className="mt-5 grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Aguardando acao</CardTitle>
-                <CardDescription>OS que precisam avancar de etapa ou receber alguma decisao.</CardDescription>
+                <CardTitle>Aguardando ação</CardTitle>
+                <CardDescription>OS que precisam avançar de etapa ou receber alguma decisão.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {aguardandoAcao.length > 0 ? aguardandoAcao.slice(0, 6).map(renderOrdem) : <EmptyState />}
@@ -397,7 +397,7 @@ export default function MinhasOsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Em desenvolvimento</CardTitle>
-                <CardDescription>OS que ja estao em trabalho tecnico ativo.</CardDescription>
+                <CardDescription>OS que já estão em trabalho técnico ativo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {emDesenvolvimento.length > 0 ? emDesenvolvimento.slice(0, 6).map(renderOrdem) : <EmptyState />}

@@ -82,7 +82,7 @@ export function ProjetoForm({ projeto, clientes, isSubmitting = false, onSubmit 
           name="descricao"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descricao</FormLabel>
+              <FormLabel>Descrição</FormLabel>
               <FormControl>
                 <Textarea placeholder="Resumo do escopo, objetivo ou contexto do projeto" {...field} />
               </FormControl>

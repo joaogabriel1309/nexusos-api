@@ -44,8 +44,8 @@ const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL
 type OrdemServicoTab = "status" | "informacoes" | "textos" | "valores" | "auditoria";
 
 const abas: { value: OrdemServicoTab; label: string }[] = [
-  { value: "status", label: "Status e acoes" },
-  { value: "informacoes", label: "Informacoes" },
+  { value: "status", label: "Status e ações" },
+  { value: "informacoes", label: "Informações" },
   { value: "textos", label: "Textos" },
   { value: "valores", label: "Valores" },
   { value: "auditoria", label: "Auditoria" }
@@ -63,15 +63,15 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_ANALISE",
       label: "Iniciar analise",
-      description: "A OS entra na etapa de entendimento tecnico.",
+      description: "A OS entra na etapa de entendimento técnico.",
       primary: true
     }
   ],
   EM_ANALISE: [
     {
       status: "AGUARDANDO_APROVACAO",
-      label: "Enviar para aprovacao",
-      description: "Disponibiliza a analise para decisao do cliente.",
+      label: "Enviar para aprovação",
+      description: "Disponibiliza a análise para decisão do cliente.",
       primary: true
     }
   ],
@@ -79,20 +79,20 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "APROVADA",
       label: "Aprovar manualmente",
-      description: "Registra aprovacao interna quando a decisao veio por outro canal.",
+      description: "Registra aprovação interna quando a decisão veio por outro canal.",
       primary: true
     },
     {
       status: "EM_ANALISE",
       label: "Voltar para analise",
-      description: "Reabre a analise para ajustes antes de nova aprovacao."
+      description: "Reabre a análise para ajustes antes de nova aprovação."
     }
   ],
   APROVADA: [
     {
       status: "EM_DESENVOLVIMENTO",
       label: "Iniciar desenvolvimento",
-      description: "Move a OS para execucao tecnica.",
+      description: "Move a OS para execução técnica.",
       primary: true
     }
   ],
@@ -114,7 +114,7 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_DESENVOLVIMENTO",
       label: "Voltar para desenvolvimento",
-      description: "Retorna a OS para ajustes tecnicos."
+      description: "Retorna a OS para ajustes técnicos."
     }
   ],
   AGUARDANDO_PAGAMENTO: [
@@ -127,7 +127,7 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_DESENVOLVIMENTO",
       label: "Retomar desenvolvimento",
-      description: "Reabre a execucao caso ainda exista ajuste pendente."
+      description: "Reabre a execução caso ainda exista ajuste pendente."
     }
   ],
   FINALIZADA: []
@@ -305,7 +305,7 @@ function StatusTimeline({ ordem, eventos }: { ordem: OrdemServico; eventos: Audi
                       {isPendente ? <Badge variant="outline">Pendente</Badge> : null}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {data ? `Registrado em ${formatarDataHora(data)}` : "Etapa ainda nao alcancada."}
+                      {data ? `Registrado em ${formatarDataHora(data)}` : "Etapa ainda não alcançada."}
                     </div>
                   </div>
                 </div>
@@ -349,7 +349,7 @@ export default function OrdemServicoDetalhePage() {
   const statusMutation = useMutation({
     mutationFn: ({ status, descricao }: { status: StatusOS; descricao?: string }) => {
       if (!ordem) {
-        throw new Error("OS nao carregada.");
+        throw new Error("OS não carregada.");
       }
 
       return ordemServicoService.atualizarStatus(ordem.id, status, descricao);
@@ -362,7 +362,7 @@ export default function OrdemServicoDetalhePage() {
       toast.success("Status da OS atualizado.");
     },
     onError: () => {
-      toast.error("Transicao de status invalida ou nao permitida.");
+      toast.error("Transição de status inválida ou não permitida.");
     },
     onSettled: () => setOsEmAcao(false)
   });
@@ -370,7 +370,7 @@ export default function OrdemServicoDetalhePage() {
   const pagamentoMutation = useMutation({
     mutationFn: (paga: boolean) => {
       if (!ordem) {
-        throw new Error("OS nao carregada.");
+        throw new Error("OS não carregada.");
       }
 
       return ordemServicoService.atualizarPagamento(ordem.id, paga);
@@ -382,14 +382,14 @@ export default function OrdemServicoDetalhePage() {
       toast.success("Pagamento da OS atualizado.");
     },
     onError: () => {
-      toast.error("Nao foi possivel atualizar o pagamento da OS.");
+      toast.error("Não foi possível atualizar o pagamento da OS.");
     }
   });
 
   const excluirMutation = useMutation({
     mutationFn: () => {
       if (!ordem) {
-        throw new Error("OS nao carregada.");
+        throw new Error("OS não carregada.");
       }
 
       return ordemServicoService.excluir(ordem.id);
@@ -401,7 +401,7 @@ export default function OrdemServicoDetalhePage() {
       router.push("/ordens-servico");
     },
     onError: () => {
-      toast.error("Nao foi possivel excluir a OS.");
+      toast.error("Não foi possível excluir a OS.");
     },
     onSettled: () => setOsEmAcao(false)
   });
@@ -437,7 +437,7 @@ export default function OrdemServicoDetalhePage() {
     <AppShell>
       <PageHeader
         title={ordem ? `${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
-        description="Visualize os dados completos da ordem de servico e acompanhe sua evolucao."
+        description="Visualize os dados completos da ordem de serviço e acompanhe sua evolução."
         actions={
           <Button variant="outline" onClick={voltarParaListagem}>
             <ArrowLeft className="h-4 w-4" />
@@ -454,7 +454,7 @@ export default function OrdemServicoDetalhePage() {
       ) : ordemQuery.isError || !ordem ? (
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Nao foi possivel carregar os detalhes da OS.</span>
+            <span>Não foi possível carregar os detalhes da OS.</span>
             <Button variant="outline" size="sm" onClick={() => ordemQuery.refetch()}>
               <RefreshCcw className="h-4 w-4" />
               Tentar novamente
@@ -490,7 +490,7 @@ export default function OrdemServicoDetalhePage() {
                   <CardHeader className="pb-3">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0">
-                        <CardTitle>Status e acoes</CardTitle>
+                        <CardTitle>Status e ações</CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
                           Avance a OS pelo fluxo permitido e acompanhe as etapas ja percorridas.
                         </p>
@@ -521,19 +521,19 @@ export default function OrdemServicoDetalhePage() {
                         </Button>
                         {isDesenvolvedor && ordem.status === "EM_ANALISE" ? (
                           <p className="text-sm text-muted-foreground lg:col-span-2">
-                            Aguarde um administrador aprovar a analise para avancar esta OS.
+                            Aguarde um administrador aprovar a análise para avançar esta OS.
                           </p>
                         ) : null}
                       </div>
                     ) : (
                       <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                        Esta OS esta finalizada. Nao existem proximas etapas operacionais disponiveis.
+                        Esta OS está finalizada. Não existem próximas etapas operacionais disponíveis.
                       </div>
                     )}
 
                     {workflowActions[ordem.status].length > 1 ? (
                       <div className="space-y-2">
-                        <div className="text-sm font-medium">Outras acoes disponiveis</div>
+                        <div className="text-sm font-medium">Outras ações disponíveis</div>
                         <div className="flex flex-wrap gap-2">
                           {workflowActions[ordem.status].slice(1).map((action) => (
                             <Button
@@ -593,7 +593,7 @@ export default function OrdemServicoDetalhePage() {
                       </div>
                     ) : auditoriaQuery.isError ? (
                       <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                        <span>Nao foi possivel carregar o historico de status desta OS.</span>
+                        <span>Não foi possível carregar o histórico de status desta OS.</span>
                         <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
                           <RefreshCcw className="h-4 w-4" />
                           Tentar novamente
@@ -610,14 +610,14 @@ export default function OrdemServicoDetalhePage() {
             {abaAtiva === "informacoes" ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Informacoes da OS</CardTitle>
+                  <CardTitle>Informações da OS</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <CampoDetalhe label="Numero da OS" value={ordem.codigo} />
-                  <CampoDetalhe label="Titulo" value={ordem.titulo} />
+                  <CampoDetalhe label="Título" value={ordem.titulo} />
                   <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
                   <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
-                  <CampoDetalhe label="Responsavel" value={ordem.responsavelNome || "A definir"} />
+                  <CampoDetalhe label="Responsável" value={ordem.responsavelNome || "A definir"} />
                   <CampoPrazo prazo={ordem.prazo} />
                   <CampoDetalhe label="Criada em" value={formatarDataHora(ordem.criadoEm)} />
                   <CampoDetalhe label="Atualizada em" value={formatarDataHora(ordem.atualizadoEm)} />
@@ -630,16 +630,16 @@ export default function OrdemServicoDetalhePage() {
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Descricao</CardTitle>
+                    <CardTitle>Descrição</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CampoDetalhe label="Descricao da solicitacao" value={ordem.descricao} />
+                    <CampoDetalhe label="Descrição da solicitação" value={ordem.descricao} />
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Analise tecnica</CardTitle>
+                    <CardTitle>Análise técnica</CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
@@ -678,7 +678,7 @@ export default function OrdemServicoDetalhePage() {
                     label="Horas estimadas"
                     value={ordem.estimativaHoras != null ? `${ordem.estimativaHoras}h` : "Sem estimativa"}
                   />
-                  <CampoDetalhe label="Cobranca" value={ordem.cobrar === false ? "Nao cobrar" : "Cobrar"} />
+                  <CampoDetalhe label="Cobrança" value={ordem.cobrar === false ? "Não cobrar" : "Cobrar"} />
                   <CampoDetalhe label="Valor total estimado" value={formatarValor(ordem.valorTotalEstimado)} />
                   <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
                     <input
@@ -691,7 +691,7 @@ export default function OrdemServicoDetalhePage() {
                     <span>
                       <span className="block text-sm font-medium">OS paga</span>
                       <span className="block text-sm text-muted-foreground">
-                        Marque quando o pagamento desta ordem de servico ja tiver sido recebido.
+                        Marque quando o pagamento desta ordem de serviço já tiver sido recebido.
                       </span>
                     </span>
                   </label>
@@ -714,7 +714,7 @@ export default function OrdemServicoDetalhePage() {
                     </div>
                   ) : auditoriaQuery.isError ? (
                     <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                      <span>Nao foi possivel carregar a auditoria desta OS.</span>
+                      <span>Não foi possível carregar a auditoria desta OS.</span>
                       <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
                         <RefreshCcw className="h-4 w-4" />
                         Tentar novamente

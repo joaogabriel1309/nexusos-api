@@ -77,7 +77,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
             name="titulo"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Titulo</FormLabel>
+                <FormLabel>Título</FormLabel>
                 <FormControl>
                   <Input placeholder="Resumo objetivo da demanda" {...field} />
                 </FormControl>
@@ -114,7 +114,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
             name="responsavelId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Responsavel</FormLabel>
+                <FormLabel>Responsável</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(value === responsavelNaoAtribuido ? "" : value)}
                   value={field.value || responsavelNaoAtribuido}
@@ -207,7 +207,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
             name="descricao"
             render={({ field }) => (
               <FormItem className="md:col-span-2">
-                <FormLabel>Descricao</FormLabel>
+                <FormLabel>Descrição</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
                 </FormControl>

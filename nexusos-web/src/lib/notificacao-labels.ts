@@ -3,15 +3,15 @@ import type { Notificacao } from "@/types";
 const notificacaoTipoLabels: Record<string, string> = {
   ATRIBUICAO: "Atribuicao",
   STATUS: "Status",
-  PRAZO_PROXIMO: "Prazo proximo",
+  PRAZO_PROXIMO: "Prazo próximo",
   PRAZO_VENCIDO: "Prazo vencido",
   APROVACAO_CLIENTE: "Aprovacao do cliente",
   PAGAMENTO: "Pagamento",
-  OS_SEM_RESPONSAVEL: "OS sem responsavel",
+  OS_SEM_RESPONSAVEL: "OS sem responsável",
   OS_SEM_PRAZO: "OS sem prazo",
   OS_CRITICA: "OS critica",
   OS_PARADA: "OS parada",
-  RESPONSAVEL_ALTERADO: "Responsavel alterado",
+  RESPONSAVEL_ALTERADO: "Responsável alterado",
   COMENTARIO: "Comentario",
   CHECKLIST: "Checklist",
   ANEXO: "Anexo",
@@ -19,7 +19,7 @@ const notificacaoTipoLabels: Record<string, string> = {
   PRAZO_ALTERADO: "Prazo alterado",
   APONTAMENTO: "Apontamento",
   INTEGRACAO_FALHA: "Falha de integracao",
-  USUARIO: "Usuario",
+  USUARIO: "Usuário",
   CLIENTE: "Cliente",
   PROJETO: "Projeto"
 };

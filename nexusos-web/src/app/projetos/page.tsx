@@ -58,7 +58,7 @@ export default function ProjetosPage() {
       toast.success(projetoSelecionado ? "Projeto atualizado com sucesso." : "Projeto cadastrado com sucesso.");
     },
     onError: () => {
-      toast.error("Nao foi possivel salvar o projeto.");
+      toast.error("Não foi possível salvar o projeto.");
     }
   });
 
@@ -70,7 +70,7 @@ export default function ProjetosPage() {
       toast.success("Projeto inativado com sucesso.");
     },
     onError: () => {
-      toast.error("Nao foi possivel inativar o projeto.");
+      toast.error("Não foi possível inativar o projeto.");
     },
     onSettled: () => setProjetoInativandoId(null)
   });
@@ -109,7 +109,7 @@ export default function ProjetosPage() {
     <AppShell>
       <PageHeader
         title="Projetos"
-        description="Cadastre projetos e vincule-os opcionalmente as ordens de servico."
+        description="Cadastre projetos e vincule-os opcionalmente às ordens de serviço."
         actions={
           <Button onClick={abrirCadastro} disabled={clientes.length === 0 || clientesQuery.isLoading}>
             <Plus className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function ProjetosPage() {
             </div>
           ) : projetosQuery.isError || clientesQuery.isError ? (
             <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar os projetos.</span>
+              <span>Não foi possível carregar os projetos.</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -156,9 +156,9 @@ export default function ProjetosPage() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Descricao</TableHead>
+                    <TableHead>Descrição</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[140px] text-right">Acoes</TableHead>
+                    <TableHead className="w-[140px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

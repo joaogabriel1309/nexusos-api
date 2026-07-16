@@ -2,8 +2,8 @@ import type { PrioridadeOS, StatusOS } from "@/types";
 
 export const statusLabels: Record<StatusOS, string> = {
   RECEBIDA: "Recebida",
-  EM_ANALISE: "Em analise",
-  AGUARDANDO_APROVACAO: "Aguardando aprovacao",
+  EM_ANALISE: "Em análise",
+  AGUARDANDO_APROVACAO: "Aguardando aprovação",
   APROVADA: "Aprovada",
   EM_DESENVOLVIMENTO: "Em desenvolvimento",
   EM_TESTE: "Em teste",

@@ -75,7 +75,7 @@ export function OrdemServicoAnaliseForm({
               </div>
               <div className="mt-1 text-2xl font-semibold">{moeda.format(valorTotal)}</div>
               <div className="text-xs text-muted-foreground">
-                {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS nao sera cobrada"}
+                {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS não será cobrada"}
               </div>
             </div>
           ) : null}
@@ -96,7 +96,7 @@ export function OrdemServicoAnaliseForm({
                     <span>
                       <span className="block text-sm font-medium">Cobrar esta OS</span>
                       <span className="block text-sm text-muted-foreground">
-                        Desmarque quando a ordem de servico nao deve gerar valor para o cliente.
+                        Desmarque quando a ordem de serviço não deve gerar valor para o cliente.
                       </span>
                     </span>
                   </label>
@@ -111,11 +111,11 @@ export function OrdemServicoAnaliseForm({
               name="textoAnalise"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Texto da Analise</FormLabel>
+                  <FormLabel>Texto da Análise</FormLabel>
                   <FormControl>
                     <Textarea
                       className="min-h-40"
-                      placeholder="Descreva a analise tecnica da OS"
+                      placeholder="Descreva a análise técnica da OS"
                       disabled={readOnly}
                       {...field}
                     />
@@ -130,7 +130,7 @@ export function OrdemServicoAnaliseForm({
           <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
               <Save className="h-4 w-4" />
-              Salvar analise
+              Salvar análise
             </Button>
           </div>
         ) : null}

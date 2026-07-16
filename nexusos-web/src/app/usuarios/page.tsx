@@ -63,10 +63,10 @@ export default function UsuariosPage() {
       queryClient.invalidateQueries({ queryKey: usuariosQueryKey });
       setDialogOpen(false);
       setUsuarioSelecionado(null);
-      toast.success(usuarioSelecionado ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso.");
+      toast.success(usuarioSelecionado ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso.");
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Nao foi possivel salvar o usuario.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o usuário.");
     }
   });
 
@@ -77,10 +77,10 @@ export default function UsuariosPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usuariosQueryKey });
-      toast.success("Usuario inativado com sucesso.");
+      toast.success("Usuário inativado com sucesso.");
     },
     onError: () => {
-      toast.error("Nao foi possivel inativar o usuario.");
+      toast.error("Não foi possível inativar o usuário.");
     },
     onSettled: () => {
       setUsuarioInativandoId(null);
@@ -109,7 +109,7 @@ export default function UsuariosPage() {
   }
 
   function inativarUsuario(usuario: Usuario) {
-    if (!window.confirm(`Inativar o usuario ${usuario.nome}?`)) {
+    if (!window.confirm(`Inativar o usuário ${usuario.nome}?`)) {
       return;
     }
 
@@ -120,7 +120,7 @@ export default function UsuariosPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          title="Usuarios"
+          title="Usuários"
           description="Gerencie acessos, perfis e status dos usuarios do NexusOS."
           actions={
             <Button onClick={abrirCadastro}>
@@ -140,7 +140,7 @@ export default function UsuariosPage() {
               </div>
             ) : usuariosQuery.isError ? (
               <div className="flex flex-col gap-3 p-4 sm:p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>Nao foi possivel carregar os usuarios.</span>
+                <span>Não foi possível carregar os usuários.</span>
                 <Button variant="outline" size="sm" onClick={() => usuariosQuery.refetch()}>
                   <RefreshCcw className="h-4 w-4" />
                   Tentar novamente
@@ -163,7 +163,7 @@ export default function UsuariosPage() {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Perfil</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-[140px] text-right">Acoes</TableHead>
+                      <TableHead className="w-[140px] text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -181,7 +181,7 @@ export default function UsuariosPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="icon" onClick={() => abrirEdicao(usuario)} aria-label="Editar usuario">
+                            <Button variant="outline" size="icon" onClick={() => abrirEdicao(usuario)} aria-label="Editar usuário">
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
@@ -189,7 +189,7 @@ export default function UsuariosPage() {
                               size="icon"
                               disabled={!usuario.ativo || usuarioInativandoId === usuario.id}
                               onClick={() => inativarUsuario(usuario)}
-                              aria-label="Inativar usuario"
+                              aria-label="Inativar usuário"
                             >
                               {usuarioInativandoId === usuario.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -229,9 +229,9 @@ export default function UsuariosPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{usuarioSelecionado ? "Editar usuario" : "Novo usuario"}</DialogTitle>
+            <DialogTitle>{usuarioSelecionado ? "Editar usuário" : "Novo usuário"}</DialogTitle>
             <DialogDescription>
-              {usuarioSelecionado ? "Atualize os dados de acesso do usuario." : "Informe os dados do novo usuario."}
+              {usuarioSelecionado ? "Atualize os dados de acesso do usuário." : "Informe os dados do novo usuário."}
             </DialogDescription>
           </DialogHeader>
           <UsuarioForm

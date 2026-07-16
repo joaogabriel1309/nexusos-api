@@ -4,13 +4,13 @@ import type { PerfilUsuario } from "@/types";
 export const navigationItems = [
   { title: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
-  { title: "Ordens de Servico", href: "/ordens-servico", icon: ClipboardList },
+  { title: "Ordens de Serviço", href: "/ordens-servico", icon: ClipboardList },
   { title: "OS Finalizadas", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },
-  { title: "Notificacoes", href: "/notificacoes", icon: Bell },
+  { title: "Notificações", href: "/notificacoes", icon: Bell },
   { title: "Projetos", href: "/projetos", icon: FolderKanban },
   { title: "Clientes", href: "/clientes", icon: Building2 },
-  { title: "Usuarios", href: "/usuarios", icon: Users },
-  { title: "Configuracoes", href: "/configuracoes", icon: Settings }
+  { title: "Usuários", href: "/usuarios", icon: Users },
+  { title: "Configurações", href: "/configuracoes", icon: Settings }
 ];
 
 export function getActiveNavigationHref(pathname: string) {

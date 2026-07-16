@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!authUsuario) {
       await authService.logout();
-      throw new Error("Nao foi possivel identificar o perfil do usuario autenticado.");
+      throw new Error("Não foi possível identificar o perfil do usuário autenticado.");
     }
 
     setUsuario(authUsuario);

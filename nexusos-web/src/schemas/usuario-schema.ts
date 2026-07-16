@@ -13,7 +13,7 @@ export const usuarioSchema = z.object({
   email: z.string().min(1, "Informe o e-mail").email("Informe um e-mail valido"),
   senha: senhaSchema,
   perfil: z.enum(perfisUsuario, {
-    message: "Informe o perfil do usuario"
+    message: "Informe o perfil do usuário"
   })
 });
 
@@ -23,7 +23,7 @@ export function validarUsuarioForm(data: UsuarioFormData, isEditing: boolean) {
   const parsed = usuarioSchema.parse(data);
 
   if (!isEditing && !parsed.senha) {
-    throw new Error("Informe a senha do usuario");
+    throw new Error("Informe a senha do usuário");
   }
 
   return parsed;

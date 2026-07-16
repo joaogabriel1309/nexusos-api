@@ -53,7 +53,7 @@ export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: Usuario
               <FormItem className="md:col-span-2">
                 <FormLabel>Nome</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome do usuario" {...field} />
+                  <Input placeholder="Nome do usuário" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -105,7 +105,7 @@ export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: Usuario
                 <FormControl>
                   <Input
                     type="password"
-                    placeholder={usuario ? "Preencha apenas se quiser alterar" : "Minimo de 6 caracteres"}
+                    placeholder={usuario ? "Preencha apenas se quiser alterar" : "Mínimo de 6 caracteres"}
                     {...field}
                   />
                 </FormControl>
@@ -117,7 +117,7 @@ export function UsuarioForm({ usuario, isSubmitting = false, onSubmit }: Usuario
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
             <Save className="h-4 w-4" />
-            Salvar usuario
+            Salvar usuário
           </Button>
         </div>
       </form>

@@ -130,7 +130,7 @@ export function ClienteForm({ cliente, isSubmitting = false, onSubmit }: Cliente
                   <span className="space-y-1">
                     <FormLabel className="cursor-pointer">Enviar e-mail</FormLabel>
                     <span className="block text-muted-foreground">
-                      Enviar notificacoes quando uma OS for criada ou finalizada para este cliente.
+                      Enviar notificações quando uma OS for criada ou finalizada para este cliente.
                     </span>
                   </span>
                 </label>

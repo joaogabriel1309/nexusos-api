@@ -60,7 +60,7 @@ export default function EditarOrdemServicoPage() {
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
       if (!ordem) {
-        throw new Error("OS nao carregada.");
+        throw new Error("OS não carregada.");
       }
 
       return ordemServicoService.atualizar(ordem.id, {
@@ -78,7 +78,7 @@ export default function EditarOrdemServicoPage() {
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
-      toast.error("Nao foi possivel salvar a OS.");
+      toast.error("Não foi possível salvar a OS.");
     }
   });
 
@@ -93,7 +93,7 @@ export default function EditarOrdemServicoPage() {
     <AppShell>
       <PageHeader
         title={ordem ? `Editar OS ${ordem.codigo}` : "Editar OS"}
-        description="Atualize os dados principais da ordem de servico."
+        description="Atualize os dados principais da ordem de serviço."
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
@@ -105,7 +105,7 @@ export default function EditarOrdemServicoPage() {
       <Card>
         <CardContent className="p-4 sm:p-6">
           {isDesenvolvedor ? (
-            <div className="text-sm text-muted-foreground">Seu perfil nao pode editar OS.</div>
+            <div className="text-sm text-muted-foreground">Seu perfil não pode editar OS.</div>
           ) : isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />
@@ -114,7 +114,7 @@ export default function EditarOrdemServicoPage() {
             </div>
           ) : isError || !ordem ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nao foi possivel carregar os dados da OS.</span>
+              <span>Não foi possível carregar os dados da OS.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente

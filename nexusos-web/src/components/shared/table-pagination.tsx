@@ -32,7 +32,7 @@ export function TablePagination({
           Anterior
         </Button>
         <span className="min-w-[96px] text-center text-sm text-muted-foreground">
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </span>
         <Button variant="outline" size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}>
           Proxima
