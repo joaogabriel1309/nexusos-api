@@ -7,8 +7,34 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID> {
+
+    @Query("""
+            select distinct os from OrdemServico os
+            join fetch os.cliente
+            left join fetch os.responsavel
+            left join fetch os.projeto
+            where (os.prazo between :inicio and :fim
+                   or function('date', os.finalizadoEm) between :inicio and :fim)
+              and (:responsavelId is null or os.responsavel.id = :responsavelId)
+              and (:clienteId is null or os.cliente.id = :clienteId)
+              and (:projetoId is null or os.projeto.id = :projetoId)
+              and (:prioridade is null or os.prioridade = :prioridade)
+              and (:status is null or os.status = :status)
+              and (:emailResponsavel is null or os.responsavel.email = :emailResponsavel)
+            """)
+    List<OrdemServico> buscarParaCalendario(
+            @Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim,
+            @Param("responsavelId") UUID responsavelId,
+            @Param("clienteId") UUID clienteId,
+            @Param("projetoId") UUID projetoId,
+            @Param("prioridade") PrioridadeOS prioridade,
+            @Param("status") StatusOS status,
+            @Param("emailResponsavel") String emailResponsavel
+    );
 
     List<OrdemServico> findAllByOrderByAtualizadoEmDesc();
 

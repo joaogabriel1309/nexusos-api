@@ -1,4 +1,4 @@
-import { BarChart3, Bell, Building2, ClipboardCheck, ClipboardList, Code2, FolderKanban, Settings, Users } from "lucide-react";
+import { BarChart3, Bell, Building2, CalendarDays, ClipboardCheck, ClipboardList, Code2, FolderKanban, Settings, Users } from "lucide-react";
 import type { PerfilUsuario } from "@/types";
 
 export const navigationItems = [
@@ -6,6 +6,7 @@ export const navigationItems = [
   { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
   { title: "Ordens de Serviço", href: "/ordens-servico", icon: ClipboardList },
   { title: "OS Finalizadas", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },
+  { title: "Calendário", href: "/calendario", icon: CalendarDays, roles: ["ADMIN", "DESENVOLVEDOR"] },
   { title: "Notificações", href: "/notificacoes", icon: Bell },
   { title: "Projetos", href: "/projetos", icon: FolderKanban },
   { title: "Clientes", href: "/clientes", icon: Building2 },
@@ -27,6 +28,8 @@ export function canAccessPath(pathname: string, perfil?: PerfilUsuario | null) {
   return (
     pathname === "/minhas-os" ||
     pathname.startsWith("/minhas-os/") ||
+    pathname === "/calendario" ||
+    pathname.startsWith("/calendario/") ||
     pathname === "/notificacoes" ||
     pathname.startsWith("/notificacoes/") ||
     pathname === "/ordens-servico" ||
