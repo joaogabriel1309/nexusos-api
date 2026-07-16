@@ -513,12 +513,17 @@ export default function OrdemServicoDetalhePage() {
                         </div>
                         <Button
                           className="w-full lg:w-auto"
-                          disabled={osEmAcao}
+                          disabled={osEmAcao || (isDesenvolvedor && ordem.status === "EM_ANALISE")}
                           onClick={() => executarAcaoWorkflow(workflowActions[ordem.status][0])}
                         >
                           {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                           {workflowActions[ordem.status][0].label}
                         </Button>
+                        {isDesenvolvedor && ordem.status === "EM_ANALISE" ? (
+                          <p className="text-sm text-muted-foreground lg:col-span-2">
+                            Aguarde um administrador aprovar a analise para avancar esta OS.
+                          </p>
+                        ) : null}
                       </div>
                     ) : (
                       <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
@@ -550,20 +555,24 @@ export default function OrdemServicoDetalhePage() {
                         <span className="font-medium text-foreground">{formatarDataHora(ordem.atualizadoEm)}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {!isDesenvolvedor ? (
+                        {ordem.status === "EM_ANALISE" || !isDesenvolvedor ? (
                           <>
                             <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
                               <ClipboardCheck className="h-4 w-4" />
                               {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
                             </Button>
-                            <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
-                              <Edit className="h-4 w-4" />
-                              Editar
-                            </Button>
-                            <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
-                              {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                              Excluir
-                            </Button>
+                            {!isDesenvolvedor ? (
+                              <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
+                                <Edit className="h-4 w-4" />
+                                Editar
+                              </Button>
+                            ) : null}
+                            {!isDesenvolvedor ? (
+                              <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
+                                {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                Excluir
+                              </Button>
+                            ) : null}
                           </>
                         ) : null}
                       </div>

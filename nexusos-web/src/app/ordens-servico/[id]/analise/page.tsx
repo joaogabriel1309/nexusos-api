@@ -88,9 +88,7 @@ export default function AnaliseOrdemServicoPage() {
 
       <Card>
         <CardContent className="p-4 sm:p-6">
-          {isDesenvolvedor ? (
-            <div className="text-sm text-muted-foreground">Seu perfil nao pode editar a analise da OS.</div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-24 w-full" />
@@ -110,6 +108,7 @@ export default function AnaliseOrdemServicoPage() {
               valorHora={valorHora}
               isSubmitting={analiseMutation.isPending}
               readOnly={ordem.status !== "EM_ANALISE"}
+              developerMode={isDesenvolvedor}
               onSubmit={(data) => analiseMutation.mutate(data)}
             />
           )}

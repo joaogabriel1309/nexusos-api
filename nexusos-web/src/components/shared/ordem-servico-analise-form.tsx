@@ -16,6 +16,7 @@ type OrdemServicoAnaliseFormProps = {
   valorHora: number;
   isSubmitting?: boolean;
   readOnly?: boolean;
+  developerMode?: boolean;
   onSubmit: (data: OrdemServicoAnaliseFormData) => void;
 };
 
@@ -26,6 +27,7 @@ export function OrdemServicoAnaliseForm({
   valorHora,
   isSubmitting = false,
   readOnly = false,
+  developerMode = false,
   onSubmit
 }: OrdemServicoAnaliseFormProps) {
   const form = useForm<OrdemServicoAnaliseFormData>({
@@ -65,58 +67,64 @@ export function OrdemServicoAnaliseForm({
               </FormItem>
             )}
           />
-          <div className="rounded-md border bg-secondary/40 px-4 py-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Calculator className="h-4 w-4" />
-              Valor previsto
+          {!developerMode ? (
+            <div className="rounded-md border bg-secondary/40 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Calculator className="h-4 w-4" />
+                Valor previsto
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{moeda.format(valorTotal)}</div>
+              <div className="text-xs text-muted-foreground">
+                {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS nao sera cobrada"}
+              </div>
             </div>
-            <div className="mt-1 text-2xl font-semibold">{moeda.format(valorTotal)}</div>
-            <div className="text-xs text-muted-foreground">
-              {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS nao sera cobrada"}
-            </div>
-          </div>
-          <FormField
-            control={form.control}
-            name="cobrar"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 accent-primary"
-                    checked={field.value}
-                    disabled={readOnly}
-                    onChange={(event) => field.onChange(event.target.checked)}
-                  />
-                  <span>
-                    <span className="block text-sm font-medium">Cobrar esta OS</span>
-                    <span className="block text-sm text-muted-foreground">
-                      Desmarque quando a ordem de servico nao deve gerar valor para o cliente.
+          ) : null}
+          {!developerMode ? (
+            <FormField
+              control={form.control}
+              name="cobrar"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <label className="flex items-start gap-3 rounded-md border bg-secondary/30 p-4">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-primary"
+                      checked={field.value}
+                      disabled={readOnly}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">Cobrar esta OS</span>
+                      <span className="block text-sm text-muted-foreground">
+                        Desmarque quando a ordem de servico nao deve gerar valor para o cliente.
+                      </span>
                     </span>
-                  </span>
-                </label>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="textoAnalise"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Texto da Analise</FormLabel>
-                <FormControl>
-                  <Textarea
-                    className="min-h-40"
-                    placeholder="Descreva a analise tecnica da OS"
-                    disabled={readOnly}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  </label>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {!developerMode ? (
+            <FormField
+              control={form.control}
+              name="textoAnalise"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Texto da Analise</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-40"
+                      placeholder="Descreva a analise tecnica da OS"
+                      disabled={readOnly}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
         </div>
         {!readOnly ? (
           <div className="flex justify-end">

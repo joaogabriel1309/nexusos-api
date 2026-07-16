@@ -166,6 +166,9 @@ public class OrdemServicoService {
     public OrdemServicoResponse atualizarStatus(UUID id, StatusUpdateRequest request) {
         var os = buscarEntidade(id);
         var statusAnterior = os.getStatus();
+        if (ehDesenvolvedor() && statusAnterior == StatusOS.EM_ANALISE) {
+            throw new RegraNegocioException("A analise deve ser aprovada por um administrador antes de avancar a OS.");
+        }
         validarTransicao(statusAnterior, request.status());
         os.setStatus(request.status());
         if (request.status() == StatusOS.FINALIZADA) {
@@ -201,17 +204,33 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponse atualizarAnalise(UUID id, AnaliseUpdateRequest request) {
         var os = buscarEntidade(id);
-        os.setEntendimento(request.entendimento());
-        os.setImpacto(request.impacto());
-        os.setRiscos(request.riscos());
+        if (os.getStatus() != StatusOS.EM_ANALISE) {
+            throw new RegraNegocioException("A analise so pode ser alterada enquanto a OS esta em analise.");
+        }
+        var desenvolvedor = ehDesenvolvedor();
+        if (!desenvolvedor) {
+            os.setEntendimento(request.entendimento());
+            os.setImpacto(request.impacto());
+            os.setRiscos(request.riscos());
+            os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
+        }
         os.setEstimativaHoras(request.estimativaHoras());
-        os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
-        auditoriaService.registrar(salva, salva.getResponsavel(), "ANALISE", "Analise tecnica atualizada.", null, salva.getStatus());
-        emailService.enviarOrdemServicoAnalisada(salva);
-        whatsappService.enviarOrdemServicoAnalisada(salva);
+        auditoriaService.registrar(salva, salva.getResponsavel(), "ANALISE",
+                desenvolvedor ? "Estimativa de horas informada pelo desenvolvedor." : "Analise tecnica atualizada.",
+                null, salva.getStatus());
+        if (!desenvolvedor) {
+            emailService.enviarOrdemServicoAnalisada(salva);
+            whatsappService.enviarOrdemServicoAnalisada(salva);
+        }
         return OrdemServicoResponse.from(salva);
+    }
+
+    private boolean ehDesenvolvedor() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_DESENVOLVEDOR".equals(authority.getAuthority()));
     }
 
     @Transactional(readOnly = true)
