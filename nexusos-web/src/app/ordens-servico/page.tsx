@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Edit, Eye, FileSpreadsheet, FileText, Plus, RefreshCcw, Search } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Columns3, Edit, Eye, FileSpreadsheet, FileText, List, Plus, RefreshCcw, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
-import type { PrioridadeOS, StatusOS } from "@/types";
+import type { OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 
 const ordensQueryKey = ["ordens-servico"];
 const clientesQueryKey = ["clientes"];
@@ -37,6 +37,19 @@ const todosResponsaveisOption = "__todos_responsaveis__";
 const semResponsavelOption = "sem-responsavel";
 const itensPorPagina = 20;
 const csvSeparador = ";";
+const kanbanStatuses: StatusOS[] = [
+  "RECEBIDA", "EM_ANALISE", "AGUARDANDO_APROVACAO", "APROVADA",
+  "EM_DESENVOLVIMENTO", "EM_TESTE", "AGUARDANDO_PAGAMENTO", "FINALIZADA"
+];
+const transicoesKanban: Partial<Record<StatusOS, StatusOS[]>> = {
+  RECEBIDA: ["EM_ANALISE"],
+  EM_ANALISE: ["AGUARDANDO_APROVACAO"],
+  AGUARDANDO_APROVACAO: ["APROVADA", "EM_ANALISE"],
+  APROVADA: ["EM_DESENVOLVIMENTO"],
+  EM_DESENVOLVIMENTO: ["EM_TESTE"],
+  EM_TESTE: ["AGUARDANDO_PAGAMENTO", "EM_DESENVOLVIMENTO"],
+  AGUARDANDO_PAGAMENTO: ["FINALIZADA", "EM_DESENVOLVIMENTO"]
+};
 
 type PrazoFiltro = "" | "vencidas" | "hoje" | "proximas" | "sem-prazo";
 
@@ -156,6 +169,7 @@ function OrdensTableSkeleton() {
 
 function OrdensServicoPageContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { usuario } = useAuth();
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
@@ -169,6 +183,8 @@ function OrdensServicoPageContent() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [visao, setVisao] = useState<"lista" | "kanban">("lista");
+  const [ordemArrastada, setOrdemArrastada] = useState<OrdemServico | null>(null);
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
@@ -244,7 +260,7 @@ function OrdensServicoPageContent() {
 
     return (ordensQuery.data ?? [])
       .filter((ordem) => {
-        if (ordem.status === "FINALIZADA") {
+        if (visao === "lista" && ordem.status === "FINALIZADA") {
           return false;
         }
 
@@ -315,7 +331,8 @@ function OrdensServicoPageContent() {
     prioridadeFiltro,
     projetoFiltro,
     responsavelFiltro,
-    statusFiltro
+    statusFiltro,
+    visao
   ]);
   const totalPaginas = Math.max(1, Math.ceil(ordensFiltradas.length / itensPorPagina));
   const ordensPaginadas = useMemo(() => {
@@ -376,6 +393,33 @@ function OrdensServicoPageContent() {
     setDataInicio("");
     setDataFim("");
     router.replace("/ordens-servico");
+  }
+
+  const statusMutation = useMutation({
+    mutationFn: ({ ordem, status }: { ordem: OrdemServico; status: StatusOS }) =>
+      ordemServicoService.atualizarStatus(ordem.id, status),
+    onSuccess: (ordemAtualizada) => {
+      queryClient.setQueryData<OrdemServico[]>(ordensQueryKey, (atuais = []) =>
+        atuais.map((ordem) => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
+      );
+      toast.success(`OS ${ordemAtualizada.codigo} movida para ${statusLabels[ordemAtualizada.status]}.`);
+    },
+    onError: () => toast.error("Não foi possível alterar o status da OS.")
+  });
+
+  function podeMover(ordem: OrdemServico, destino: StatusOS) {
+    if (isDesenvolvedor && ordem.status === "EM_ANALISE") return false;
+    return transicoesKanban[ordem.status]?.includes(destino) ?? false;
+  }
+
+  function soltarNoStatus(destino: StatusOS) {
+    if (!ordemArrastada || !podeMover(ordemArrastada, destino)) return;
+    if (destino === "FINALIZADA") {
+      router.push(`/ordens-servico/${ordemArrastada.id}/finalizar`);
+    } else {
+      statusMutation.mutate({ ordem: ordemArrastada, status: destino });
+    }
+    setOrdemArrastada(null);
   }
 
   const filtrosAtivos = [
@@ -509,6 +553,14 @@ function OrdensServicoPageContent() {
               />
             </div>
             <div className="flex flex-wrap gap-2">
+              <div className="flex rounded-md border p-0.5" aria-label="Modo de visualização">
+                <Button variant={visao === "lista" ? "secondary" : "ghost"} size="sm" onClick={() => setVisao("lista")}>
+                  <List className="h-4 w-4" /> Lista
+                </Button>
+                <Button variant={visao === "kanban" ? "secondary" : "ghost"} size="sm" onClick={() => setVisao("kanban")}>
+                  <Columns3 className="h-4 w-4" /> Kanban
+                </Button>
+              </div>
               <Button variant="outline" onClick={exportarPdf} disabled={isLoading || ordensFiltradas.length === 0}>
                 <FileText className="h-4 w-4" />
                 PDF
@@ -654,7 +706,53 @@ function OrdensServicoPageContent() {
               ) : null}
             </div>
           ) : (
-            <>
+            visao === "kanban" ? (
+              <div className="overflow-x-auto pb-3">
+                <div className="flex min-w-max gap-4" aria-label="Kanban de ordens de serviço">
+                  {kanbanStatuses.map((status) => {
+                    const ordensDaColuna = ordensFiltradas.filter((ordem) => ordem.status === status);
+                    const destinoValido = ordemArrastada ? podeMover(ordemArrastada, status) : false;
+                    return (
+                      <section
+                        key={status}
+                        className={`w-72 shrink-0 rounded-lg border bg-muted/30 p-3 transition-colors ${destinoValido ? "border-primary bg-primary/5" : ""}`}
+                        onDragOver={(event) => { if (destinoValido) event.preventDefault(); }}
+                        onDrop={() => soltarNoStatus(status)}
+                      >
+                        <header className="mb-3 flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold">{statusLabels[status]}</span>
+                          <Badge variant="secondary">{ordensDaColuna.length}</Badge>
+                        </header>
+                        <div className="space-y-3">
+                          {ordensDaColuna.length === 0 ? (
+                            <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+                              Nenhuma OS
+                            </div>
+                          ) : ordensDaColuna.map((ordem) => (
+                            <article
+                              key={ordem.id}
+                              draggable={!statusMutation.isPending && (transicoesKanban[ordem.status]?.length ?? 0) > 0 && !(isDesenvolvedor && ordem.status === "EM_ANALISE")}
+                              onDragStart={() => setOrdemArrastada(ordem)}
+                              onDragEnd={() => setOrdemArrastada(null)}
+                              onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
+                              className="cursor-pointer rounded-md border bg-background p-3 shadow-sm transition-shadow hover:shadow-md"
+                            >
+                              <div className="font-medium">OS {ordem.codigo}</div>
+                              <div className="mt-1 line-clamp-2 text-sm">{ordem.titulo}</div>
+                              <div className="mt-3 truncate text-xs text-muted-foreground">{ordem.clienteNome}</div>
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <Badge variant="outline">{prioridadeLabels[ordem.prioridade]}</Badge>
+                                <span className="text-xs text-muted-foreground">{formatarDataPrazo(ordem.prazo)}</span>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : <>
               <div className="grid gap-3 md:hidden">
                 {ordensPaginadas.map((ordem) => (
                   <div
@@ -825,7 +923,7 @@ function OrdensServicoPageContent() {
             </>
           )}
 
-          {!isLoading && !isError && ordensFiltradas.length > 0 ? (
+          {!isLoading && !isError && ordensFiltradas.length > 0 && visao === "lista" ? (
             <TablePagination
               page={paginaAtual}
               totalItems={ordensFiltradas.length}
