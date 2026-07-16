@@ -55,16 +55,16 @@ function printReport(execution) {
   const tests = execution.testOutput?.testResults;
   console.log(`Execucao: ${execution.id}`);
   console.log(`Status: ${humanStatus(execution.status)}`);
-  console.log(`Branch: ${execution.branch || "-"}`);
+  console.log(`Branch de trabalho: ${execution.branch || "-"}`);
   console.log(`Branch de destino: ${execution.targetBranch || "-"}`);
   console.log(`Seguranca: ${execution.securityOutput?.status ?? "-"}`);
   console.log(`Testes: ${tests ? `${tests.passed} aprovados, ${tests.failed} falhos` : "-"}`);
   console.log(`Push: ${delivery.push ?? "-"}`);
-  console.log(`Pull Request: ${delivery.pullRequestCreated ? "criado" : "-"}`);
+  console.log(`Pull Request: ${delivery.pullRequestCreated ? "criado" : "nao utilizado"}`);
   console.log(`URL: ${delivery.pullRequestUrl ?? "-"}`);
-  console.log(`Merge automatico: ${delivery.mergePerformed ? "realizado" : "nao realizado"}`);
+  console.log(`Entrega direta: ${delivery.commitsCreated && delivery.push === "success" ? "realizada" : "-"}`);
   if (execution.status === STATES.WAITING_FOR_DEVELOPMENT) {
-    console.log("Proximo passo: implemente na branch criada ou configure AGENTS_DEVELOPER_COMMAND e rode pnpm agents:resume <ID>.");
+    console.log("Proximo passo: implemente na branch alvo ou configure AGENTS_DEVELOPER_COMMAND e rode pnpm agents:resume <ID>.");
   }
   if (execution.errors?.length) {
     console.log("Erros:");

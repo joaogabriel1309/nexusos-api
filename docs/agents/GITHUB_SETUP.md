@@ -3,17 +3,11 @@
 ## Requisitos
 
 - Remote `origin` apontando para GitHub.
-- GitHub CLI instalado.
-- Autenticacao via:
+- Autenticacao Git configurada para push direto. Use SSH ou token HTTPS.
 
 ```bash
-gh auth login
-```
-
-Ou em CI/local nao interativo:
-
-```bash
-GH_TOKEN=...
+git remote -v
+ssh -T git@github.com
 ```
 
 Nunca salve tokens reais no repositorio.
@@ -23,11 +17,10 @@ Nunca salve tokens reais no repositorio.
 Prioridade:
 
 1. `AGENTS_TARGET_BRANCH`
-2. Branch padrao do GitHub
-3. `develop`
-4. `main`
-5. `master`
+2. `master`
+3. `main`
+4. Branch atual
 
-## Pull Request
+## Entrega direta
 
-O agente verifica PR aberto para a branch com `gh pr list`. Se existir, atualiza o PR. Se nao existir, cria um novo. O merge permanece humano.
+O agente cria commit e executa `git push origin <branch-alvo>`. Pull Request nao e criado nesse modo.

@@ -54,7 +54,7 @@ O backend possui testes JUnit/Spring Boot em `src/test`. O frontend possui scrip
 
 ## Git e GitHub
 
-O remote `origin` aponta para GitHub. O sistema de agentes deve usar GitHub CLI (`gh`) para criar ou atualizar Pull Requests. Branches protegidas como `main`, `master`, `develop`, `production` e `release` nao podem receber push direto.
+O remote `origin` aponta para GitHub. O sistema de agentes commita e envia direto para a branch alvo (`master` por padrao).
 
 ## Docker e variaveis de ambiente
 
@@ -64,7 +64,7 @@ O remote `origin` aponta para GitHub. O sistema de agentes deve usar GitHub CLI 
 
 - O projeto tem backend e frontend no mesmo repositorio, entao tarefas podem afetar contratos entre camadas.
 - A automacao de desenvolvimento nao deve executar comandos destrutivos ou tocar em arquivos fora do projeto.
-- Push e PR dependem de `gh` instalado e autenticado.
+- Push depende de permissao Git configurada para o remote.
 - Uploads e anexos exigem revisao rigorosa de path traversal, MIME type, tamanho e permissao.
 - Builds de frontend podem demorar e gerar artefatos locais que nao devem entrar no commit.
 
@@ -73,9 +73,9 @@ O remote `origin` aponta para GitHub. O sistema de agentes deve usar GitHub CLI 
 Foi criado um CLI local em Node.js, sem novas dependencias, acionado por PNPM na raiz. A persistencia fica em `.agents/runtime/<ID>/execution.json`, ignorada pelo Git. O orquestrador controla todas as transicoes de estado e chama agentes deterministas:
 
 1. PO: gera especificacao estruturada.
-2. Desenvolvedor: cria branch e executa `AGENTS_DEVELOPER_COMMAND` quando configurado, ou aguarda implementacao externa na branch.
+2. Desenvolvedor: usa a branch alvo e executa `AGENTS_DEVELOPER_COMMAND` quando configurado, ou aguarda implementacao externa na branch.
 3. Seguranca: revisa arquivos alterados e bloqueia achados criticos/altos.
 4. Testes: executa Maven, typecheck e build do frontend.
-5. Entrega: cria commit, push e Pull Request no GitHub via `gh`.
+5. Entrega: cria commit e faz push direto para a branch alvo.
 
 Essa decisao preserva a arquitetura da aplicacao e evita expor endpoints administrativos perigosos em producao.

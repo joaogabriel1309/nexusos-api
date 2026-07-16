@@ -1,11 +1,12 @@
 # Troubleshooting
 
-## GitHub CLI nao autenticado
+## Git nao autenticado
 
-Rode:
+Confira se o remote e a autenticacao estao corretos:
 
 ```bash
-gh auth login
+git remote -v
+ssh -T git@github.com
 ```
 
 Depois retome:
@@ -14,18 +15,18 @@ Depois retome:
 pnpm agents:resume ID
 ```
 
-## Existem alteracoes locais antes da branch
+## Existem alteracoes locais antes da branch alvo
 
-Faça commit ou stash das alteracoes antes de iniciar. O sistema nao troca de branch quando houver risco de perda de trabalho.
+Faca commit ou stash das alteracoes antes de iniciar. O sistema nao troca para a branch alvo quando houver risco de perda de trabalho.
 
 ## Testes falharam
 
-Corrija na branch da tarefa e rode:
+Corrija na branch alvo e rode:
 
 ```bash
 pnpm agents:resume ID
 ```
 
-## PR duplicado
+## Push falhou
 
-O sistema consulta PR aberto por branch. Se encontrar um, atualiza em vez de criar outro.
+Confira se o remote esta autenticado e se a branch alvo aceita push direto.

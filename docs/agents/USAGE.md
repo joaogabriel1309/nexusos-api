@@ -42,4 +42,4 @@ AGENTS_DEVELOPER_COMMAND="codex exec --full-auto {prompt}"
 
 Placeholders disponiveis: `{prompt}`, `{promptFile}`, `{executionFile}`, `{id}`, `{branch}`, `{targetBranch}`, `{request}`, `{root}`.
 
-Sem provedor/comando, o fluxo cria a especificacao e a branch, depois aguarda implementacao externa.
+Sem provedor/comando, o fluxo cria a especificacao e aguarda implementacao externa na branch alvo.

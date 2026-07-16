@@ -6,7 +6,7 @@ Analisa o pedido, contexto do projeto, modulos afetados, regras de negocio, risc
 
 ## Desenvolvedor
 
-Cria branch de tarefa, gera `.agents/runtime/<ID>/developer-prompt.md`, executa o braco programador quando configurado e registra arquivos alterados.
+Usa a branch alvo (`master` por padrao), gera `.agents/runtime/<ID>/developer-prompt.md`, executa o braco programador quando configurado e registra arquivos alterados.
 
 Formas de ativar:
 
@@ -22,7 +22,7 @@ Placeholders aceitos no comando:
 
 Por seguranca, comandos customizados precisam usar `{prompt}`, `{promptFile}` ou `{executionFile}`. Para liberar comando bruto, configure `AGENTS_DEVELOPER_ALLOW_RAW_COMMAND=true`.
 
-Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implementacao manual na branch e retomada com `pnpm agents:resume`.
+Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implementacao manual na branch alvo e retomada com `pnpm agents:resume`.
 
 ## Seguranca
 
@@ -34,4 +34,4 @@ Executa `mvnw test`, `pnpm --dir nexusos-web typecheck` e `pnpm --dir nexusos-we
 
 ## Entrega
 
-Cria commit, faz push para a branch da tarefa e abre ou atualiza Pull Request no GitHub. Nao faz merge e nao aprova PR.
+Cria commit e faz push direto para a branch alvo. Nao cria Pull Request e nao faz merge.

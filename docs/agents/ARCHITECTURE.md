@@ -12,7 +12,7 @@ O sistema de agentes e uma ferramenta local de desenvolvimento, fora do runtime 
 
 ## Justificativa
 
-A ferramenta executa Git, build, testes e GitHub CLI. Rodar isso dentro da API web criaria risco operacional. O CLI local reduz superficie de ataque, evita endpoints administrativos e aproveita a autenticacao ja configurada no ambiente do desenvolvedor.
+A ferramenta executa Git, build e testes. Rodar isso dentro da API web criaria risco operacional. O CLI local reduz superficie de ataque, evita endpoints administrativos e aproveita a autenticacao ja configurada no ambiente do desenvolvedor.
 
 ## Estados
 
@@ -26,4 +26,4 @@ Cada execucao possui `execution.json` com pedido original, branch, target branch
 
 ## Integracao com GitHub
 
-O agente de entrega usa `gh pr list`, `gh pr create`, `gh pr edit` e `gh pr checks`. Se `gh` nao estiver instalado ou autenticado, a entrega falha com mensagem clara e preserva branch/alteracoes.
+O agente de entrega cria commit local e faz `git push origin <branch-alvo>` direto. O GitHub CLI (`gh`) nao e necessario nesse modo.

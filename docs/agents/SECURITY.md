@@ -11,9 +11,9 @@
 - `DROP DATABASE`
 - `DROP TABLE`
 
-## Branches protegidas
+## Branch alvo
 
-O sistema bloqueia push direto para `main`, `master`, `develop`, `production` e `release`.
+O sistema trabalha direto na branch alvo (`master` por padrao). Force push continua bloqueado.
 
 ## Segredos
 

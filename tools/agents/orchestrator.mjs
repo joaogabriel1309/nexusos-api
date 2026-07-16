@@ -1,10 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  PROTECTED_BRANCHES,
   STATES,
   analyzeProject,
-  branchNameFor,
   changedFiles,
   loadExecution,
   newExecution,
@@ -62,7 +60,7 @@ function analyze(root, execution) {
   transition(root, execution, STATES.ANALYZING_PROJECT, "Analisando estrutura do projeto");
   execution.projectAnalysis = analyzeProject(root);
   execution.targetBranch = resolveTargetBranch(root);
-  execution.branch = uniqueBranch(root, branchNameFor(execution.originalRequest));
+  execution.branch = execution.targetBranch;
   saveExecution(root, execution);
   transition(root, execution, STATES.CREATING_SPECIFICATION, "Analise concluida");
 }
@@ -100,7 +98,7 @@ function poAgent(root, execution) {
       ? ["Validar extensao, MIME type, assinatura real, tamanho, path traversal e controle de acesso."]
       : ["Validar autorizacao, entrada de dados, vazamento de informacao e segredos."],
     testScenarios: ["Cenario positivo", "Permissao negada", "Entrada invalida", "Regressao de listagem/detalhe"],
-    risks: ["Automacao local nao deve fazer merge, force push ou tocar em branches protegidas."]
+    risks: ["Automacao local deve commitar direto na branch alvo sem force push."]
   };
   saveExecution(root, execution);
   transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Especificacao criada pelo agente PO");
@@ -108,7 +106,7 @@ function poAgent(root, execution) {
 
 function developerAgent(root, execution) {
   execution.currentAgent = "DEVELOPER";
-  transition(root, execution, STATES.DEVELOPING, "Preparando branch e implementacao");
+  transition(root, execution, STATES.DEVELOPING, "Preparando branch alvo e implementacao");
   ensureWorkingTreeCanStart(root, execution);
   ensureTaskBranch(root, execution);
 
@@ -136,7 +134,7 @@ function developerAgent(root, execution) {
     branch: execution.branch,
     summary: files.length > 0
       ? "Alteracoes detectadas para revisao de seguranca e testes."
-      : "Nenhuma alteracao de codigo detectada. Configure AGENTS_DEVELOPER_COMMAND ou implemente na branch e rode agents:resume.",
+      : "Nenhuma alteracao de codigo detectada. Configure AGENTS_DEVELOPER_COMMAND ou implemente na branch alvo e rode agents:resume.",
     changedFiles: files,
     createdFiles: files.filter((file) => run(`git ls-files --error-unmatch ${JSON.stringify(file)}`, { cwd: root }).code !== 0),
     databaseChanges: files.filter((file) => file.includes("src/main/resources/db/migration")),
@@ -151,7 +149,7 @@ function developerAgent(root, execution) {
   saveExecution(root, execution);
 
   if (files.length === 0) {
-    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Aguardando implementacao na branch");
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Aguardando implementacao na branch alvo");
     return;
   }
   transition(root, execution, STATES.WAITING_FOR_SECURITY_REVIEW, "Implementacao detectada");
@@ -247,7 +245,7 @@ ${execution.originalRequest}
 ## Execucao
 
 - ID: ${execution.id}
-- Branch da tarefa: ${execution.branch}
+- Branch de trabalho: ${execution.branch}
 - Branch de destino: ${execution.targetBranch}
 - Arquivo de estado: ${runtimeFile(root, execution, "execution.json")}
 
@@ -267,7 +265,7 @@ ${JSON.stringify(execution.projectAnalysis, null, 2)}
 
 - Trabalhe apenas dentro do repositorio.
 - Nao use comandos destrutivos.
-- Nao faca commit, push, merge ou Pull Request. O agente de entrega fara isso.
+- Nao faca commit, push, merge ou Pull Request. O agente de entrega fara commit e push na branch alvo.
 - Nao adicione tokens, senhas ou segredos.
 - Preserve contratos existentes sempre que possivel.
 - Crie ou ajuste testes quando a mudanca pedir.
@@ -358,7 +356,6 @@ function testAgent(root, execution) {
 
 function deliveryAgent(root, execution) {
   execution.currentAgent = "DELIVERY";
-  ensureBranchIsPushable(execution.branch);
   const files = changedFiles(root);
   if (files.length === 0) {
     transition(root, execution, STATES.FAILED, "Nao ha arquivos para commit");
@@ -368,84 +365,44 @@ function deliveryAgent(root, execution) {
   const commands = [];
   commands.push(summarizeCommand(run("git status --short", { cwd: root })));
   commands.push(summarizeCommand(run(safeAddCommand(files), { cwd: root })));
+  const reportFile = runtimeFile(root, execution, "delivery-report.md");
+  writeFileSync(reportFile, deliveryReport(execution, files));
   const message = conventionalTitle(execution.originalRequest);
   commands.push(summarizeCommand(run(`git commit -m ${JSON.stringify(message)}`, { cwd: root })));
   if (commands.at(-1).code !== 0) {
     throw new Error("Falha ao criar commit.");
   }
-  transition(root, execution, STATES.PUSHING_BRANCH, "Enviando branch");
-  commands.push(summarizeCommand(run(`git push -u origin ${execution.branch}`, { cwd: root, timeoutMs: 600000 })));
+  transition(root, execution, STATES.PUSHING_BRANCH, `Enviando commit para ${execution.branch}`);
+  commands.push(summarizeCommand(run(`git push origin ${execution.branch}`, { cwd: root, timeoutMs: 600000 })));
   if (commands.at(-1).code !== 0) {
-    throw new Error("Falha ao fazer push da branch.");
+    throw new Error(`Falha ao fazer push para ${execution.branch}.`);
   }
-  transition(root, execution, STATES.CREATING_PULL_REQUEST, "Criando Pull Request");
-  const ghVersion = run("gh --version", { cwd: root });
-  const ghAuth = run("gh auth status", { cwd: root });
-  commands.push(summarizeCommand(ghVersion), summarizeCommand(ghAuth));
-  if (ghVersion.code !== 0 || ghAuth.code !== 0) {
-    throw new Error("GitHub CLI ausente ou nao autenticado. Rode gh auth login ou configure GH_TOKEN/GITHUB_TOKEN.");
-  }
-  const bodyFile = runtimeFile(root, execution, "pull-request.md");
-  writeFileSync(bodyFile, pullRequestBody(execution, files));
-  const existing = run(`gh pr list --head ${execution.branch} --state open --json number,url,title`, { cwd: root });
-  commands.push(summarizeCommand(existing));
-  let prUrl = "";
-  try {
-    const prs = JSON.parse(existing.stdout || "[]");
-    if (Array.isArray(prs) && prs[0]) {
-      prUrl = prs[0].url;
-      commands.push(summarizeCommand(run(`gh pr edit ${prs[0].number} --title ${JSON.stringify(message)} --body-file ${JSON.stringify(bodyFile)}`, { cwd: root })));
-    }
-  } catch {
-    // Se a saida nao for JSON valida, tentaremos criar o PR abaixo.
-  }
-  if (!prUrl) {
-    const created = run(`gh pr create --base ${execution.targetBranch} --head ${execution.branch} --title ${JSON.stringify(message)} --body-file ${JSON.stringify(bodyFile)}`, { cwd: root });
-    commands.push(summarizeCommand(created));
-    if (created.code !== 0) {
-      throw new Error("Falha ao criar Pull Request no GitHub.");
-    }
-    prUrl = created.stdout.trim().split(/\r?\n/).at(-1) ?? "";
-  }
-  const checks = prUrl ? summarizeCommand(run(`gh pr checks ${JSON.stringify(prUrl)}`, { cwd: root, timeoutMs: 120000 })) : null;
-  if (checks) commands.push(checks);
   execution.deliveryOutput = {
-    status: "WAITING_FOR_HUMAN_REVIEW",
+    status: "COMPLETED",
     provider: "github",
     remote: "origin",
     branch: execution.branch,
     targetBranch: execution.targetBranch,
     commitsCreated: true,
     push: "success",
-    pullRequestCreated: true,
-    pullRequestUrl: prUrl,
+    pullRequestCreated: false,
+    pullRequestUrl: "",
     mergePerformed: false,
     commandsExecuted: commands,
-    checks
+    checks: null
   };
   saveExecution(root, execution);
-  transition(root, execution, STATES.WAITING_FOR_HUMAN_REVIEW, "Pull Request criado; aguardando revisao humana");
+  transition(root, execution, STATES.COMPLETED, `Commit enviado para ${execution.branch}`);
 }
 
 function resolveTargetBranch(root) {
   if (process.env.AGENTS_TARGET_BRANCH) return process.env.AGENTS_TARGET_BRANCH;
-  const ghDefault = run("gh repo view --json defaultBranchRef --jq .defaultBranchRef.name", { cwd: root });
-  if (ghDefault.code === 0 && ghDefault.stdout.trim()) return ghDefault.stdout.trim();
   const branches = run("git branch --list", { cwd: root }).stdout;
-  if (branches.includes("develop")) return "develop";
+  if (branches.includes("master")) return "master";
   if (branches.includes("main")) return "main";
+  const current = run("git branch --show-current", { cwd: root }).stdout.trim();
+  if (current) return current;
   return "master";
-}
-
-function uniqueBranch(root, base) {
-  ensureBranchIsPushable(base);
-  let branch = base;
-  let index = 2;
-  while (run(`git rev-parse --verify ${branch}`, { cwd: root }).code === 0) {
-    branch = `${base}-${index}`;
-    index += 1;
-  }
-  return branch;
 }
 
 function ensureWorkingTreeCanStart(root, execution) {
@@ -453,24 +410,17 @@ function ensureWorkingTreeCanStart(root, execution) {
   if (current === execution.branch) return;
   const status = run("git status --short", { cwd: root }).stdout.trim();
   if (status) {
-    throw new Error("Existem alteracoes locais antes de criar a branch da tarefa. Commit/stash antes de continuar.");
+    throw new Error("Existem alteracoes locais antes de trocar para a branch alvo. Commit/stash antes de continuar.");
   }
 }
 
 function ensureTaskBranch(root, execution) {
-  ensureBranchIsPushable(execution.branch);
   const current = run("git branch --show-current", { cwd: root }).stdout.trim();
   if (current === execution.branch) return;
   const fetch = run("git fetch origin", { cwd: root, timeoutMs: 600000 });
   if (fetch.code !== 0) throw new Error("Falha ao atualizar referencias remotas.");
-  const checkout = run(`git checkout -b ${execution.branch}`, { cwd: root });
-  if (checkout.code !== 0) throw new Error(`Falha ao criar branch ${execution.branch}.`);
-}
-
-function ensureBranchIsPushable(branch) {
-  if (!branch || PROTECTED_BRANCHES.has(branch)) {
-    throw new Error(`Branch protegida bloqueada para automacao: ${branch}`);
-  }
+  const checkout = run(`git checkout ${execution.branch}`, { cwd: root });
+  if (checkout.code !== 0) throw new Error(`Falha ao acessar branch ${execution.branch}.`);
 }
 
 function inferModules(request) {
@@ -492,7 +442,7 @@ function conventionalTitle(request) {
   return `feat: ${titleFromRequest(request).toLowerCase()}`.slice(0, 120);
 }
 
-function pullRequestBody(execution, files) {
+function deliveryReport(execution, files) {
   return `## Objetivo
 
 ${execution.originalRequest}
@@ -503,7 +453,7 @@ ${execution.poOutput?.projectContext?.backend ?? ""}
 
 ## Alteracoes realizadas
 
-- Implementacao na branch \`${execution.branch}\`
+- Implementacao commitada diretamente na branch \`${execution.branch}\`
 - Arquivos alterados revisados pelos agentes locais
 
 ## Backend
@@ -538,8 +488,8 @@ ${files.map((file) => `- \`${file}\``).join("\n")}
 
 ## Decisoes tecnicas
 
-- O merge nao e automatico.
-- Pull Request criado via GitHub CLI.
+- O fluxo atual commita e envia direto para a branch alvo.
+- Pull Request nao e criado nesse modo.
 - Runtime da execucao fica fora do commit em \`.agents/runtime\`.
 
 ## Limitacoes conhecidas
@@ -553,7 +503,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Seguranca revisada
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Documentacao atualizada
-- [ ] Revisao humana
-- [ ] Merge
+- [x] Commit criado
+- [x] Push realizado
 `;
 }

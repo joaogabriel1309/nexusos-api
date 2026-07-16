@@ -68,7 +68,7 @@ pnpm agents:resume AGT-2026-0001
 pnpm agents:list
 ```
 
-O fluxo gera especificacao, cria branch de tarefa, executa revisao de seguranca, testes/build e, quando aprovado, cria push e Pull Request via GitHub CLI (`gh`). O merge nunca e realizado automaticamente.
+O fluxo gera especificacao, executa o braco programador na branch alvo (`master` por padrao), revisao de seguranca, testes/build e, quando aprovado, cria commit e push direto para a branch alvo. Pull Request nao e criado nesse modo.
 
 Para ativar o braco programador automatico com Codex CLI, configure:
 
