@@ -1,6 +1,8 @@
 package com.nexusos.ordemservico;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -8,11 +10,15 @@ import com.nexusos.auditoria.AuditoriaService;
 import com.nexusos.cliente.Cliente;
 import com.nexusos.cliente.ClienteService;
 import com.nexusos.email.EmailService;
+import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
+import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
+import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.UsuarioService;
 import com.nexusos.whatsapp.WhatsappService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -91,6 +97,44 @@ class OrdemServicoServiceTest {
         assertThat(resposta.prioridade()).isEqualTo(PrioridadeOS.CRITICA);
         assertThat(resposta.prazo()).isEqualTo(prazo);
         verify(notificacaoService).notificarPrioridadeAlterada(ordem);
+    }
+
+    @Test
+    void desenvolvedorInformaSomenteHorasEPreservaDadosComerciais() {
+        autenticar("dev@nexusos.com", "ROLE_DESENVOLVEDOR");
+        var id = UUID.randomUUID();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").valorHora(new BigDecimal("100")).build();
+        var ordem = OrdemServico.builder()
+                .id(id).codigo(11L).titulo("OS").descricao("Descricao").cliente(cliente)
+                .status(StatusOS.EM_ANALISE).prioridade(PrioridadeOS.MEDIA)
+                .entendimento("Texto existente").cobrar(Boolean.FALSE).valorTotalEstimado(BigDecimal.ZERO)
+                .build();
+        when(ordemServicoRepository.findByIdAndResponsavelEmail(id, "dev@nexusos.com")).thenReturn(Optional.of(ordem));
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        var resposta = ordemServicoService.atualizarAnalise(id,
+                new AnaliseUpdateRequest("Texto indevido", "Impacto", "Riscos", new BigDecimal("3.5"), true));
+
+        assertThat(resposta.estimativaHoras()).isEqualByComparingTo("3.5");
+        assertThat(resposta.entendimento()).isEqualTo("Texto existente");
+        assertThat(resposta.cobrar()).isFalse();
+        verify(emailService, never()).enviarOrdemServicoAnalisada(ordem);
+        verify(whatsappService, never()).enviarOrdemServicoAnalisada(ordem);
+    }
+
+    @Test
+    void desenvolvedorNaoAvancaAnaliseSemAprovacaoDoAdmin() {
+        autenticar("dev@nexusos.com", "ROLE_DESENVOLVEDOR");
+        var id = UUID.randomUUID();
+        var ordem = OrdemServico.builder().id(id).status(StatusOS.EM_ANALISE).build();
+        when(ordemServicoRepository.findByIdAndResponsavelEmail(id, "dev@nexusos.com")).thenReturn(Optional.of(ordem));
+
+        assertThatThrownBy(() -> ordemServicoService.atualizarStatus(id,
+                new StatusUpdateRequest(StatusOS.AGUARDANDO_APROVACAO, null, null, null, null, null)))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("administrador");
+
+        verify(ordemServicoRepository, never()).save(ordem);
     }
 
     private void autenticar(String email, String role) {

@@ -79,7 +79,7 @@ public class OrdemServicoController {
 
     @Operation(summary = "Atualiza analise tecnica da ordem de servico")
     @PatchMapping("/{id}/analise")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<OrdemServicoResponse> atualizarAnalise(@PathVariable UUID id,
             @Valid @RequestBody AnaliseUpdateRequest request) {
         return ResponseEntity.ok(ordemServicoService.atualizarAnalise(id, request));
