@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, ExternalLink, RefreshCcw } from "lucide-react";
+import { Bell, CheckCheck, ExternalLink, RefreshCcw, Settings } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -111,14 +112,22 @@ export default function NotificacoesPage() {
           title="Notificações"
           description="Acompanhe atribuições, mudanças de status, prazos e eventos importantes das OS."
           actions={
-            <Button
-              variant="outline"
-              disabled={naoLidas === 0 || marcarTodasComoLidasMutation.isPending}
-              onClick={() => marcarTodasComoLidasMutation.mutate()}
-            >
-              <CheckCheck className="h-4 w-4" />
-              Marcar todas como lidas
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/notificacoes/preferencias">
+                  <Settings className="h-4 w-4" />
+                  Configurar alertas
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                disabled={naoLidas === 0 || marcarTodasComoLidasMutation.isPending}
+                onClick={() => marcarTodasComoLidasMutation.mutate()}
+              >
+                <CheckCheck className="h-4 w-4" />
+                Marcar todas como lidas
+              </Button>
+            </div>
           }
         />
 

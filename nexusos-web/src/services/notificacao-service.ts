@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { NotificacaoPagina, NotificacaoResumo } from "@/types";
+import type { NotificacaoPagina, NotificacaoResumo, PreferenciasNotificacao } from "@/types";
 
 type ListarHistoricoParams = {
   pagina?: number;
@@ -27,5 +27,15 @@ export const notificacaoService = {
 
   async marcarTodasComoLidas() {
     await api.patch("/notificacoes/marcar-todas-lidas");
+  },
+
+  async consultarPreferencias() {
+    const response = await api.get<PreferenciasNotificacao>("/notificacoes/preferencias");
+    return response.data;
+  },
+
+  async atualizarPreferencias(preferencias: PreferenciasNotificacao) {
+    const response = await api.put<PreferenciasNotificacao>("/notificacoes/preferencias", preferencias);
+    return response.data;
   }
 };

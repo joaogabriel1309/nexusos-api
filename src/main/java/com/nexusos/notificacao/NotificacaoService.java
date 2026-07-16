@@ -1,9 +1,13 @@
 package com.nexusos.notificacao;
 
 import com.nexusos.exception.RecursoNaoEncontradoException;
+import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.dto.NotificacaoPaginaResponse;
 import com.nexusos.notificacao.dto.NotificacaoResponse;
 import com.nexusos.notificacao.dto.NotificacaoResumoResponse;
+import com.nexusos.notificacao.dto.PreferenciaNotificacaoItem;
+import com.nexusos.notificacao.dto.PreferenciasNotificacaoRequest;
+import com.nexusos.notificacao.dto.PreferenciasNotificacaoResponse;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.StatusOS;
@@ -15,6 +19,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -51,6 +57,7 @@ public class NotificacaoService {
     private static final String TIPO_PROJETO = "PROJETO";
 
     private final NotificacaoRepository notificacaoRepository;
+    private final PreferenciaNotificacaoRepository preferenciaNotificacaoRepository;
     private final UsuarioService usuarioService;
     private final UsuarioRepository usuarioRepository;
     private final OrdemServicoRepository ordemServicoRepository;
@@ -125,6 +132,54 @@ public class NotificacaoService {
         notificacaoRepository.saveAll(notificacoes);
     }
 
+    @Transactional(readOnly = true)
+    public PreferenciasNotificacaoResponse consultarPreferencias() {
+        var usuario = usuarioService.buscarAutenticado();
+        var persistidas = new EnumMap<TipoPreferenciaNotificacao, Boolean>(TipoPreferenciaNotificacao.class);
+        preferenciaNotificacaoRepository.findByUsuarioId(usuario.getId())
+                .forEach(preferencia -> persistidas.put(preferencia.getTipo(), preferencia.isHabilitada()));
+
+        return respostaPreferencias(persistidas);
+    }
+
+    @Transactional
+    public PreferenciasNotificacaoResponse atualizarPreferencias(PreferenciasNotificacaoRequest request) {
+        var usuario = usuarioService.buscarAutenticado();
+        var recebidas = new EnumMap<TipoPreferenciaNotificacao, Boolean>(TipoPreferenciaNotificacao.class);
+
+        for (var item : request.preferencias()) {
+            if (recebidas.put(item.tipo(), item.habilitada()) != null) {
+                throw new RegraNegocioException("Cada tipo de notificacao deve ser informado uma unica vez.");
+            }
+        }
+
+        if (!recebidas.keySet().equals(EnumSet.allOf(TipoPreferenciaNotificacao.class))) {
+            throw new RegraNegocioException("Informe todos os tipos de notificacao configuraveis.");
+        }
+
+        for (var item : recebidas.entrySet()) {
+            var preferencia = preferenciaNotificacaoRepository
+                    .findByUsuarioIdAndTipo(usuario.getId(), item.getKey())
+                    .orElseGet(() -> PreferenciaNotificacao.builder()
+                            .usuario(usuario)
+                            .tipo(item.getKey())
+                            .build());
+            preferencia.setHabilitada(item.getValue());
+            preferenciaNotificacaoRepository.save(preferencia);
+        }
+
+        return respostaPreferencias(recebidas);
+    }
+
+    private PreferenciasNotificacaoResponse respostaPreferencias(
+            EnumMap<TipoPreferenciaNotificacao, Boolean> preferencias
+    ) {
+        var itens = java.util.Arrays.stream(TipoPreferenciaNotificacao.values())
+                .map(tipo -> new PreferenciaNotificacaoItem(tipo, preferencias.getOrDefault(tipo, true)))
+                .toList();
+        return new PreferenciasNotificacaoResponse(itens);
+    }
+
     @Transactional
     public void notificarAtribuicao(OrdemServico ordemServico, String mensagem) {
         var responsavel = ordemServico.getResponsavel();
@@ -193,7 +248,7 @@ public class NotificacaoService {
         notificarAdmins(ordemServico, TIPO_APROVACAO_CLIENTE, titulo, mensagem);
 
         if (isDesenvolvedor(responsavel)) {
-            notificacaoRepository.save(Notificacao.builder()
+            salvarSeHabilitada(Notificacao.builder()
                     .usuario(responsavel)
                     .ordemServico(ordemServico)
                     .tipo(TIPO_APROVACAO_CLIENTE)
@@ -384,7 +439,7 @@ public class NotificacaoService {
 
     private void notificarAdmins(OrdemServico ordemServico, String tipo, String titulo, String mensagem) {
         for (var admin : adminsAtivos()) {
-            notificacaoRepository.save(Notificacao.builder()
+            salvarSeHabilitada(Notificacao.builder()
                     .usuario(admin)
                     .ordemServico(ordemServico)
                     .tipo(tipo)
@@ -396,7 +451,7 @@ public class NotificacaoService {
 
     private void notificarAdminsSistema(String tipo, String titulo, String mensagem) {
         for (var admin : adminsAtivos()) {
-            notificacaoRepository.save(Notificacao.builder()
+            salvarSeHabilitada(Notificacao.builder()
                     .usuario(admin)
                     .tipo(tipo)
                     .titulo(titulo)
@@ -506,7 +561,7 @@ public class NotificacaoService {
             return;
         }
 
-        notificacaoRepository.save(Notificacao.builder()
+        salvarSeHabilitada(Notificacao.builder()
                 .usuario(usuario)
                 .ordemServico(ordemServico)
                 .tipo(tipo)
@@ -514,5 +569,16 @@ public class NotificacaoService {
                 .mensagem(mensagem)
                 .referenciaData(referenciaData)
                 .build());
+    }
+
+    private void salvarSeHabilitada(Notificacao notificacao) {
+        var tipoConfiguravel = TipoPreferenciaNotificacao.fromTipoNotificacao(notificacao.getTipo());
+        if (tipoConfiguravel.isPresent() && preferenciaNotificacaoRepository.existsByUsuarioIdAndTipoAndHabilitadaFalse(
+                notificacao.getUsuario().getId(),
+                tipoConfiguravel.get()
+        )) {
+            return;
+        }
+        notificacaoRepository.save(notificacao);
     }
 }
