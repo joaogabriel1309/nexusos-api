@@ -103,6 +103,11 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
 }) {
   const router = useRouter();
 
+  // Regra de navegação: o detalhe deve retornar para a listagem que o abriu.
+  function abrirOrdem() {
+    router.push(`/ordens-servico/${ordem.id}?origem=minhas-os`);
+  }
+
   return (
     <div
       className="w-full rounded-md border bg-background p-4 text-left shadow-sm"
@@ -113,7 +118,7 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         {reordenavel ? <GripVertical className="mt-0.5 h-5 w-5 shrink-0 cursor-grab text-muted-foreground" aria-hidden="true" /> : null}
-        <button type="button" className="min-w-0 flex-1 text-left hover:text-primary" onClick={() => router.push(`/ordens-servico/${ordem.id}`)}>
+        <button type="button" className="min-w-0 flex-1 text-left hover:text-primary" onClick={abrirOrdem}>
           <div className="truncate font-semibold" title={ordem.titulo}>
             {ordem.codigo} - {ordem.titulo}
           </div>
@@ -121,7 +126,7 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
             {ordem.clienteNome} {ordem.projetoNome ? `- ${ordem.projetoNome}` : ""}
           </div>
         </button>
-        <button type="button" aria-label={`Abrir OS ${ordem.codigo}`} onClick={() => router.push(`/ordens-servico/${ordem.id}`)}>
+        <button type="button" aria-label={`Abrir OS ${ordem.codigo}`} onClick={abrirOrdem}>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       </div>
