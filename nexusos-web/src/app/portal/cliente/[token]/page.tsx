@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { TablePagination } from "@/components/shared/table-pagination";
-import { prioridadeLabels, statusBadgeClasses, statusLabels, statusOptions } from "@/lib/os-labels";
+import { statusBadgeClasses } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
 
@@ -35,6 +35,43 @@ const ordemStatusFluxo: StatusOS[] = [
 ];
 const indiceAguardandoAprovacao = ordemStatusFluxo.indexOf("AGUARDANDO_APROVACAO");
 const itensPorPagina = 20;
+
+const portalStatus: Record<StatusOS, { label: string; orientacao: string }> = {
+  RECEBIDA: {
+    label: "Pedido recebido",
+    orientacao: "Recebemos seu pedido. Nossa equipe vai avaliar as informações enviadas."
+  },
+  EM_ANALISE: {
+    label: "Estamos avaliando",
+    orientacao: "Nossa equipe está avaliando o pedido e preparando os próximos passos."
+  },
+  AGUARDANDO_APROVACAO: {
+    label: "Sua aprovação é necessária",
+    orientacao: "Revise a proposta e autorize o início do trabalho ou peça as alterações necessárias."
+  },
+  APROVADA: {
+    label: "Aprovada por você",
+    orientacao: "Sua aprovação foi registrada. A equipe vai iniciar o trabalho."
+  },
+  EM_DESENVOLVIMENTO: {
+    label: "Trabalho em andamento",
+    orientacao: "A equipe está executando o trabalho aprovado. Nenhuma ação sua é necessária agora."
+  },
+  EM_TESTE: {
+    label: "Em revisão final",
+    orientacao: "O trabalho está sendo conferido antes da entrega. Nenhuma ação sua é necessária agora."
+  },
+  AGUARDANDO_PAGAMENTO: {
+    label: "Pagamento necessário",
+    orientacao: "O trabalho foi concluído. Faça o pagamento para finalizar este pedido."
+  },
+  FINALIZADA: {
+    label: "Serviço concluído",
+    orientacao: "Este pedido foi concluído e não exige nenhuma ação."
+  }
+};
+
+const portalStatusOptions = Object.keys(portalStatus) as StatusOS[];
 
 type ApiErrorResponse = {
   mensagem?: string;
@@ -77,7 +114,7 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
           : "border-amber-200 bg-amber-50 text-amber-700"
       }
     >
-      {paga ? "Paga" : "Pendente"}
+      {paga ? "Pago" : "Pendente"}
     </Badge>
   );
 }
@@ -157,10 +194,10 @@ export default function PortalClientePage() {
       setOrdemSelecionada(ordemAtualizada);
       setDialogAjusteAberto(false);
       setMotivoAjuste("");
-      toast.success(variaveis.aprovado ? "OS aprovada com sucesso." : "Solicitacao de ajuste enviada.");
+      toast.success(variaveis.aprovado ? "Trabalho autorizado. A equipe já pode começar." : "Pedido de alteração enviado à equipe.");
     },
     onError: (error) => {
-      toast.error(mensagemErro(error, "Nao foi possivel registrar sua decisao."));
+      toast.error(mensagemErro(error, "Não foi possível registrar sua decisão. Tente novamente."));
     }
   });
 
@@ -170,7 +207,7 @@ export default function PortalClientePage() {
       window.location.href = checkout.checkoutUrl;
     },
     onError: (error) => {
-      toast.error(mensagemErro(error, "Nao foi possivel iniciar o pagamento."));
+      toast.error(mensagemErro(error, "Não foi possível abrir o pagamento. Tente novamente."));
     }
   });
 
@@ -180,10 +217,10 @@ export default function PortalClientePage() {
       setPixPagamento(pix);
       setOrdemSelecionada((ordem) => (ordem ? { ...ordem, pagamentoIniciado: true } : ordem));
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Pix gerado com sucesso.");
+      toast.success("Pix pronto para pagamento.");
     },
     onError: (error) => {
-      toast.error(mensagemErro(error, "Nao foi possivel gerar o Pix."));
+      toast.error(mensagemErro(error, "Não foi possível gerar o Pix. Tente novamente."));
     }
   });
 
@@ -198,7 +235,7 @@ export default function PortalClientePage() {
       router.replace(`/portal/cliente/${token}`);
     },
     onError: (error) => {
-      toast.error(mensagemErro(error, "Pagamento aprovado, mas nao foi possivel atualizar a OS."));
+      toast.error(mensagemErro(error, "O pagamento foi aprovado, mas a atualização ainda não foi concluída."));
     }
   });
 
@@ -210,7 +247,7 @@ export default function PortalClientePage() {
       toast.success("Pagamento confirmado com sucesso.");
     },
     onError: (error) => {
-      toast.error(mensagemErro(error, "Pagamento aprovado ainda nao encontrado."));
+      toast.error(mensagemErro(error, "Ainda não encontramos a confirmação. Aguarde um instante e tente novamente."));
     }
   });
 
@@ -227,15 +264,15 @@ export default function PortalClientePage() {
       confirmarPagamentoMutation.mutate({ ordemId, paymentId });
     } else if (pagamentoAprovadoNoRetorno(searchParams)) {
       pagamentoRetornoProcessado.current = true;
-      toast.warning("Pagamento aprovado, mas o retorno nao trouxe os dados necessarios para atualizar a OS.");
+      toast.warning("O pagamento foi aprovado, mas a atualização ainda não foi concluída.");
       router.replace(`/portal/cliente/${token}`);
     } else if (pagamentoPendenteNoRetorno(searchParams)) {
       pagamentoRetornoProcessado.current = true;
-      toast.info("Pagamento pendente. A OS sera atualizada quando o Mercado Pago confirmar.");
+      toast.info("Pagamento em processamento. Esta página será atualizada após a confirmação.");
       router.replace(`/portal/cliente/${token}`);
     } else if (pagamentoFalhouNoRetorno(searchParams)) {
       pagamentoRetornoProcessado.current = true;
-      toast.error("Pagamento nao aprovado.");
+      toast.error("O pagamento não foi aprovado. Você pode tentar novamente.");
       router.replace(`/portal/cliente/${token}`);
     }
   }, [confirmarPagamentoMutation, router, searchParams, token]);
@@ -306,7 +343,7 @@ export default function PortalClientePage() {
           <div className="text-sm font-semibold text-primary">NexusOS</div>
           <h1 className="break-words text-2xl font-semibold tracking-normal [overflow-wrap:anywhere]">Portal do Cliente</h1>
           <p className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
-            Consulte o andamento das suas ordens de servico de forma online e segura.
+            Veja o andamento dos seus pedidos, saiba quando precisa agir e acompanhe pagamentos em um só lugar.
           </p>
         </header>
 
@@ -319,7 +356,7 @@ export default function PortalClientePage() {
                     {`${ordemSelecionada.codigo} - ${ordemSelecionada.titulo}`}
                   </CardTitle>
                   <p className="mt-1 break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
-                    Dados completos da ordem de servico compartilhados com o cliente.
+                    Acompanhe o que foi solicitado, os valores e o próximo passo.
                   </p>
                 </div>
                 <Button className="shrink-0" variant="outline" onClick={() => setOrdemSelecionada(null)}>
@@ -329,36 +366,44 @@ export default function PortalClientePage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className={statusBadgeClasses[ordemSelecionada.status]}>
-                  {statusLabels[ordemSelecionada.status]}
+                  {portalStatus[ordemSelecionada.status].label}
                 </Badge>
-                <Badge variant="outline">{prioridadeLabels[ordemSelecionada.prioridade]}</Badge>
               </div>
             </CardHeader>
             <CardContent className="min-w-0 space-y-5">
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader>
+                  <CardTitle>O que acontece agora</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm">
+                  {portalStatus[ordemSelecionada.status].orientacao}
+                </CardContent>
+              </Card>
+
               <Card className="border-primary/20 bg-primary/5">
                 <CardHeader>
-                  <CardTitle>Resumo da entrega</CardTitle>
+                  <CardTitle>Resumo do pedido</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <p className="whitespace-pre-wrap break-words font-medium">
                     {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.textoAnalise || ordemSelecionada.descricao}
                   </p>
                   <p className="text-muted-foreground">
-                    Confira abaixo o que foi feito, os valores e os proximos passos antes de registrar sua decisao.
+                    Confira abaixo o pedido, a proposta da equipe e, quando disponível, o que foi entregue.
                   </p>
                 </CardContent>
               </Card>
 
               <div className="grid min-w-0 gap-4 md:grid-cols-2">
-                <CampoDetalhe label="Numero da OS" value={ordemSelecionada.codigo} />
+                <CampoDetalhe label="Número do pedido" value={ordemSelecionada.codigo} />
                 <CampoDetalhe label="Projeto" value={ordemSelecionada.projetoNome || "Sem projeto vinculado"} />
-                <CampoDetalhe label="Criada em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
-                <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
+                <CampoDetalhe label="Pedido enviado em" value={formatarDataHora(ordemSelecionada.criadoEm)} />
+                <CampoDetalhe label="Concluído em" value={formatarDataHora(ordemSelecionada.finalizadoEm)} />
                 <div className="min-w-0 md:col-span-2">
-                  <CampoDetalhe label="Texto de recebimento" value={ordemSelecionada.descricao} />
+                  <CampoDetalhe label="O que você solicitou" value={ordemSelecionada.descricao} />
                 </div>
                 <div className="min-w-0 md:col-span-2">
-                  <CampoDetalhe label="Texto da analise" value={ordemSelecionada.textoAnalise} />
+                  <CampoDetalhe label="Proposta da equipe" value={ordemSelecionada.textoAnalise} />
                 </div>
                 {ordemSelecionada.descricaoFinalizacao || ordemSelecionada.finalizadoEm ? (
                   <div className="min-w-0 md:col-span-2">
@@ -374,7 +419,7 @@ export default function PortalClientePage() {
                 <CardContent className="space-y-4">
                   <div className="grid min-w-0 gap-4 md:grid-cols-4">
                     <CampoDetalhe
-                      label="Horas estimadas"
+                      label="Tempo estimado"
                       value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
                     />
                     <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
@@ -393,7 +438,7 @@ export default function PortalClientePage() {
                           ) : (
                             <SearchCheck className="h-4 w-4" />
                           )}
-                          Verificar pagamento
+                          Já paguei, verificar
                         </Button>
                       ) : null}
                       <Button
@@ -405,7 +450,7 @@ export default function PortalClientePage() {
                         ) : (
                           <CreditCard className="h-4 w-4" />
                         )}
-                        Pagar
+                        Pagar com cartão
                       </Button>
                       <Button
                         variant="secondary"
@@ -427,11 +472,11 @@ export default function PortalClientePage() {
               {ordemSelecionada.status === "AGUARDANDO_APROVACAO" ? (
                 <Card className="border-primary/30">
                   <CardHeader>
-                    <CardTitle>Proximos passos</CardTitle>
+                    <CardTitle>Revise e escolha uma opção</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Ao aprovar, a OS segue para execucao. Se algo precisar mudar, solicite um ajuste e descreva o motivo para a equipe revisar.
+                      Autorize o início do trabalho se estiver de acordo com a proposta. Se precisar mudar algo, explique o ajuste para a equipe revisar.
                     </p>
                     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                       <Button
@@ -440,14 +485,14 @@ export default function PortalClientePage() {
                         onClick={() => setDialogAjusteAberto(true)}
                       >
                         <XCircle className="h-4 w-4" />
-                        Solicitar ajuste
+                        Pedir alterações
                       </Button>
                       <Button
                         disabled={decisaoMutation.isPending}
                         onClick={() => decisaoMutation.mutate({ ordemId: ordemSelecionada.id, aprovado: true })}
                       >
                         {decisaoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                        Aprovar entrega
+                        Autorizar início do trabalho
                       </Button>
                     </div>
                   </CardContent>
@@ -468,7 +513,7 @@ export default function PortalClientePage() {
               </div>
             ) : portalQuery.isError ? (
               <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>Link invalido ou indisponivel.</span>
+                <span>Não foi possível abrir este portal. Confira o link ou tente novamente.</span>
                 <Button variant="outline" size="sm" onClick={() => portalQuery.refetch()}>
                   <RefreshCcw className="h-4 w-4" />
                   Tentar novamente
@@ -484,7 +529,7 @@ export default function PortalClientePage() {
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Input
                       inputMode="numeric"
-                      placeholder="Codigo da OS"
+                      placeholder="Número do pedido"
                       value={codigoFiltro}
                       onChange={(event) => setCodigoFiltro(event.target.value.replace(/\D/g, ""))}
                       className="sm:w-[180px]"
@@ -510,13 +555,13 @@ export default function PortalClientePage() {
                       onValueChange={(value) => setStatusFiltro(value === todosStatusOption ? "" : (value as StatusOS))}
                     >
                       <SelectTrigger className="sm:w-[240px]">
-                        <SelectValue placeholder="Filtrar por status" />
+                        <SelectValue placeholder="Filtrar por etapa" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={todosStatusOption}>Todos os status</SelectItem>
-                        {statusOptions.map((status) => (
+                        <SelectItem value={todosStatusOption}>Todas as etapas</SelectItem>
+                        {portalStatusOptions.map((status) => (
                           <SelectItem key={status} value={status}>
-                            {statusLabels[status]}
+                            {portalStatus[status].label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -537,7 +582,7 @@ export default function PortalClientePage() {
 
                 {ordensFiltradas.length === 0 ? (
                   <div className="rounded-md border bg-secondary/30 p-5 text-sm text-muted-foreground">
-                    Nenhuma OS encontrada para os filtros selecionados.
+                    Nenhum pedido encontrado com os filtros selecionados.
                   </div>
                 ) : (
                   <>
@@ -566,7 +611,7 @@ export default function PortalClientePage() {
                               </div>
                             </div>
                             <Badge variant="outline" className={`shrink-0 ${statusBadgeClasses[ordem.status]}`}>
-                              {statusLabels[ordem.status]}
+                              {portalStatus[ordem.status].label}
                             </Badge>
                           </div>
 
@@ -582,8 +627,8 @@ export default function PortalClientePage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>OS</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>Pedido</TableHead>
+                            <TableHead>Etapa atual</TableHead>
                             <TableHead>Pagamento</TableHead>
                             <TableHead className="text-right">Valor</TableHead>
                           </TableRow>
@@ -607,7 +652,7 @@ export default function PortalClientePage() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
-                                  {statusLabels[ordem.status]}
+                                  {portalStatus[ordem.status].label}
                                 </Badge>
                               </TableCell>
                               <TableCell>
@@ -670,11 +715,11 @@ export default function PortalClientePage() {
                     variant="outline"
                     onClick={() => {
                       navigator.clipboard.writeText(pixPagamento.qrCode);
-                      toast.success("Codigo Pix copiado.");
+                      toast.success("Código Pix copiado.");
                     }}
                   >
                     <Copy className="h-4 w-4" />
-                    Copiar codigo
+                    Copiar código Pix
                   </Button>
                   {ordemSelecionada ? (
                     <Button
@@ -686,7 +731,7 @@ export default function PortalClientePage() {
                       ) : (
                         <SearchCheck className="h-4 w-4" />
                       )}
-                      Verificar pagamento
+                      Já paguei, verificar
                     </Button>
                   ) : null}
                 </div>
@@ -698,13 +743,13 @@ export default function PortalClientePage() {
         <Dialog open={dialogAjusteAberto} onOpenChange={setDialogAjusteAberto}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Solicitar ajuste</DialogTitle>
+              <DialogTitle>Pedir alterações</DialogTitle>
               <DialogDescription>
-                Explique o que precisa ser revisto. O motivo sera enviado para a equipe responsavel e a OS voltara para analise.
+                Explique o que precisa mudar. A equipe receberá sua mensagem e revisará a proposta.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <label htmlFor="motivo-ajuste" className="text-sm font-medium">Motivo do ajuste</label>
+              <label htmlFor="motivo-ajuste" className="text-sm font-medium">O que precisa mudar?</label>
               <Textarea
                 id="motivo-ajuste"
                 value={motivoAjuste}
@@ -729,7 +774,7 @@ export default function PortalClientePage() {
                 })}
               >
                 {decisaoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                Enviar solicitacao
+                Enviar pedido de alteração
               </Button>
             </div>
           </DialogContent>
@@ -737,10 +782,10 @@ export default function PortalClientePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Seguranca do acesso</CardTitle>
+            <CardTitle>Proteja este acesso</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Este link e exclusivo para o seu cadastro. Nao compartilhe com terceiros.
+            Este link dá acesso aos seus pedidos e pagamentos. Não o compartilhe com outras pessoas.
           </CardContent>
         </Card>
       </div>
