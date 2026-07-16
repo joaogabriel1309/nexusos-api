@@ -64,6 +64,7 @@ function printReport(execution) {
   console.log(`Branch de trabalho: ${execution.branch || "-"}`);
   console.log(`Branch de destino: ${execution.targetBranch || "-"}`);
   console.log(`Seguranca: ${execution.securityOutput?.status ?? "-"}`);
+  console.log(`UX: ${execution.uxOutput?.status ?? "-"}`);
   console.log(`Testes: ${tests ? `${tests.passed} aprovados, ${tests.failed} falhos` : "-"}`);
   console.log(`Push: ${delivery.push ?? "-"}`);
   console.log(`Pull Request: ${delivery.pullRequestCreated ? "criado" : "nao utilizado"}`);

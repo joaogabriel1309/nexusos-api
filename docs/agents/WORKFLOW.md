@@ -5,9 +5,10 @@
 3. O PO gera a especificacao.
 4. O desenvolvedor usa a branch alvo e executa a implementacao automatizada, se configurada.
 5. A seguranca revisa as alteracoes.
-6. Os testes e builds sao executados.
-7. A entrega cria commit e push direto para a branch alvo.
-8. O estado final esperado e `WAITING_FOR_HUMAN_REVIEW`.
+6. O agente de UX revisa experiencia, clareza e responsividade quando houver frontend.
+7. Os testes e builds sao executados.
+8. A entrega cria commit e push direto para a branch alvo.
+9. O estado final esperado e `COMPLETED`.
 
 ## Retomada
 

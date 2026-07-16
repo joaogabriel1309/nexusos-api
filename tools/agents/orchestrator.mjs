@@ -44,6 +44,9 @@ async function runFlow(root, execution) {
     if ([STATES.WAITING_FOR_SECURITY_REVIEW, STATES.SECURITY_REVIEW].includes(execution.status)) {
       securityAgent(root, execution);
     }
+    if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
+      uxAgent(root, execution);
+    }
     if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
       testAgent(root, execution);
     }
@@ -304,7 +307,7 @@ ${JSON.stringify(execution.projectAnalysis, null, 2)}
 function securityAgent(root, execution) {
   execution.currentAgent = "SECURITY";
   transition(root, execution, STATES.SECURITY_REVIEW, "Revisando seguranca");
-  const files = changedFiles(root);
+  const files = reviewFiles(root, execution);
   const findings = [];
   for (const file of files) {
     const absolute = join(root, file);
@@ -332,7 +335,61 @@ function securityAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Seguranca reprovada; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_TESTS, "Seguranca aprovada");
+  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Seguranca aprovada");
+}
+
+function uxAgent(root, execution) {
+  execution.currentAgent = "UX";
+  transition(root, execution, STATES.UX_REVIEW, "Revisando experiencia do usuario");
+  const files = reviewFiles(root, execution);
+  const frontendFiles = files.filter((file) => normalizePath(file).startsWith("nexusos-web/src/"));
+  const findings = [];
+
+  for (const file of frontendFiles) {
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    const content = readFileSync(absolute, "utf8");
+    const normalized = normalizePath(file);
+    const isPageOrComponent = /\.(tsx|jsx)$/.test(normalized);
+    if (!isPageOrComponent) continue;
+
+    if (/overflow-x-auto|overflow-auto/.test(content) && /<Table|<table/.test(content) && !/md:|lg:|hidden md|md:hidden|grid gap|Card/.test(content)) {
+      findings.push(uxFinding("HIGH", "Tabela sem alternativa clara para mobile", file, "Listas grandes precisam ter visual em cards ou layout responsivo alem de rolagem horizontal."));
+    }
+    if (/<Dialog|<AlertDialog/.test(content) && content.length > 30000 && !/max-h-\[|overflow-y-auto|Sheet/.test(content)) {
+      findings.push(uxFinding("MEDIUM", "Modal grande pode dificultar uso no mobile", file, "Fluxos longos devem virar tela dedicada ou modal com altura controlada e rolagem interna."));
+    }
+    if (/<Button[^>]*>\s*(Excluir|Cancelar|Reabrir|Finalizar|Aprovar|Reprovar)/.test(content) && !/CriticalActionDialog|AlertDialog/.test(content)) {
+      findings.push(uxFinding("MEDIUM", "Acao importante sem confirmacao evidente", file, "Acoes irreversiveis ou sensiveis precisam de confirmacao clara antes de executar."));
+    }
+    if (/text-xs[^"\n]*(?:text-muted-foreground)/.test(content) && /Portal do Cliente|cliente/i.test(content) && !/text-sm|leading-/.test(content)) {
+      findings.push(uxFinding("LOW", "Texto de apoio pode estar pequeno para cliente", file, "Conteudos de decisao do cliente devem priorizar leitura confortavel em mobile."));
+    }
+    if (/\bstatus\b|\bprioridade\b|\bsequencia\b/i.test(content) && /portal\/cliente|PortalCliente/.test(content)) {
+      findings.push(uxFinding("LOW", "Possivel linguagem tecnica no portal do cliente", file, "No portal, prefira textos orientados a decisao como proximo passo, pagamento, aprovacao ou ajuste."));
+    }
+    if (/className="[^"]*(grid|flex)[^"]*"/.test(content) && !/(sm:|md:|lg:|xl:)/.test(content) && content.length > 18000) {
+      findings.push(uxFinding("LOW", "Layout extenso com poucos breakpoints responsivos", file, "Telas densas devem declarar comportamento para mobile, tablet e desktop."));
+    }
+  }
+
+  const rejected = findings.some((item) => item.severity === "HIGH");
+  execution.uxOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: frontendFiles,
+    findings,
+    approvedForTesting: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.uxFixAttempts = (execution.uxFixAttempts ?? 0) + 1;
+    if (execution.uxFixAttempts > MAX_TEST_FIXES) {
+      throw new Error("Limite de correcoes de UX excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "UX reprovada; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_TESTS, "UX aprovada");
 }
 
 function testAgent(root, execution) {
@@ -461,6 +518,25 @@ function inferModules(request) {
   if (lower.includes("notifica")) modules.push("notificacao");
   if (lower.includes("dashboard")) modules.push("dashboard");
   return modules.length ? modules : ["backend", "frontend"];
+}
+
+function normalizePath(file) {
+  return file.replace(/\\/g, "/");
+}
+
+function reviewFiles(root, execution) {
+  const files = changedFiles(root);
+  return files.length ? files : (execution.developerOutput?.changedFiles ?? []);
+}
+
+function uxFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "UX"
+  };
 }
 
 function titleFromRequest(request) {
