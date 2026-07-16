@@ -114,6 +114,7 @@ function developerAgent(root, execution) {
   const promptFile = writeDeveloperPrompt(root, execution);
   const developerCommand = resolveDeveloperCommand(root, execution, promptFile);
   const developerDiagnostics = developerCommand ? [] : developerAutomationDiagnostics(root);
+  const headBeforeDeveloper = gitHead(root);
   if (developerCommand) {
     progress("Executando braco programador");
     const result = run(developerCommand, {
@@ -124,21 +125,37 @@ function developerAgent(root, execution) {
     commandsExecuted.push(summarizeCommand(result));
     progress(result.code === 0 ? "Braco programador finalizado" : "Braco programador falhou");
     if (result.code !== 0) {
-      execution.developerOutput = { status: "failed", commandsExecuted, knownLimitations: ["Comando de desenvolvimento retornou erro."] };
-      saveExecution(root, execution);
-      throw new Error("Agente desenvolvedor falhou ao executar o comando programador configurado.");
+      const filesAfterFailure = changedFiles(root);
+      const headAfterFailure = gitHead(root);
+      if (filesAfterFailure.length === 0 && headAfterFailure === headBeforeDeveloper) {
+        execution.developerOutput = { status: "failed", commandsExecuted, knownLimitations: ["Comando de desenvolvimento retornou erro."] };
+        saveExecution(root, execution);
+        throw new Error("Agente desenvolvedor falhou ao executar o comando programador configurado.");
+      }
+      progress(
+        headAfterFailure !== headBeforeDeveloper
+          ? "Braco programador retornou erro, mas criou commit novo; seguindo para verificacoes"
+          : "Braco programador retornou erro, mas deixou arquivos alterados; seguindo para verificacoes"
+      );
     }
   }
 
-  const files = changedFiles(root);
+  const headAfterDeveloper = gitHead(root);
+  const developerCreatedCommit = headAfterDeveloper !== headBeforeDeveloper;
+  const files = developerCreatedCommit
+    ? filesChangedBetween(root, headBeforeDeveloper, headAfterDeveloper)
+    : changedFiles(root);
   progressChangedFiles(files);
   execution.developerOutput = {
-    status: files.length > 0 ? "completed" : "waiting_for_external_implementation",
+    status: files.length > 0 || developerCreatedCommit ? "completed" : "waiting_for_external_implementation",
     branch: execution.branch,
-    summary: files.length > 0
+    summary: files.length > 0 || developerCreatedCommit
       ? "Alteracoes detectadas para revisao de seguranca e testes."
       : "Nenhuma alteracao de codigo detectada. Configure AGENTS_DEVELOPER_COMMAND ou implemente na branch alvo e rode agents:resume.",
     changedFiles: files,
+    commitBefore: headBeforeDeveloper,
+    commitAfter: headAfterDeveloper,
+    commitCreatedByDeveloper: developerCreatedCommit,
     createdFiles: files.filter((file) => run(`git ls-files --error-unmatch ${JSON.stringify(file)}`, { cwd: root }).code !== 0),
     databaseChanges: files.filter((file) => file.includes("src/main/resources/db/migration")),
     commandsExecuted,
@@ -151,7 +168,7 @@ function developerAgent(root, execution) {
   };
   saveExecution(root, execution);
 
-  if (files.length === 0) {
+  if (files.length === 0 && !developerCreatedCommit) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Aguardando implementacao na branch alvo");
     return;
   }
@@ -365,20 +382,25 @@ function testAgent(root, execution) {
 function deliveryAgent(root, execution) {
   execution.currentAgent = "DELIVERY";
   const files = changedFiles(root);
-  if (files.length === 0) {
+  const developerCreatedCommit = Boolean(execution.developerOutput?.commitCreatedByDeveloper);
+  if (files.length === 0 && !developerCreatedCommit) {
     transition(root, execution, STATES.FAILED, "Nao ha arquivos para commit");
     return;
   }
-  transition(root, execution, STATES.CREATING_COMMITS, "Criando commit");
   const commands = [];
   commands.push(summarizeCommand(run("git status --short", { cwd: root })));
-  commands.push(summarizeCommand(run(safeAddCommand(files), { cwd: root })));
   const reportFile = runtimeFile(root, execution, "delivery-report.md");
   writeFileSync(reportFile, deliveryReport(execution, files));
-  const message = conventionalTitle(execution.originalRequest);
-  commands.push(summarizeCommand(run(`git commit -m ${JSON.stringify(message)}`, { cwd: root })));
-  if (commands.at(-1).code !== 0) {
-    throw new Error("Falha ao criar commit.");
+  if (files.length > 0) {
+    transition(root, execution, STATES.CREATING_COMMITS, "Criando commit");
+    commands.push(summarizeCommand(run(safeAddCommand(files), { cwd: root })));
+    const message = conventionalTitle(execution.originalRequest);
+    commands.push(summarizeCommand(run(`git commit -m ${JSON.stringify(message)}`, { cwd: root })));
+    if (commands.at(-1).code !== 0) {
+      throw new Error("Falha ao criar commit.");
+    }
+  } else {
+    transition(root, execution, STATES.CREATING_COMMITS, "Commit ja criado pelo braco programador");
   }
   transition(root, execution, STATES.PUSHING_BRANCH, `Enviando commit para ${execution.branch}`);
   commands.push(summarizeCommand(run(`git push origin ${execution.branch}`, { cwd: root, timeoutMs: 600000 })));
@@ -446,6 +468,19 @@ function titleFromRequest(request) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+function gitHead(root) {
+  const result = run("git rev-parse HEAD", { cwd: root });
+  return result.code === 0 ? result.stdout.trim() : "";
+}
+
+function filesChangedBetween(root, before, after) {
+  if (!before || !after || before === after) return [];
+  const result = run(`git diff --name-only ${before} ${after}`, { cwd: root });
+  return result.code === 0
+    ? result.stdout.split(/\r?\n/).map((file) => file.trim()).filter(Boolean)
+    : [];
+}
+
 function progress(message) {
   if (process.env.AGENTS_PROGRESS === "1") {
     console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
@@ -469,6 +504,9 @@ function conventionalTitle(request) {
 }
 
 function deliveryReport(execution, files) {
+  const reportFiles = files.length
+    ? files
+    : (execution.developerOutput?.changedFiles ?? []);
   return `## Objetivo
 
 ${execution.originalRequest}
@@ -510,7 +548,7 @@ Resultado: ${execution.testOutput?.status ?? "nao executado"}
 
 ## Arquivos principais alterados
 
-${files.map((file) => `- \`${file}\``).join("\n")}
+${reportFiles.map((file) => `- \`${file}\``).join("\n") || "- Alteracoes ja estavam commitadas pelo braco programador."}
 
 ## Decisoes tecnicas
 
