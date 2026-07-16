@@ -21,6 +21,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -326,6 +327,7 @@ export default function OrdemServicoDetalhePage() {
   const isDesenvolvedor = usuario?.perfil === "DESENVOLVEDOR";
   const id = params.id;
   const [osEmAcao, setOsEmAcao] = useState(false);
+  const [confirmacaoExclusaoOpen, setConfirmacaoExclusaoOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("status");
 
   const detalheQueryKey = ["ordens-servico", id];
@@ -397,6 +399,7 @@ export default function OrdemServicoDetalhePage() {
     onMutate: () => setOsEmAcao(true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      setConfirmacaoExclusaoOpen(false);
       toast.success("OS excluida com sucesso.");
       router.push("/ordens-servico");
     },
@@ -420,11 +423,7 @@ export default function OrdemServicoDetalhePage() {
   }
 
   function excluirOrdem() {
-    if (!ordem || !window.confirm(`Excluir a OS ${ordem.titulo}?`)) {
-      return;
-    }
-
-    excluirMutation.mutate();
+    setConfirmacaoExclusaoOpen(true);
   }
 
   function voltarParaListagem() {
@@ -738,6 +737,17 @@ export default function OrdemServicoDetalhePage() {
         </div>
       )}
 
+      <CriticalActionDialog
+        open={confirmacaoExclusaoOpen}
+        title="Excluir ordem de servico?"
+        description="Esta exclusao e definitiva. Revise os impactos antes de continuar."
+        itemName={ordem ? `${ordem.codigo} - ${ordem.titulo}` : ""}
+        impacts={["A ordem de servico deixara de estar disponivel nas listagens e consultas.", "Os dados associados a esta OS nao poderao ser recuperados pela aplicacao."]}
+        confirmLabel="Excluir definitivamente"
+        isPending={excluirMutation.isPending}
+        onConfirm={() => ordem && excluirMutation.mutate()}
+        onOpenChange={setConfirmacaoExclusaoOpen}
+      />
     </AppShell>
   );
 }
