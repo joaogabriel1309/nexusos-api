@@ -12,6 +12,15 @@ export type StatusOS =
 
 export type PrioridadeOS = "BAIXA" | "MEDIA" | "ALTA" | "CRITICA";
 
+export type TipoEventoCalendario = "PRAZO_OS" | "VENCIMENTO" | "ENTREGA_PREVISTA" | "EVENTO_IMPORTANTE";
+
+export type EventoCalendario = {
+  id: string; tipo: TipoEventoCalendario; data: string; ordemServicoId: string;
+  ordemServicoCodigo: number; titulo: string; clienteId: string; clienteNome: string;
+  projetoId?: string; projetoNome?: string; responsavelId?: string; responsavelNome?: string;
+  prioridade: PrioridadeOS; status: StatusOS;
+};
+
 export type Usuario = {
   id: string;
   nome: string;
