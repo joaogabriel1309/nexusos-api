@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { UsuarioForm } from "@/components/shared/usuario-form";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ export default function UsuariosPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+  const [usuarioParaInativar, setUsuarioParaInativar] = useState<Usuario | null>(null);
   const [usuarioInativandoId, setUsuarioInativandoId] = useState<string | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
 
@@ -77,6 +79,7 @@ export default function UsuariosPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usuariosQueryKey });
+      setUsuarioParaInativar(null);
       toast.success("Usuário inativado com sucesso.");
     },
     onError: () => {
@@ -109,11 +112,7 @@ export default function UsuariosPage() {
   }
 
   function inativarUsuario(usuario: Usuario) {
-    if (!window.confirm(`Inativar o usuário ${usuario.nome}?`)) {
-      return;
-    }
-
-    inativarUsuarioMutation.mutate(usuario.id);
+    setUsuarioParaInativar(usuario);
   }
 
   return (
@@ -241,6 +240,17 @@ export default function UsuariosPage() {
           />
         </DialogContent>
       </Dialog>
+      <CriticalActionDialog
+        open={Boolean(usuarioParaInativar)}
+        title="Inativar usuario?"
+        description="Confirme a inativacao deste usuario antes de continuar."
+        itemName={usuarioParaInativar?.nome ?? ""}
+        impacts={["O usuario perdera o acesso ao NexusOS.", "Seus registros e o historico de atividades serao preservados."]}
+        confirmLabel="Inativar usuario"
+        isPending={inativarUsuarioMutation.isPending}
+        onConfirm={() => usuarioParaInativar && inativarUsuarioMutation.mutate(usuarioParaInativar.id)}
+        onOpenChange={(open) => !open && setUsuarioParaInativar(null)}
+      />
     </AppShell>
   );
 }

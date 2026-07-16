@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
+import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { ProjetoForm } from "@/components/shared/projeto-form";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ export default function ProjetosPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [projetoSelecionado, setProjetoSelecionado] = useState<Projeto | null>(null);
+  const [projetoParaInativar, setProjetoParaInativar] = useState<Projeto | null>(null);
   const [projetoInativandoId, setProjetoInativandoId] = useState<string | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
 
@@ -67,6 +69,7 @@ export default function ProjetosPage() {
     onMutate: (id) => setProjetoInativandoId(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projetosQueryKey });
+      setProjetoParaInativar(null);
       toast.success("Projeto inativado com sucesso.");
     },
     onError: () => {
@@ -98,11 +101,7 @@ export default function ProjetosPage() {
   }
 
   function inativarProjeto(projeto: Projeto) {
-    if (!window.confirm(`Inativar o projeto ${projeto.nome}?`)) {
-      return;
-    }
-
-    inativarProjetoMutation.mutate(projeto.id);
+    setProjetoParaInativar(projeto);
   }
 
   return (
@@ -236,6 +235,17 @@ export default function ProjetosPage() {
           />
         </DialogContent>
       </Dialog>
+      <CriticalActionDialog
+        open={Boolean(projetoParaInativar)}
+        title="Inativar projeto?"
+        description="Confirme a inativacao deste projeto antes de continuar."
+        itemName={projetoParaInativar?.nome ?? ""}
+        impacts={["O projeto deixara de estar disponivel para novas ordens de servico.", "As ordens e o historico ja registrados serao preservados."]}
+        confirmLabel="Inativar projeto"
+        isPending={inativarProjetoMutation.isPending}
+        onConfirm={() => projetoParaInativar && inativarProjetoMutation.mutate(projetoParaInativar.id)}
+        onOpenChange={(open) => !open && setProjetoParaInativar(null)}
+      />
     </AppShell>
   );
 }

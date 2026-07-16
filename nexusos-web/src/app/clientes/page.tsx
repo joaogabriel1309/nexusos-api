@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ClienteForm } from "@/components/shared/cliente-form";
+import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ export default function ClientesPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  const [clienteParaInativar, setClienteParaInativar] = useState<Cliente | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
 
   const clientesQuery = useQuery({
@@ -60,6 +62,7 @@ export default function ClientesPage() {
     mutationFn: clienteService.inativar,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: clientesQueryKey });
+      setClienteParaInativar(null);
       toast.success("Cliente inativado com sucesso.");
     },
     onError: () => {
@@ -101,11 +104,7 @@ export default function ClientesPage() {
   }
 
   function inativarCliente(cliente: Cliente) {
-    if (!window.confirm(`Inativar o cliente ${cliente.nome}?`)) {
-      return;
-    }
-
-    inativarClienteMutation.mutate(cliente.id);
+    setClienteParaInativar(cliente);
   }
 
   function montarLinkCliente(cliente: Cliente) {
@@ -277,6 +276,17 @@ export default function ClientesPage() {
           />
         </DialogContent>
       </Dialog>
+      <CriticalActionDialog
+        open={Boolean(clienteParaInativar)}
+        title="Inativar cliente?"
+        description="Confirme a inativacao deste cliente antes de continuar."
+        itemName={clienteParaInativar?.nome ?? ""}
+        impacts={["O cliente deixara de estar disponivel para novos vinculos e operacoes.", "Os dados e o historico existente serao preservados."]}
+        confirmLabel="Inativar cliente"
+        isPending={inativarClienteMutation.isPending}
+        onConfirm={() => clienteParaInativar && inativarClienteMutation.mutate(clienteParaInativar.id)}
+        onOpenChange={(open) => !open && setClienteParaInativar(null)}
+      />
     </AppShell>
   );
 }
