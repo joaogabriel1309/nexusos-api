@@ -10,6 +10,7 @@ import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
+import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
@@ -251,6 +252,21 @@ public class OrdemServicoService {
                 salva,
                 "A OS " + salva.getCodigo() + " foi direcionada para voce."
         );
+        return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional
+    public OrdemServicoResponse atualizarPrioridade(UUID id, PrioridadeUpdateRequest request) {
+        var os = buscarEntidade(id);
+        var prioridadeAnterior = os.getPrioridade();
+        os.setPrioridade(request.prioridade());
+        if (os.getPrazo() == null && prioridadeAnterior != request.prioridade()) {
+            os.setPrazo(slaPrioridadeService.calcularPrazo(request.prioridade()));
+        }
+        var salva = ordemServicoRepository.save(os);
+        if (prioridadeAnterior != salva.getPrioridade()) {
+            notificacaoService.notificarPrioridadeAlterada(salva);
+        }
         return OrdemServicoResponse.from(salva);
     }
 
