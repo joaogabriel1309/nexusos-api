@@ -15,6 +15,8 @@ import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
+import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
+import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.UsuarioService;
 import com.nexusos.whatsapp.WhatsappService;
@@ -135,6 +137,49 @@ class OrdemServicoServiceTest {
                 .hasMessageContaining("administrador");
 
         verify(ordemServicoRepository, never()).save(ordem);
+    }
+
+    @Test
+    void adminMoveOsNaFilaSemAlterarStatusOuPrioridade() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var responsavel = com.nexusos.usuario.Usuario.builder().id(UUID.randomUUID()).build();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var primeira = criarOrdemFila(1L, 1L, responsavel, cliente);
+        var segunda = criarOrdemFila(2L, 2L, responsavel, cliente);
+        var terceira = criarOrdemFila(3L, 3L, responsavel, cliente);
+        when(ordemServicoRepository.findById(terceira.getId())).thenReturn(Optional.of(terceira));
+        when(ordemServicoRepository.findFilaByResponsavelId(responsavel.getId(), StatusOS.FINALIZADA))
+                .thenReturn(new java.util.ArrayList<>(List.of(primeira, segunda, terceira)));
+
+        var resposta = ordemServicoService.atualizarSequencia(terceira.getId(), new SequenciaUpdateRequest(1));
+
+        assertThat(resposta).extracting(OrdemServicoResponse::codigo).containsExactly(3L, 1L, 2L);
+        assertThat(terceira.getStatus()).isEqualTo(StatusOS.RECEBIDA);
+        assertThat(terceira.getPrioridade()).isEqualTo(PrioridadeOS.MEDIA);
+        verify(ordemServicoRepository).saveAll(org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test
+    void rejeitaPosicaoForaDaFila() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var responsavel = com.nexusos.usuario.Usuario.builder().id(UUID.randomUUID()).build();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = criarOrdemFila(1L, 1L, responsavel, cliente);
+        when(ordemServicoRepository.findById(ordem.getId())).thenReturn(Optional.of(ordem));
+        when(ordemServicoRepository.findFilaByResponsavelId(responsavel.getId(), StatusOS.FINALIZADA))
+                .thenReturn(new java.util.ArrayList<>(List.of(ordem)));
+
+        assertThatThrownBy(() -> ordemServicoService.atualizarSequencia(ordem.getId(), new SequenciaUpdateRequest(2)))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("entre 1 e 1");
+    }
+
+    private OrdemServico criarOrdemFila(long codigo, long sequencia, com.nexusos.usuario.Usuario responsavel,
+            Cliente cliente) {
+        return OrdemServico.builder()
+                .id(UUID.randomUUID()).codigo(codigo).titulo("OS " + codigo).descricao("Descricao")
+                .cliente(cliente).responsavel(responsavel).status(StatusOS.RECEBIDA)
+                .prioridade(PrioridadeOS.MEDIA).sequenciaExecucao(sequencia).build();
     }
 
     private void autenticar(String email, String role) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, CalendarClock, ClipboardList, Clock, Code2, RefreshCcw } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, CalendarClock, ClipboardList, Clock, Code2, GripVertical, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -50,19 +50,10 @@ function classificarPrazo(prazo?: string): PrazoGrupo {
   return "futuras";
 }
 
-function prioridadePeso(prioridade: PrioridadeOS) {
-  return { CRITICA: 0, ALTA: 1, MEDIA: 2, BAIXA: 3 }[prioridade];
-}
-
-function statusPeso(status: StatusOS) {
-  return statusOptions.indexOf(status);
-}
-
 function ordenarFila(a: OrdemServico, b: OrdemServico) {
-  const prazoA = a.prazo ? new Date(`${a.prazo}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
-  const prazoB = b.prazo ? new Date(`${b.prazo}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
-
-  return prazoA - prazoB || prioridadePeso(a.prioridade) - prioridadePeso(b.prioridade) || statusPeso(a.status) - statusPeso(b.status) || b.codigo - a.codigo;
+  return (a.sequenciaExecucao ?? Number.MAX_SAFE_INTEGER) - (b.sequenciaExecucao ?? Number.MAX_SAFE_INTEGER)
+    || new Date(b.atualizadoEm).getTime() - new Date(a.atualizadoEm).getTime()
+    || b.codigo - a.codigo;
 }
 
 function MetricaCard({
@@ -101,17 +92,27 @@ function MetricaCard({
   );
 }
 
-function OrdemCard({ ordem, podeAlterarPrioridade, onPrioridadeChange, atualizando }: {
+function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir = false, podeDescer = false, onMover, onDrop }: {
   ordem: OrdemServico;
-  podeAlterarPrioridade: boolean;
-  onPrioridadeChange: (ordem: OrdemServico, prioridade: PrioridadeOS) => void;
-  atualizando: boolean;
+  reordenavel?: boolean;
+  atualizando?: boolean;
+  podeSubir?: boolean;
+  podeDescer?: boolean;
+  onMover?: (deslocamento: -1 | 1) => void;
+  onDrop?: (ordem: OrdemServico) => void;
 }) {
   const router = useRouter();
 
   return (
-    <div className="w-full rounded-md border bg-background p-4 text-left shadow-sm">
+    <div
+      className="w-full rounded-md border bg-background p-4 text-left shadow-sm"
+      draggable={reordenavel && !atualizando}
+      onDragStart={(event) => event.dataTransfer.setData("text/plain", ordem.id)}
+      onDragOver={(event) => { if (reordenavel) event.preventDefault(); }}
+      onDrop={(event) => { event.preventDefault(); onDrop?.(ordem); }}
+    >
       <div className="flex min-w-0 items-start justify-between gap-3">
+        {reordenavel ? <GripVertical className="mt-0.5 h-5 w-5 shrink-0 cursor-grab text-muted-foreground" aria-hidden="true" /> : null}
         <button type="button" className="min-w-0 flex-1 text-left hover:text-primary" onClick={() => router.push(`/ordens-servico/${ordem.id}`)}>
           <div className="truncate font-semibold" title={ordem.titulo}>
             {ordem.codigo} - {ordem.titulo}
@@ -135,14 +136,14 @@ function OrdemCard({ ordem, podeAlterarPrioridade, onPrioridadeChange, atualizan
           {formatarDataPrazo(ordem.prazo)}
         </span>
       </div>
-      {podeAlterarPrioridade ? (
-        <div className="mt-3 max-w-48">
-          <Select value={ordem.prioridade} disabled={atualizando} onValueChange={(value) => onPrioridadeChange(ordem, value as PrioridadeOS)}>
-            <SelectTrigger aria-label={`Prioridade da OS ${ordem.codigo}`}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {prioridades.map((prioridade) => <SelectItem key={prioridade} value={prioridade}>{prioridadeLabels[prioridade]}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      {reordenavel ? (
+        <div className="mt-3 flex gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={!podeSubir || atualizando} onClick={() => onMover?.(-1)} aria-label={`Mover OS ${ordem.codigo} para cima`}>
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={!podeDescer || atualizando} onClick={() => onMover?.(1)} aria-label={`Mover OS ${ordem.codigo} para baixo`}>
+            <ArrowDown className="h-4 w-4" />
+          </Button>
         </div>
       ) : null}
     </div>
@@ -164,6 +165,7 @@ export default function MinhasOsPage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusOS | "">("");
   const [prioridadeFiltro, setPrioridadeFiltro] = useState<PrioridadeOS | "">("");
   const [responsavelFiltro, setResponsavelFiltro] = useState("");
+  const [ordemArrastadaId, setOrdemArrastadaId] = useState<string | null>(null);
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
@@ -180,13 +182,16 @@ export default function MinhasOsPage() {
   const responsavelSelecionadoId = isAdmin ? (responsavelFiltro || responsaveis[0]?.id || "") : usuario?.id;
   const responsavelSelecionado = responsaveis.find((item) => item.id === responsavelSelecionadoId);
 
-  const prioridadeMutation = useMutation({
-    mutationFn: ({ id, prioridade }: { id: string; prioridade: PrioridadeOS }) => ordemServicoService.atualizarPrioridade(id, prioridade),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success("Prioridade atualizada.");
+  const sequenciaMutation = useMutation({
+    mutationFn: ({ id, posicao }: { id: string; posicao: number }) => ordemServicoService.atualizarSequencia(id, posicao),
+    onSuccess: (fila) => {
+      queryClient.setQueryData<OrdemServico[]>(ordensQueryKey, (atuais = []) => {
+        const atualizadas = new Map(fila.map((ordem) => [ordem.id, ordem]));
+        return atuais.map((ordem) => atualizadas.get(ordem.id) ?? ordem);
+      });
+      toast.success("Sequencia de execucao atualizada.");
     },
-    onError: () => toast.error("Nao foi possivel atualizar a prioridade.")
+    onError: () => toast.error("Nao foi possivel atualizar a sequencia.")
   });
 
   const minhasOrdens = useMemo(() => {
@@ -198,15 +203,12 @@ export default function MinhasOsPage() {
       .sort(ordenarFila);
   }, [ordensQuery.data, prioridadeFiltro, responsavelSelecionadoId, statusFiltro]);
 
-  const renderOrdem = (ordem: OrdemServico) => (
-    <OrdemCard
-      key={ordem.id}
-      ordem={ordem}
-      podeAlterarPrioridade={isAdmin}
-      atualizando={prioridadeMutation.isPending && prioridadeMutation.variables?.id === ordem.id}
-      onPrioridadeChange={(item, prioridade) => prioridadeMutation.mutate({ id: item.id, prioridade })}
-    />
-  );
+  const renderOrdem = (ordem: OrdemServico) => <OrdemCard key={ordem.id} ordem={ordem} />;
+  const podeReordenar = isAdmin && !statusFiltro && !prioridadeFiltro;
+
+  function moverOrdem(id: string, posicao: number) {
+    sequenciaMutation.mutate({ id, posicao });
+  }
 
   const vencidas = minhasOrdens.filter((ordem) => classificarPrazo(ordem.prazo) === "vencidas");
   const hoje = minhasOrdens.filter((ordem) => classificarPrazo(ordem.prazo) === "hoje");
@@ -226,7 +228,7 @@ export default function MinhasOsPage() {
     <AppShell>
       <PageHeader
         title="Minhas OS"
-        description={`Fila tecnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuario") : (usuario?.nome ?? "desenvolvedor")} organizada por prioridade, prazo e status.`}
+        description={`Fila tecnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuario") : (usuario?.nome ?? "desenvolvedor")} na sequencia definida para execucao.`}
         actions={
           <Button variant="outline" onClick={recarregar} disabled={ordensQuery.isLoading}>
             <RefreshCcw className="h-4 w-4" />
@@ -315,10 +317,25 @@ export default function MinhasOsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Prioridade de execucao</CardTitle>
-                <CardDescription>Fila ordenada por prazo, criticidade e etapa atual.</CardDescription>
+                <CardDescription>{podeReordenar ? "Arraste as OS ou use as setas para definir a sequencia do desenvolvedor." : "Remova os filtros de status e prioridade para reordenar a fila."}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {minhasOrdens.length > 0 ? minhasOrdens.slice(0, 12).map(renderOrdem) : <EmptyState />}
+                {minhasOrdens.length > 0 ? minhasOrdens.map((ordem, index) => (
+                  <div key={ordem.id} onDragStart={() => setOrdemArrastadaId(ordem.id)} onDragEnd={() => setOrdemArrastadaId(null)}>
+                    <OrdemCard
+                      ordem={ordem}
+                      reordenavel={podeReordenar}
+                      atualizando={sequenciaMutation.isPending}
+                      podeSubir={index > 0}
+                      podeDescer={index < minhasOrdens.length - 1}
+                      onMover={(deslocamento) => moverOrdem(ordem.id, index + deslocamento + 1)}
+                      onDrop={(destino) => {
+                        if (ordemArrastadaId && ordemArrastadaId !== destino.id) moverOrdem(ordemArrastadaId, index + 1);
+                        setOrdemArrastadaId(null);
+                      }}
+                    />
+                  </div>
+                )) : <EmptyState />}
               </CardContent>
             </Card>
 

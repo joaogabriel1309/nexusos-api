@@ -12,6 +12,7 @@ import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
 import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
+import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.Usuario;
@@ -138,6 +139,7 @@ public class OrdemServicoService {
                 ? responsavelAtualId != null
                 : !responsavelAnteriorId.equals(responsavelAtualId);
         if (responsavelAlterado) {
+            salva.setSequenciaExecucao(null);
             notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
             if (salva.getResponsavel() != null) {
                 notificacaoService.notificarAtribuicao(
@@ -264,6 +266,7 @@ public class OrdemServicoService {
         var responsavelAnterior = os.getResponsavel();
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
+        os.setSequenciaExecucao(null);
         auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsavel da OS atualizado.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
@@ -287,6 +290,31 @@ public class OrdemServicoService {
             notificacaoService.notificarPrioridadeAlterada(salva);
         }
         return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional
+    public List<OrdemServicoResponse> atualizarSequencia(UUID id, SequenciaUpdateRequest request) {
+        var os = buscarEntidade(id);
+        if (os.getResponsavel() == null || os.getStatus() == StatusOS.FINALIZADA) {
+            throw new RegraNegocioException("Somente OS abertas e atribuidas podem ser reordenadas.");
+        }
+
+        var fila = ordemServicoRepository.findFilaByResponsavelId(os.getResponsavel().getId(), StatusOS.FINALIZADA);
+        var indiceAtual = fila.indexOf(os);
+        if (indiceAtual < 0) {
+            throw new RegraNegocioException("A OS nao pertence a fila informada.");
+        }
+        if (request.posicao() > fila.size()) {
+            throw new RegraNegocioException("A posicao deve estar entre 1 e " + fila.size() + ".");
+        }
+
+        fila.remove(indiceAtual);
+        fila.add(request.posicao() - 1, os);
+        for (int indice = 0; indice < fila.size(); indice++) {
+            fila.get(indice).setSequenciaExecucao((long) indice + 1);
+        }
+        ordemServicoRepository.saveAll(fila);
+        return fila.stream().map(OrdemServicoResponse::from).toList();
     }
 
     @Transactional
