@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { Bell, Laptop, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { getResumoNotificacao } from "@/lib/notificacao-labels";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useAuth } from "@/providers/auth-provider";
 import { notificacaoService } from "@/services/notificacao-service";
+import { useTheme, type Theme } from "@/providers/theme-provider";
 
 type AppHeaderProps = {
   sidebarCollapsed?: boolean;
@@ -23,6 +24,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   const router = useRouter();
   const queryClient = useQueryClient();
   const { logout, usuario } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
   const [buscaGlobal, setBuscaGlobal] = useState("");
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
   const notificacoesQuery = useQuery({
@@ -72,7 +74,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-white/90 px-4 backdrop-blur lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur lg:px-6">
       <MobileNav />
       <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={onToggleSidebar}>
         <SidebarIcon className="h-5 w-5" />
@@ -88,6 +90,26 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         />
       </form>
       <div className="ml-auto flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              <span className="sr-only">Alterar tema</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {([
+              ["light", "Claro", Sun],
+              ["dark", "Escuro", Moon],
+              ["system", "Sistema", Laptop]
+            ] as const).map(([value, label, Icon]) => (
+              <DropdownMenuItem key={value} onClick={() => setTheme(value as Theme)}>
+                <Icon className="mr-2 h-4 w-4" />
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">

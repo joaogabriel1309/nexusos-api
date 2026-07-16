@@ -294,7 +294,7 @@ function StatusTimeline({ ordem, eventos }: { ordem: OrdemServico; eventos: Audi
                 className={cn(
                   "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background",
                   isAtual ? "border-primary bg-primary text-primary-foreground" : null,
-                  isConcluido ? "border-emerald-200 bg-emerald-50 text-emerald-700" : null,
+                          isConcluido ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" : null,
                   isPendente ? "text-muted-foreground" : null
                 )}
               >
@@ -574,7 +574,7 @@ export default function OrdemServicoDetalhePage() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">
                         <p>Esta OS está finalizada. Não existem próximas etapas operacionais disponíveis.</p>
                         {!isDesenvolvedor ? (
                           <Button variant="outline" onClick={() => setReaberturaOpen(true)}>

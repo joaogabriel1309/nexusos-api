@@ -33,15 +33,15 @@ export function prazoClasses(data?: string) {
   const situacao = obterSituacaoPrazo(data);
 
   if (situacao === "vence-hoje") {
-    return "border-red-200 bg-red-50 text-red-700";
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300";
   }
 
   if (situacao === "proximo") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300";
   }
 
   if (situacao === "tranquilo") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300";
   }
 
   return "border-border bg-secondary/40 text-muted-foreground";

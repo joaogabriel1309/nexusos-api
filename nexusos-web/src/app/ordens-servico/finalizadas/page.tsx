@@ -41,8 +41,8 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
       variant="outline"
       className={
         paga
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-amber-200 bg-amber-50 text-amber-700"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+          : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
       }
     >
       {paga ? "Pago" : "A pagar"}

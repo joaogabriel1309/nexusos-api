@@ -18,7 +18,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
   const navigationItems = getNavigationItems(usuario?.perfil);
 
   return (
-    <aside className={cn("hidden min-h-screen border-r bg-white transition-all lg:block", collapsed ? "w-20" : "w-64")}>
+    <aside className={cn("hidden min-h-screen border-r bg-card transition-all lg:block", collapsed ? "w-20" : "w-64")}>
       <div className={cn("flex h-16 items-center gap-3 border-b px-5", collapsed && "justify-center px-3")}>
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <ClipboardCheck className="h-5 w-5" />
