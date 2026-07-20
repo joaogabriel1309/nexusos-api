@@ -18,6 +18,8 @@
 16. A entrega cria commit e push direto para a branch alvo.
 17. O estado final esperado e `COMPLETED`.
 
+Se uma revisao reprovar e `AGENTS_DEVELOPER_PROVIDER` ou `AGENTS_DEVELOPER_COMMAND` estiver configurado, o fluxo volta automaticamente para o braco programador com os achados da revisao no prompt. Se nao houver braco programador configurado, a execucao permanece em `WAITING_FOR_DEVELOPMENT` para correcao manual e retomada com `pnpm agents:resume`.
+
 ## Retomada
 
 Use:

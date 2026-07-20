@@ -24,6 +24,8 @@ Por seguranca, comandos customizados precisam usar `{prompt}`, `{promptFile}` ou
 
 Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implementacao manual na branch alvo e retomada com `pnpm agents:resume`.
 
+Quando o braco programador esta configurado, reprovacoes de Seguranca, Banco, Regras de Negocio, Produto, UX, Acessibilidade, Performance, Testes, Deploy ou Documentacao retornam automaticamente para o Desenvolvedor. O novo prompt inclui os achados reprovados para orientar a correcao e o fluxo continua ate aprovar ou atingir o limite de tentativas do agente revisor.
+
 ## Seguranca
 
 Revisa arquivos alterados contra segredos, comandos perigosos, XSS basico e path traversal. Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento.

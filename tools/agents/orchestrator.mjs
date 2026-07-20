@@ -39,55 +39,82 @@ export async function resumeTask(root, id) {
 
 async function runFlow(root, execution) {
   try {
-    if ([STATES.RECEIVED, STATES.ANALYZING_PROJECT].includes(execution.status)) {
-      analyze(root, execution);
-    }
-    if ([STATES.CREATING_SPECIFICATION].includes(execution.status)) {
-      poAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_DEVELOPMENT, STATES.DEVELOPING].includes(execution.status)) {
-      developerAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_SECURITY_REVIEW, STATES.SECURITY_REVIEW].includes(execution.status)) {
-      securityAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_DATABASE_REVIEW, STATES.DATABASE_REVIEW].includes(execution.status)) {
-      databaseAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_BUSINESS_RULES_REVIEW, STATES.BUSINESS_RULES_REVIEW].includes(execution.status)) {
-      businessRulesAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_PRODUCT_REVIEW, STATES.PRODUCT_REVIEW].includes(execution.status)) {
-      productAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
-      uxAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_ACCESSIBILITY_REVIEW, STATES.ACCESSIBILITY_REVIEW].includes(execution.status)) {
-      accessibilityAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_PERFORMANCE_REVIEW, STATES.PERFORMANCE_REVIEW].includes(execution.status)) {
-      performanceAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
-      testAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_DEPLOYMENT_REVIEW, STATES.DEPLOYMENT_REVIEW].includes(execution.status)) {
-      deploymentAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_MANUAL_QA_REVIEW, STATES.MANUAL_QA_REVIEW].includes(execution.status)) {
-      manualQaAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_DOCUMENTATION_REVIEW, STATES.DOCUMENTATION_REVIEW].includes(execution.status)) {
-      documentationAgent(root, execution);
-    }
-    if ([STATES.WAITING_FOR_DELIVERY, STATES.CREATING_COMMITS, STATES.PUSHING_BRANCH, STATES.CREATING_PULL_REQUEST].includes(execution.status)) {
-      deliveryAgent(root, execution);
+    for (let cycle = 0; cycle < 30; cycle += 1) {
+      const statusBefore = execution.status;
+      const historyLengthBefore = execution.history?.length ?? 0;
+
+      if ([STATES.RECEIVED, STATES.ANALYZING_PROJECT].includes(execution.status)) {
+        analyze(root, execution);
+      }
+      if ([STATES.CREATING_SPECIFICATION].includes(execution.status)) {
+        poAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_DEVELOPMENT, STATES.DEVELOPING].includes(execution.status)) {
+        developerAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_SECURITY_REVIEW, STATES.SECURITY_REVIEW].includes(execution.status)) {
+        securityAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_DATABASE_REVIEW, STATES.DATABASE_REVIEW].includes(execution.status)) {
+        databaseAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_BUSINESS_RULES_REVIEW, STATES.BUSINESS_RULES_REVIEW].includes(execution.status)) {
+        businessRulesAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_PRODUCT_REVIEW, STATES.PRODUCT_REVIEW].includes(execution.status)) {
+        productAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
+        uxAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_ACCESSIBILITY_REVIEW, STATES.ACCESSIBILITY_REVIEW].includes(execution.status)) {
+        accessibilityAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_PERFORMANCE_REVIEW, STATES.PERFORMANCE_REVIEW].includes(execution.status)) {
+        performanceAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
+        testAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_DEPLOYMENT_REVIEW, STATES.DEPLOYMENT_REVIEW].includes(execution.status)) {
+        deploymentAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_MANUAL_QA_REVIEW, STATES.MANUAL_QA_REVIEW].includes(execution.status)) {
+        manualQaAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_DOCUMENTATION_REVIEW, STATES.DOCUMENTATION_REVIEW].includes(execution.status)) {
+        documentationAgent(root, execution);
+      }
+      if ([STATES.WAITING_FOR_DELIVERY, STATES.CREATING_COMMITS, STATES.PUSHING_BRANCH, STATES.CREATING_PULL_REQUEST].includes(execution.status)) {
+        deliveryAgent(root, execution);
+      }
+
+      if (execution.status === STATES.WAITING_FOR_DEVELOPMENT && shouldAutoRetryDevelopment(execution)) {
+        progress("Revisao reprovada; retornando automaticamente ao braco programador");
+        continue;
+      }
+
+      const historyLengthAfter = execution.history?.length ?? 0;
+      if (execution.status === statusBefore && historyLengthAfter === historyLengthBefore) {
+        break;
+      }
+      if (![STATES.WAITING_FOR_DEVELOPMENT, STATES.DEVELOPING].includes(execution.status)) {
+        break;
+      }
     }
   } catch (error) {
     execution.errors.push({ at: new Date().toISOString(), message: error.message });
     transition(root, execution, STATES.FAILED, error.message);
   }
+}
+
+function shouldAutoRetryDevelopment(execution) {
+  if (!developerAutomationConfigured()) return false;
+  return execution.developerOutput?.status !== "waiting_for_external_implementation";
+}
+
+function developerAutomationConfigured() {
+  return Boolean(process.env.AGENTS_DEVELOPER_COMMAND || process.env.AGENTS_DEVELOPER_PROVIDER === "codex");
 }
 
 function analyze(root, execution) {
@@ -315,6 +342,8 @@ ${JSON.stringify(execution.poOutput, null, 2)}
 ${JSON.stringify(execution.projectAnalysis, null, 2)}
 \`\`\`
 
+${developerReviewContext(execution)}
+
 ## Regras obrigatorias
 
 - Trabalhe apenas dentro do repositorio.
@@ -333,6 +362,41 @@ ${JSON.stringify(execution.projectAnalysis, null, 2)}
 `;
   writeFileSync(promptFile, content);
   return promptFile;
+}
+
+function developerReviewContext(execution) {
+  const reviews = [
+    ["Seguranca", execution.securityOutput],
+    ["Banco de Dados", execution.databaseOutput],
+    ["Regras de Negocio", execution.businessRulesOutput],
+    ["Produto", execution.productOutput],
+    ["UX", execution.uxOutput],
+    ["Acessibilidade", execution.accessibilityOutput],
+    ["Performance", execution.performanceOutput],
+    ["Testes", execution.testOutput],
+    ["Deploy/Producao", execution.deploymentOutput],
+    ["Documentacao", execution.documentationOutput]
+  ];
+  const rejected = reviews
+    .filter(([, output]) => output?.status === "rejected")
+    .map(([agent, output]) => ({
+      agente: agent,
+      achados: output.findings ?? output.failed ?? []
+    }))
+    .filter((item) => item.achados.length > 0);
+
+  if (!rejected.length) {
+    return "";
+  }
+
+  return `## Correcoes solicitadas pelas revisoes
+
+Corrija os pontos abaixo antes de continuar. Mantenha a implementacao original e ajuste apenas o necessario.
+
+\`\`\`json
+${JSON.stringify(rejected, null, 2)}
+\`\`\`
+`;
 }
 
 function securityAgent(root, execution) {

@@ -103,6 +103,31 @@ test("gera diagnostico quando braco programador nao esta configurado", () => {
   }
 });
 
+test("inclui achados reprovados no prompt do braco programador", () => {
+  const root = mkdtempSync(join(tmpdir(), "agents-orchestrator-"));
+  try {
+    const execution = fakeExecution(root);
+    execution.securityOutput = {
+      status: "rejected",
+      findings: [
+        {
+          severity: "HIGH",
+          title: "Campo sem validacao",
+          file: "src/main/java/com/nexusos/auth/AuthController.java",
+          recommendation: "Validar entrada antes de processar."
+        }
+      ]
+    };
+    const promptFile = writeDeveloperPrompt(root, execution);
+    const content = readFileSync(promptFile, "utf8");
+    assert.match(content, /Correcoes solicitadas pelas revisoes/);
+    assert.match(content, /Campo sem validacao/);
+    assert.match(content, /Validar entrada/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("agente de banco reprova migration destrutiva", () => {
   const findings = databaseFindingsForFile(
     "src/main/resources/db/migration/V999__drop_old_table.sql",
@@ -152,10 +177,18 @@ test("agente de regras reprova campo interno no portal do cliente", () => {
   assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
 });
 
-test("agente de deploy reprova url publica local", () => {
+test("agente de deploy permite url local em exemplo de ambiente", () => {
   const findings = deploymentFindingsForFile(
     "nexusos-web/.env.example",
     "NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("ambiente local")), false);
+});
+
+test("agente de deploy reprova url publica local em compose", () => {
+  const findings = deploymentFindingsForFile(
+    "docker-compose.prod.yml",
+    "services:\n  web:\n    environment:\n      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1\n"
   );
   assert.equal(findings.some((finding) => finding.title.includes("ambiente local")), true);
 });
