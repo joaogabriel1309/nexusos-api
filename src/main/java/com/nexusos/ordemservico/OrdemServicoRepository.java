@@ -56,6 +56,15 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID
 
     List<OrdemServico> findAllByOrderByAtualizadoEmDesc();
 
+    @Query("""
+            select distinct os from OrdemServico os
+            join fetch os.cliente
+            left join fetch os.responsavel
+            left join fetch os.projeto
+            order by os.codigo desc
+            """)
+    List<OrdemServico> buscarParaCentralPendencias();
+
     List<OrdemServico> findByResponsavelEmailOrderByAtualizadoEmDesc(String email);
 
     @Query("""

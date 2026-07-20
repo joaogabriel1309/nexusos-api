@@ -59,6 +59,43 @@ class OrdemServicoServiceTest {
     }
 
     @Test
+    void centralClassificaPendenciasEIgnoraPrazoDeOrdemEncerrada() {
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var hoje = LocalDate.now();
+        var vencidaSemResponsavel = OrdemServico.builder().id(UUID.randomUUID()).codigo(1L)
+                .titulo("Vencida").descricao("Descricao").cliente(cliente).status(StatusOS.EM_ANALISE)
+                .prazo(hoje.minusDays(1)).paga(false).build();
+        var venceHoje = OrdemServico.builder().id(UUID.randomUUID()).codigo(2L)
+                .titulo("Hoje").descricao("Descricao").cliente(cliente).status(StatusOS.RECEBIDA)
+                .prazo(hoje).paga(false).build();
+        var aguardaCliente = OrdemServico.builder().id(UUID.randomUUID()).codigo(3L)
+                .titulo("Cliente").descricao("Descricao").cliente(cliente).status(StatusOS.AGUARDANDO_APROVACAO)
+                .paga(false).build();
+        var pagamento = OrdemServico.builder().id(UUID.randomUUID()).codigo(4L)
+                .titulo("Pagamento").descricao("Descricao").cliente(cliente).status(StatusOS.AGUARDANDO_PAGAMENTO)
+                .paga(false).build();
+        var reprovada = OrdemServico.builder().id(UUID.randomUUID()).codigo(5L)
+                .titulo("Reprovada").descricao("Descricao").cliente(cliente).status(StatusOS.EM_ANALISE)
+                .aprovadaPeloCliente(false).paga(false).build();
+        var finalizadaVencida = OrdemServico.builder().id(UUID.randomUUID()).codigo(6L)
+                .titulo("Finalizada").descricao("Descricao").cliente(cliente).status(StatusOS.FINALIZADA)
+                .prazo(hoje.minusDays(2)).paga(true).build();
+        when(ordemServicoRepository.buscarParaCentralPendencias()).thenReturn(List.of(
+                vencidaSemResponsavel, venceHoje, aguardaCliente, pagamento, reprovada, finalizadaVencida));
+
+        var central = ordemServicoService.listarPendencias();
+
+        assertThat(central.vencidas()).extracting(OrdemServicoResponse::codigo).containsExactly(1L);
+        assertThat(central.vencemHoje()).extracting(OrdemServicoResponse::codigo).containsExactly(2L);
+        assertThat(central.aguardandoAprovacaoAdmin()).extracting(OrdemServicoResponse::codigo).containsExactly(2L);
+        assertThat(central.aguardandoCliente()).extracting(OrdemServicoResponse::codigo).containsExactly(3L);
+        assertThat(central.aguardandoPagamento()).extracting(OrdemServicoResponse::codigo).containsExactly(4L);
+        assertThat(central.reprovadasPeloCliente()).extracting(OrdemServicoResponse::codigo).containsExactly(5L);
+        assertThat(central.semResponsavel()).extracting(OrdemServicoResponse::codigo)
+                .containsExactly(1L, 2L, 3L, 4L, 5L);
+    }
+
+    @Test
     void adminCancelaOsComMotivoEAuditoria() {
         autenticar("admin@nexusos.com", "ROLE_ADMIN");
         var id = UUID.randomUUID();

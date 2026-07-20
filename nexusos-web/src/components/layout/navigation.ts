@@ -1,8 +1,9 @@
-import { BarChart3, Bell, Building2, CalendarDays, ClipboardCheck, ClipboardList, Code2, FolderKanban, Settings, Users } from "lucide-react";
+import { AlertTriangle, BarChart3, Bell, Building2, CalendarDays, ClipboardCheck, ClipboardList, Code2, FolderKanban, Settings, Users } from "lucide-react";
 import type { PerfilUsuario } from "@/types";
 
 export const navigationItems = [
   { title: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { title: "Central de Pendencias", href: "/pendencias", icon: AlertTriangle, roles: ["ADMIN"] },
   { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
   { title: "Ordens de Serviço", href: "/ordens-servico", icon: ClipboardList },
   { title: "OS Finalizadas", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },

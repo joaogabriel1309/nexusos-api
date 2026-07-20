@@ -2,6 +2,7 @@ package com.nexusos.ordemservico;
 
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
+import com.nexusos.ordemservico.dto.CentralPendenciasResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
@@ -40,10 +41,19 @@ public class OrdemServicoController {
     private final OrdemServicoService ordemServicoService;
     private final OrdemServicoPdfService ordemServicoPdfService;
 
+    // Acoes criticas usam DTOs com motivo, descricao ou justificativa e sao auditadas no service.
+
     @Operation(summary = "Lista ordens de servico")
     @GetMapping
     public ResponseEntity<List<OrdemServicoResponse>> listar() {
         return ResponseEntity.ok(ordemServicoService.listar());
+    }
+
+    @Operation(summary = "Consolida ordens de servico que precisam de acao")
+    @GetMapping("/pendencias")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CentralPendenciasResponse> listarPendencias() {
+        return ResponseEntity.ok(ordemServicoService.listarPendencias());
     }
 
     @Operation(summary = "Busca ordem de servico por ID")

@@ -109,6 +109,16 @@ export type OrdemServicoVinculada = {
   status: StatusOS;
 };
 
+export type CentralPendencias = {
+  vencidas: OrdemServico[];
+  vencemHoje: OrdemServico[];
+  semResponsavel: OrdemServico[];
+  aguardandoAprovacaoAdmin: OrdemServico[];
+  aguardandoCliente: OrdemServico[];
+  aguardandoPagamento: OrdemServico[];
+  reprovadasPeloCliente: OrdemServico[];
+};
+
 export type PortalOrdemServico = {
   id: string;
   codigo: number;

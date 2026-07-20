@@ -8,6 +8,7 @@ import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
+import com.nexusos.ordemservico.dto.CentralPendenciasResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
@@ -22,13 +23,16 @@ import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
 import com.nexusos.whatsapp.WhatsappService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.LinkedHashSet;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -227,6 +231,38 @@ public class OrdemServicoService {
                 "OS reaberta. Motivo: " + motivo, StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
         notificacaoService.notificarReabertura(salva, motivo);
         return OrdemServicoResponse.from(salva);
+    }
+
+    @Transactional(readOnly = true)
+    public CentralPendenciasResponse listarPendencias() {
+        var hoje = LocalDate.now();
+        var ordens = ordemServicoRepository.buscarParaCentralPendencias();
+        var ordenacao = Comparator.comparing(OrdemServico::getPrazo,
+                        Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(OrdemServico::getCodigo);
+
+        return new CentralPendenciasResponse(
+                filtrarPendencias(ordens,
+                        os -> ativa(os) && os.getPrazo() != null && os.getPrazo().isBefore(hoje), ordenacao),
+                filtrarPendencias(ordens, os -> ativa(os) && hoje.equals(os.getPrazo()), ordenacao),
+                filtrarPendencias(ordens, os -> ativa(os) && os.getResponsavel() == null, ordenacao),
+                filtrarPendencias(ordens, os -> os.getStatus() == StatusOS.RECEBIDA, ordenacao),
+                filtrarPendencias(ordens, os -> os.getStatus() == StatusOS.AGUARDANDO_APROVACAO, ordenacao),
+                filtrarPendencias(ordens, os -> os.getStatus() == StatusOS.AGUARDANDO_PAGAMENTO
+                        && !Boolean.TRUE.equals(os.getPaga()), ordenacao),
+                filtrarPendencias(ordens, os -> Boolean.FALSE.equals(os.getAprovadaPeloCliente()), ordenacao)
+        );
+    }
+
+    private List<OrdemServicoResponse> filtrarPendencias(
+            List<OrdemServico> ordens,
+            Predicate<OrdemServico> filtro,
+            Comparator<OrdemServico> ordenacao) {
+        return ordens.stream().filter(filtro).sorted(ordenacao).map(OrdemServicoResponse::from).toList();
+    }
+
+    private boolean ativa(OrdemServico ordem) {
+        return ordem.getStatus() != StatusOS.FINALIZADA && ordem.getStatus() != StatusOS.CANCELADA;
     }
 
     @Transactional

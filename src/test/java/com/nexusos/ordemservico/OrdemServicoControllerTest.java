@@ -23,6 +23,12 @@ class OrdemServicoControllerTest {
     }
 
     @Test
+    void centralPendenciasExigePerfilAdmin() throws NoSuchMethodException {
+        var metodo = OrdemServicoController.class.getMethod("listarPendencias");
+        assertThat(metodo.getAnnotation(PreAuthorize.class).value()).isEqualTo("hasRole('ADMIN')");
+    }
+
+    @Test
     void cancelarExigePerfilAdmin() throws NoSuchMethodException {
         var metodo = OrdemServicoController.class.getMethod(
                 "cancelar", UUID.class, CancelamentoOrdemServicoRequest.class);
