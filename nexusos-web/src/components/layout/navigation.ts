@@ -12,7 +12,7 @@ export const navigationItems = [
   { title: "Projetos", href: "/projetos", icon: FolderKanban },
   { title: "Clientes", href: "/clientes", icon: Building2 },
   { title: "Usuários", href: "/usuarios", icon: Users },
-  { title: "Configurações", href: "/configuracoes", icon: Settings }
+  { title: "Configurações", href: "/configuracoes", icon: Settings, roles: ["ADMIN"] }
 ];
 
 export function getActiveNavigationHref(pathname: string) {

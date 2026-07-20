@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { CompanyTheme } from "@/components/layout/company-theme";
 import { ProtectedRoute } from "@/components/layout/protected-route";
 
 const sidebarStorageKey = "nexusos.sidebarCollapsed";
@@ -24,6 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ProtectedRoute>
+      <CompanyTheme />
       <div className="min-h-screen bg-background">
         <div className="flex">
           <AppSidebar collapsed={sidebarCollapsed} />
