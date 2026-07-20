@@ -16,6 +16,7 @@ import {
 } from "./core.mjs";
 
 const MAX_SECURITY_FIXES = 3;
+const MAX_DATABASE_FIXES = 3;
 const MAX_TEST_FIXES = 3;
 
 export async function startTask(root, request) {
@@ -43,6 +44,9 @@ async function runFlow(root, execution) {
     }
     if ([STATES.WAITING_FOR_SECURITY_REVIEW, STATES.SECURITY_REVIEW].includes(execution.status)) {
       securityAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_DATABASE_REVIEW, STATES.DATABASE_REVIEW].includes(execution.status)) {
+      databaseAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
       uxAgent(root, execution);
@@ -335,7 +339,60 @@ function securityAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Seguranca reprovada; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Seguranca aprovada");
+  transition(root, execution, STATES.WAITING_FOR_DATABASE_REVIEW, "Seguranca aprovada");
+}
+
+function databaseAgent(root, execution) {
+  execution.currentAgent = "DATABASE";
+  transition(root, execution, STATES.DATABASE_REVIEW, "Revisando banco de dados");
+  const files = reviewFiles(root, execution);
+  const findings = [];
+  const normalizedFiles = files.map(normalizePath);
+  const migrationFiles = normalizedFiles.filter((file) => file.includes("src/main/resources/db/migration/"));
+
+  for (const file of files) {
+    const normalized = normalizePath(file);
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    if (!isDatabaseRelevantFile(normalized)) continue;
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...databaseFindingsForFile(normalized, content, { migrationFiles }));
+  }
+
+  const entityChanged = files.some((file) => {
+    const normalized = normalizePath(file);
+    if (!normalized.startsWith("src/main/java/") || !normalized.endsWith(".java")) return false;
+    const absolute = join(root, file);
+    return existsSync(absolute) && /@Entity\b/.test(readFileSync(absolute, "utf8"));
+  });
+
+  if (entityChanged && migrationFiles.length === 0) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "Entidade JPA alterada sem migration",
+      "src/main/java",
+      "Mudancas no modelo persistido precisam de migration Flyway para manter ambientes sincronizados."
+    ));
+  }
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.databaseOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: files.filter((file) => isDatabaseRelevantFile(normalizePath(file))),
+    migrations: migrationFiles,
+    findings,
+    approvedForUx: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.databaseFixAttempts = (execution.databaseFixAttempts ?? 0) + 1;
+    if (execution.databaseFixAttempts > MAX_DATABASE_FIXES) {
+      throw new Error("Limite de correcoes de banco de dados excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Banco de dados reprovado; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Banco de dados aprovado");
 }
 
 function uxAgent(root, execution) {
@@ -529,6 +586,124 @@ function reviewFiles(root, execution) {
   return files.length ? files : (execution.developerOutput?.changedFiles ?? []);
 }
 
+function isDatabaseRelevantFile(file) {
+  return (
+    file.includes("src/main/resources/db/migration/") ||
+    file.endsWith("application.properties") ||
+    file.endsWith("application.yml") ||
+    file.endsWith("application.yaml") ||
+    (file.startsWith("src/main/java/") && /\.(java)$/.test(file) && /(entity|repository|service|ordemservico|cliente|usuario|pagamento|auditoria|notificacao)/i.test(file))
+  );
+}
+
+export function databaseFindingsForFile(file, content, context = {}) {
+  const findings = [];
+  const isMigration = file.includes("src/main/resources/db/migration/");
+  const migrationName = file.split("/").at(-1) ?? file;
+
+  if (isMigration && !/^V\d+__[\w-]+\.sql$/.test(migrationName)) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "Migration fora do padrao Flyway",
+      file,
+      "Use o padrao V<numero>__descricao.sql para manter ordem previsivel e rastreavel."
+    ));
+  }
+
+  if (isMigration && /\b(DROP\s+DATABASE|DROP\s+SCHEMA|DROP\s+TABLE|TRUNCATE\s+TABLE)\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "CRITICAL",
+      "Migration destrutiva detectada",
+      file,
+      "Evite apagar estruturas em migrations de produto; crie estrategia reversivel, backup ou migracao em fases."
+    ));
+  }
+
+  if (isMigration && /\bALTER\s+TABLE\b[\s\S]{0,300}\bDROP\s+COLUMN\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "Remocao de coluna em migration",
+      file,
+      "Prefira descontinuar a coluna em fases, migrar dados e remover somente apos janela controlada."
+    ));
+  }
+
+  if (isMigration && /\bDELETE\s+FROM\b(?![\s\S]{0,200}\bWHERE\b)/i.test(content)) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "DELETE sem filtro aparente",
+      file,
+      "Inclua WHERE, justificativa e estrategia de backup para alteracoes de dados."
+    ));
+  }
+
+  if (isMigration && /\bALTER\s+TABLE\b[\s\S]{0,300}\bADD\s+COLUMN\b[\s\S]{0,200}\bNOT\s+NULL\b/i.test(content) && !/\bDEFAULT\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "MEDIUM",
+      "Coluna NOT NULL sem default",
+      file,
+      "Em tabelas existentes, adicione default/backfill antes de aplicar NOT NULL para evitar falha em producao."
+    ));
+  }
+
+  if (isMigration && /\bCREATE\s+TABLE\b/i.test(content) && !/\bCREATE\s+(INDEX|UNIQUE\s+INDEX)\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "LOW",
+      "Tabela nova sem indice explicito",
+      file,
+      "Revise se campos usados em busca, filtros ou joins precisam de indice desde a criacao."
+    ));
+  }
+
+  if (/\bspring\.jpa\.hibernate\.ddl-auto\s*[:=]\s*(update|create|create-drop)\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "DDL automatico perigoso habilitado",
+      file,
+      "Use Flyway como fonte de verdade do schema e mantenha ddl-auto como validate ou none em ambientes controlados."
+    ));
+  }
+
+  if (/nativeQuery\s*=\s*true/i.test(content) && /"\s*\+|\+\s*"/.test(content)) {
+    findings.push(databaseFinding(
+      "HIGH",
+      "SQL nativo concatenado",
+      file,
+      "Use parametros nomeados/posicionais para evitar injection e planos instaveis."
+    ));
+  }
+
+  if (/@Query\s*\(/.test(content) && /\bSELECT\s+\*\b/i.test(content)) {
+    findings.push(databaseFinding(
+      "MEDIUM",
+      "Query selecionando todas as colunas",
+      file,
+      "Prefira projecoes ou campos explicitos quando a consulta alimentar listas ou relatorios."
+    ));
+  }
+
+  if (/@Entity\b/.test(content) && (context.migrationFiles ?? []).length === 0 && /@(Column|ManyToOne|OneToMany|JoinColumn)\b/.test(content)) {
+    findings.push(databaseFinding(
+      "MEDIUM",
+      "Entidade persistida sem migration relacionada",
+      file,
+      "Confirme se a mudanca nao altera schema; se alterar, inclua migration Flyway."
+    ));
+  }
+
+  return findings;
+}
+
+function databaseFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "DATABASE"
+  };
+}
+
 function uxFinding(severity, title, file, recommendation) {
   return {
     severity,
@@ -612,6 +787,10 @@ ${files.some((file) => file.includes("db/migration")) ? "Inclui migration de ban
 
 Resultado: ${execution.securityOutput?.status ?? "nao executado"}
 
+## Banco de dados
+
+Resultado: ${execution.databaseOutput?.status ?? "nao executado"}
+
 ## Testes
 
 Resultado: ${execution.testOutput?.status ?? "nao executado"}
@@ -641,6 +820,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Implementacao concluida
 - [x] Codigo revisado
 - [x] Seguranca revisada
+- [x] Banco de dados revisado
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Documentacao atualizada
 - [x] Commit criado

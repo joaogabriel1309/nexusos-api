@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { databaseFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -101,4 +101,29 @@ test("gera diagnostico quando braco programador nao esta configurado", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("agente de banco reprova migration destrutiva", () => {
+  const findings = databaseFindingsForFile(
+    "src/main/resources/db/migration/V999__drop_old_table.sql",
+    "DROP TABLE ordem_servico;"
+  );
+  assert.equal(findings.some((finding) => finding.severity === "CRITICAL"), true);
+});
+
+test("agente de banco alerta entidade sem migration", () => {
+  const findings = databaseFindingsForFile(
+    "src/main/java/com/nexusos/ordemservico/OrdemServico.java",
+    "@Entity class OrdemServico { @Column(nullable = false) private String titulo; }",
+    { migrationFiles: [] }
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Entidade persistida")), true);
+});
+
+test("agente de banco reprova ddl automatico perigoso", () => {
+  const findings = databaseFindingsForFile(
+    "src/main/resources/application-prod.properties",
+    "spring.jpa.hibernate.ddl-auto=update"
+  );
+  assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
 });

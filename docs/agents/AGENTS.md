@@ -28,6 +28,12 @@ Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implemen
 
 Revisa arquivos alterados contra segredos, comandos perigosos, XSS basico e path traversal. Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento.
 
+## Banco de Dados
+
+Revisa migrations Flyway, entidades JPA, repositories, queries e configuracoes de persistencia. O objetivo e evitar perda de dados, schema fora de ordem, `ddl-auto` perigoso, SQL nativo concatenado e mudancas em entidades sem migration.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
+
 ## UX
 
 Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza de textos, responsividade mobile/tablet/desktop, tamanho de modais e risco de rotinas confusas. Achados `HIGH` reprovam a etapa e retornam ao desenvolvimento; achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
