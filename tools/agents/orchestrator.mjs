@@ -19,6 +19,7 @@ const MAX_SECURITY_FIXES = 3;
 const MAX_DATABASE_FIXES = 3;
 const MAX_BUSINESS_RULE_FIXES = 3;
 const MAX_TEST_FIXES = 3;
+const MAX_DEPLOYMENT_FIXES = 3;
 
 export async function startTask(root, request) {
   const execution = newExecution(root, request);
@@ -57,6 +58,9 @@ async function runFlow(root, execution) {
     }
     if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
       testAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_DEPLOYMENT_REVIEW, STATES.DEPLOYMENT_REVIEW].includes(execution.status)) {
+      deploymentAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_DELIVERY, STATES.CREATING_COMMITS, STATES.PUSHING_BRANCH, STATES.CREATING_PULL_REQUEST].includes(execution.status)) {
       deliveryAgent(root, execution);
@@ -541,7 +545,53 @@ function testAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Testes reprovados; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "Testes aprovados");
+  transition(root, execution, STATES.WAITING_FOR_DEPLOYMENT_REVIEW, "Testes aprovados");
+}
+
+function deploymentAgent(root, execution) {
+  execution.currentAgent = "DEPLOYMENT";
+  transition(root, execution, STATES.DEPLOYMENT_REVIEW, "Revisando deploy e producao");
+  const files = reviewFiles(root, execution);
+  const findings = [];
+  const relevantFiles = files.filter((file) => isDeploymentRelevantFile(normalizePath(file)));
+
+  for (const file of relevantFiles) {
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    const normalized = normalizePath(file);
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...deploymentFindingsForFile(normalized, content));
+  }
+
+  const hasBackendChange = files.some((file) => normalizePath(file).startsWith("src/main/"));
+  const hasFrontendChange = files.some((file) => normalizePath(file).startsWith("nexusos-web/src/"));
+  const hasDeploymentChange = relevantFiles.length > 0;
+  if ((hasBackendChange || hasFrontendChange) && !hasDeploymentChange) {
+    findings.push(deploymentFinding(
+      "LOW",
+      "Mudanca de aplicacao sem arquivo de deploy revisado",
+      "deploy",
+      "Quando a mudanca altera env, porta, build, URL publica ou dependencia, revise Docker/Compose/Nginx antes de publicar."
+    ));
+  }
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.deploymentOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: relevantFiles,
+    findings,
+    approvedForDelivery: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.deploymentFixAttempts = (execution.deploymentFixAttempts ?? 0) + 1;
+    if (execution.deploymentFixAttempts > MAX_DEPLOYMENT_FIXES) {
+      throw new Error("Limite de correcoes de deploy/producao excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Deploy/producao reprovado; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "Deploy/producao aprovado");
 }
 
 function deliveryAgent(root, execution) {
@@ -653,6 +703,171 @@ function isBusinessRuleRelevantFile(file) {
   ) || (
     file.startsWith("nexusos-web/src/") && /\.(ts|tsx|jsx)$/.test(file) && /(ordens-servico|portal|cliente|dashboard|notificacoes|usuarios|auth|services)/i.test(file)
   );
+}
+
+function isDeploymentRelevantFile(file) {
+  return (
+    file === "Dockerfile" ||
+    /^docker-compose.*\.ya?ml$/.test(file) ||
+    file.includes("/Dockerfile") ||
+    file.includes("nginx") ||
+    file.endsWith(".env.example") ||
+    file.endsWith("application.yaml") ||
+    file.endsWith("application.yml") ||
+    file.endsWith("application.properties") ||
+    file.endsWith("next.config.ts") ||
+    file.endsWith("next.config.js") ||
+    file === "package.json" ||
+    file === "pom.xml" ||
+    file === "nexusos-web/package.json" ||
+    file === "nexusos-web/.env.example"
+  );
+}
+
+export function deploymentFindingsForFile(file, content) {
+  const findings = [];
+  const isCompose = /^docker-compose.*\.ya?ml$/.test(file);
+  const isDockerfile = file.endsWith("Dockerfile");
+  const isEnvExample = file.endsWith(".env.example");
+  const isApplicationConfig = /application(?:-[\w-]+)?\.(ya?ml|properties)$/.test(file);
+
+  if (/(PASSWORD|TOKEN|SECRET|PRIVATE_KEY|ACCESS_TOKEN)=([^\s#]+)$/gim.test(content) && !isEnvExample) {
+    findings.push(deploymentFinding(
+      "CRITICAL",
+      "Possivel segredo em arquivo versionavel",
+      file,
+      "Valores sensiveis devem ficar apenas em variaveis de ambiente reais, nunca em arquivos versionados."
+    ));
+  }
+
+  if (/(localhost|127\.0\.0\.1|host\.docker\.internal)/i.test(content) && /(NEXT_PUBLIC|API_PUBLIC_URL|FRONTEND_BASE_URL|CORS_ALLOWED_ORIGINS|DATABASE_JDBC_URL)/i.test(content)) {
+    findings.push(deploymentFinding(
+      "HIGH",
+      "URL publica apontando para ambiente local",
+      file,
+      "Variaveis publicas de producao devem usar o dominio final HTTPS, nao localhost ou IP local."
+    ));
+  }
+
+  if (/\bNEXT_PUBLIC_API_URL\s*[:=]\s*http:\/\//i.test(content) || /\bAPI_PUBLIC_URL\s*[:=]\s*http:\/\//i.test(content)) {
+    findings.push(deploymentFinding(
+      "MEDIUM",
+      "URL publica sem HTTPS",
+      file,
+      "Em producao, use HTTPS para frontend e API, especialmente atras de Cloudflare ou Nginx."
+    ));
+  }
+
+  if (/(CORS_ALLOWED_ORIGINS|allowed-origins)\s*[:=]\s*(\*|http:\/\/\*)/i.test(content)) {
+    findings.push(deploymentFinding(
+      "HIGH",
+      "CORS aberto demais",
+      file,
+      "Restrinja CORS ao dominio oficial do frontend e evite wildcard em producao."
+    ));
+  }
+
+  if (isApplicationConfig && /springdoc\.swagger-ui\.enabled\s*[:=]\s*true/i.test(content) && /(prod|production)/i.test(file + content)) {
+    findings.push(deploymentFinding(
+      "HIGH",
+      "Swagger habilitado em producao",
+      file,
+      "Bloqueie Swagger em prod ou exponha somente atras de autenticacao/rede administrativa."
+    ));
+  }
+
+  if (isCompose && /image:\s*[\w./-]+(?::latest)?\s*$/im.test(content)) {
+    findings.push(deploymentFinding(
+      "MEDIUM",
+      "Imagem Docker sem versao fixa",
+      file,
+      "Use tags explicitas para builds reproduziveis e rollback previsivel."
+    ));
+  }
+
+  if (isCompose && /-\s*["']?5432:5432["']?/i.test(content)) {
+    findings.push(deploymentFinding(
+      "HIGH",
+      "PostgreSQL publicado para fora do Docker",
+      file,
+      "Evite expor a porta 5432 publicamente; deixe o banco acessivel apenas pela rede interna do Compose."
+    ));
+  }
+
+  if (isCompose && /postgres/i.test(content) && !/volumes:\s*[\s\S]*postgres/i.test(content)) {
+    findings.push(deploymentFinding(
+      "HIGH",
+      "PostgreSQL sem volume persistente evidente",
+      file,
+      "Banco em producao precisa de volume persistente e politica de backup."
+    ));
+  }
+
+  if (isCompose && !/restart:\s*(unless-stopped|always)/i.test(content)) {
+    findings.push(deploymentFinding(
+      "MEDIUM",
+      "Servico sem politica de restart",
+      file,
+      "Configure restart em containers de producao para recuperar apos reboot/falha simples."
+    ));
+  }
+
+  if (isCompose && /build:/i.test(content) && !/(healthcheck:|depends_on:[\s\S]*condition:\s*service_healthy)/i.test(content)) {
+    findings.push(deploymentFinding(
+      "LOW",
+      "Compose sem healthcheck claro",
+      file,
+      "Healthchecks ajudam Nginx, dependencias e automacoes a detectar containers indisponiveis."
+    ));
+  }
+
+  if (isDockerfile && !/^\s*USER\s+\S+/im.test(content)) {
+    findings.push(deploymentFinding(
+      "MEDIUM",
+      "Dockerfile roda como root por padrao",
+      file,
+      "Crie usuario nao-root no container quando a imagem permitir."
+    ));
+  }
+
+  if (isDockerfile && !/^\s*HEALTHCHECK\b/im.test(content)) {
+    findings.push(deploymentFinding(
+      "LOW",
+      "Dockerfile sem HEALTHCHECK",
+      file,
+      "Considere healthcheck para detectar aplicacao travada mesmo com container ativo."
+    ));
+  }
+
+  if (/proxy_pass/i.test(content) && !/X-Forwarded-Proto/i.test(content)) {
+    findings.push(deploymentFinding(
+      "MEDIUM",
+      "Proxy sem X-Forwarded-Proto",
+      file,
+      "Configure headers X-Forwarded-* para a aplicacao gerar URLs e cookies corretos atras do Nginx/Cloudflare."
+    ));
+  }
+
+  if (/server_name\s+_/i.test(content)) {
+    findings.push(deploymentFinding(
+      "LOW",
+      "Nginx com server_name generico",
+      file,
+      "Use o dominio real em producao para evitar roteamento ambiguo entre projetos."
+    ));
+  }
+
+  return findings;
+}
+
+function deploymentFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "DEPLOYMENT"
+  };
 }
 
 export function businessRuleFindingsForFile(file, content, context = {}) {
@@ -963,6 +1178,10 @@ Resultado: ${execution.databaseOutput?.status ?? "nao executado"}
 
 Resultado: ${execution.businessRulesOutput?.status ?? "nao executado"}
 
+## Deploy e producao
+
+Resultado: ${execution.deploymentOutput?.status ?? "nao executado"}
+
 ## Testes
 
 Resultado: ${execution.testOutput?.status ?? "nao executado"}
@@ -995,6 +1214,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Banco de dados revisado
 - [x] Regras de negocio revisadas
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
+- [x] Deploy/producao revisado
 - [x] Documentacao atualizada
 - [x] Commit criado
 - [x] Push realizado

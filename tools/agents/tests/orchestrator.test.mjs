@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { businessRuleFindingsForFile, databaseFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -150,4 +150,28 @@ test("agente de regras reprova campo interno no portal do cliente", () => {
     "export function Portal() { return <span>{ordem.valorPrevisto} {ordem.cobranca}</span>; }"
   );
   assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
+});
+
+test("agente de deploy reprova url publica local", () => {
+  const findings = deploymentFindingsForFile(
+    "nexusos-web/.env.example",
+    "NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("ambiente local")), true);
+});
+
+test("agente de deploy reprova postgres publicado", () => {
+  const findings = deploymentFindingsForFile(
+    "docker-compose.yml",
+    "services:\n  postgres:\n    image: postgres:18-alpine\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - db:/var/lib/postgresql/data\n"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("PostgreSQL publicado")), true);
+});
+
+test("agente de deploy alerta swagger em producao", () => {
+  const findings = deploymentFindingsForFile(
+    "src/main/resources/application-prod.properties",
+    "springdoc.swagger-ui.enabled=true"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Swagger")), true);
 });

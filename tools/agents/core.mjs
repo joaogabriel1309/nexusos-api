@@ -18,6 +18,8 @@ export const STATES = Object.freeze({
   UX_REVIEW: "UX_REVIEW",
   WAITING_FOR_TESTS: "WAITING_FOR_TESTS",
   TESTING: "TESTING",
+  WAITING_FOR_DEPLOYMENT_REVIEW: "WAITING_FOR_DEPLOYMENT_REVIEW",
+  DEPLOYMENT_REVIEW: "DEPLOYMENT_REVIEW",
   WAITING_FOR_DELIVERY: "WAITING_FOR_DELIVERY",
   CREATING_COMMITS: "CREATING_COMMITS",
   PUSHING_BRANCH: "PUSHING_BRANCH",
@@ -168,6 +170,7 @@ export function newExecution(root, originalRequest) {
     databaseOutput: null,
     businessRulesOutput: null,
     testOutput: null,
+    deploymentOutput: null,
     deliveryOutput: null,
     errors: [],
     history: [{ at: createdAt, status: STATES.RECEIVED, detail: "Solicitacao recebida" }]

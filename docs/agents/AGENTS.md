@@ -48,6 +48,12 @@ Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza 
 
 Executa `mvnw test`, `pnpm --dir nexusos-web typecheck` e `pnpm --dir nexusos-web build` quando os arquivos correspondentes existem.
 
+## Deploy/Producao
+
+Revisa riscos de publicacao antes da entrega: Dockerfile, Docker Compose, variaveis publicas, CORS, Swagger em producao, URLs `localhost`, exposicao do PostgreSQL, volumes persistentes, restart policy, healthcheck e proxy reverso.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
+
 ## Entrega
 
 Cria commit e faz push direto para a branch alvo. Nao cria Pull Request e nao faz merge.

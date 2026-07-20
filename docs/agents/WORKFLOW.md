@@ -9,8 +9,9 @@
 7. O agente de Regras de Negocio revisa fluxo de OS, permissoes, auditoria, notificacoes e exposicao de dados.
 8. O agente de UX revisa experiencia, clareza e responsividade quando houver frontend.
 9. Os testes e builds sao executados.
-10. A entrega cria commit e push direto para a branch alvo.
-11. O estado final esperado e `COMPLETED`.
+10. O agente de Deploy/Producao revisa riscos de publicacao, variaveis, Docker, Compose, proxy e exposicao de servicos.
+11. A entrega cria commit e push direto para a branch alvo.
+12. O estado final esperado e `COMPLETED`.
 
 ## Retomada
 
