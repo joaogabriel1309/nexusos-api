@@ -67,6 +67,7 @@ function printReport(execution) {
   console.log(`Banco de dados: ${execution.databaseOutput?.status ?? "-"}`);
   console.log(`Regras de negocio: ${execution.businessRulesOutput?.status ?? "-"}`);
   console.log(`UX: ${execution.uxOutput?.status ?? "-"}`);
+  console.log(`Acessibilidade: ${execution.accessibilityOutput?.status ?? "-"}`);
   console.log(`Testes: ${tests ? `${tests.passed} aprovados, ${tests.failed} falhos` : "-"}`);
   console.log(`Deploy/producao: ${execution.deploymentOutput?.status ?? "-"}`);
   console.log(`QA manual: ${execution.manualQaOutput?.status ?? "-"}`);

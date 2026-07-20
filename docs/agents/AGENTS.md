@@ -44,6 +44,12 @@ Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Ach
 
 Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza de textos, responsividade mobile/tablet/desktop, tamanho de modais e risco de rotinas confusas. Achados `HIGH` reprovam a etapa e retornam ao desenvolvimento; achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
+## Acessibilidade
+
+Revisa arquivos alterados do frontend para detectar problemas de acessibilidade: botoes sem nome acessivel, campos sem rotulo, imagens sem `alt`, elementos clicaveis sem teclado, foco invisivel, contraste possivelmente baixo, dialogs sem titulo/descricao e tabelas sem contexto.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
+
 ## Testes
 
 Executa `mvnw test`, `pnpm --dir nexusos-web typecheck` e `pnpm --dir nexusos-web build` quando os arquivos correspondentes existem.

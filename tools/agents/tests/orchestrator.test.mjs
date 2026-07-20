@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, manualQaPlanForFiles, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { accessibilityFindingsForFile, businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, manualQaPlanForFiles, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -174,6 +174,38 @@ test("agente de deploy alerta swagger em producao", () => {
     "springdoc.swagger-ui.enabled=true"
   );
   assert.equal(findings.some((finding) => finding.title.includes("Swagger")), true);
+});
+
+test("agente de acessibilidade reprova botao sem nome acessivel", () => {
+  const findings = accessibilityFindingsForFile(
+    "nexusos-web/src/components/action.tsx",
+    "export function Action() { return <Button><Trash /></Button>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Botao sem nome")), true);
+});
+
+test("agente de acessibilidade reprova campo sem rotulo", () => {
+  const findings = accessibilityFindingsForFile(
+    "nexusos-web/src/components/form.tsx",
+    "export function Form() { return <Input />; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Campo sem rotulo")), true);
+});
+
+test("agente de acessibilidade reprova imagem sem alt", () => {
+  const findings = accessibilityFindingsForFile(
+    "nexusos-web/src/components/logo.tsx",
+    "export function Logo() { return <img src=\"/logo.png\" />; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Imagem sem texto")), true);
+});
+
+test("agente de acessibilidade reprova clique sem teclado", () => {
+  const findings = accessibilityFindingsForFile(
+    "nexusos-web/src/components/card.tsx",
+    "export function Card() { return <div onClick={abrir}>Abrir</div>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("teclado")), true);
 });
 
 test("agente de qa manual cria checklist para fluxo de OS", () => {

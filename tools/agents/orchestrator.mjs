@@ -20,6 +20,7 @@ const MAX_DATABASE_FIXES = 3;
 const MAX_BUSINESS_RULE_FIXES = 3;
 const MAX_TEST_FIXES = 3;
 const MAX_DEPLOYMENT_FIXES = 3;
+const MAX_ACCESSIBILITY_FIXES = 3;
 
 export async function startTask(root, request) {
   const execution = newExecution(root, request);
@@ -55,6 +56,9 @@ async function runFlow(root, execution) {
     }
     if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
       uxAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_ACCESSIBILITY_REVIEW, STATES.ACCESSIBILITY_REVIEW].includes(execution.status)) {
+      accessibilityAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
       testAgent(root, execution);
@@ -504,7 +508,41 @@ function uxAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "UX reprovada; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_TESTS, "UX aprovada");
+  transition(root, execution, STATES.WAITING_FOR_ACCESSIBILITY_REVIEW, "UX aprovada");
+}
+
+function accessibilityAgent(root, execution) {
+  execution.currentAgent = "ACCESSIBILITY";
+  transition(root, execution, STATES.ACCESSIBILITY_REVIEW, "Revisando acessibilidade");
+  const files = reviewFiles(root, execution);
+  const frontendFiles = files.filter((file) => normalizePath(file).startsWith("nexusos-web/src/"));
+  const findings = [];
+
+  for (const file of frontendFiles) {
+    const normalized = normalizePath(file);
+    const absolute = join(root, file);
+    if (!existsSync(absolute) || !/\.(tsx|jsx)$/.test(normalized)) continue;
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...accessibilityFindingsForFile(normalized, content));
+  }
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.accessibilityOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: frontendFiles,
+    findings,
+    approvedForTesting: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.accessibilityFixAttempts = (execution.accessibilityFixAttempts ?? 0) + 1;
+    if (execution.accessibilityFixAttempts > MAX_ACCESSIBILITY_FIXES) {
+      throw new Error("Limite de correcoes de acessibilidade excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Acessibilidade reprovada; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_TESTS, "Acessibilidade aprovada");
 }
 
 function testAgent(root, execution) {
@@ -893,6 +931,112 @@ function deploymentFinding(severity, title, file, recommendation) {
   };
 }
 
+export function accessibilityFindingsForFile(file, content) {
+  const findings = [];
+  const buttonMatches = content.match(/<Button\b[^>]*>([\s\S]*?)<\/Button>|<button\b[^>]*>([\s\S]*?)<\/button>/gi) ?? [];
+  for (const match of buttonMatches) {
+    if (!hasAccessibleName(match)) {
+      findings.push(accessibilityFinding(
+        "HIGH",
+        "Botao sem nome acessivel",
+        file,
+        "Botoes com apenas icone ou conteudo dinamico precisam de texto visivel, aria-label ou sr-only."
+      ));
+      break;
+    }
+  }
+
+  const inputMatches = content.match(/<(Input|input|Textarea|textarea|SelectTrigger)\b[^>]*>/gi) ?? [];
+  for (const match of inputMatches) {
+    if (!/aria-label=|aria-labelledby=|id=|name=|placeholder=/i.test(match) && !/<Label\b|htmlFor=/i.test(content)) {
+      findings.push(accessibilityFinding(
+        "HIGH",
+        "Campo sem rotulo acessivel",
+        file,
+        "Campos de formulario precisam de Label associado, aria-label ou aria-labelledby."
+      ));
+      break;
+    }
+  }
+
+  const imageMatches = content.match(/<(img|Image)\b[^>]*>/gi) ?? [];
+  for (const match of imageMatches) {
+    if (!/\balt=/.test(match)) {
+      findings.push(accessibilityFinding(
+        "HIGH",
+        "Imagem sem texto alternativo",
+        file,
+        "Imagens informativas precisam de alt; imagens decorativas devem usar alt vazio explicitamente."
+      ));
+      break;
+    }
+  }
+
+  if (/<div\b[^>]*onClick=|<span\b[^>]*onClick=/i.test(content) && !/(role=|tabIndex=|onKeyDown=|onKeyUp=|onKeyPress=)/i.test(content)) {
+    findings.push(accessibilityFinding(
+      "HIGH",
+      "Elemento clicavel sem suporte a teclado",
+      file,
+      "Use button/link nativo ou adicione role, tabIndex e handlers de teclado."
+    ));
+  }
+
+  if (/outline-none|focus:outline-none/.test(content) && !/(focus-visible:|focus:ring|focus:border|focus-visible:ring)/.test(content)) {
+    findings.push(accessibilityFinding(
+      "MEDIUM",
+      "Indicador de foco pode estar removido",
+      file,
+      "Ao remover outline, forneca estilo de foco visivel para teclado."
+    ));
+  }
+
+  if (/text-(gray|slate|zinc|neutral)-4\d\d/.test(content) && /bg-(white|gray-50|slate-50|zinc-50|neutral-50)/.test(content)) {
+    findings.push(accessibilityFinding(
+      "MEDIUM",
+      "Possivel contraste baixo",
+      file,
+      "Revise contraste de textos claros sobre fundo claro, principalmente em informacoes importantes."
+    ));
+  }
+
+  if (/<Dialog|<AlertDialog/.test(content) && !/(DialogTitle|AlertDialogTitle|aria-describedby|DialogDescription|AlertDialogDescription)/.test(content)) {
+    findings.push(accessibilityFinding(
+      "MEDIUM",
+      "Dialog sem titulo ou descricao acessivel evidente",
+      file,
+      "Modais precisam de titulo/descricao conectados para leitores de tela."
+    ));
+  }
+
+  if (/<table|<Table/.test(content) && !/(<caption|aria-label=|aria-labelledby=|TableCaption)/i.test(content)) {
+    findings.push(accessibilityFinding(
+      "LOW",
+      "Tabela sem contexto acessivel",
+      file,
+      "Tabelas devem ter caption, aria-label ou titulo conectado para explicar os dados."
+    ));
+  }
+
+  return findings;
+}
+
+function hasAccessibleName(markup) {
+  if (/aria-label=|aria-labelledby=|title=/.test(markup)) return true;
+  if (/<span\b[^>]*className=["'][^"']*sr-only/i.test(markup)) return true;
+  const withoutTags = markup.replace(/<[^>]+>/g, "").replace(/[{}\s]/g, "");
+  return /[A-Za-z0-9]/.test(withoutTags);
+}
+
+function accessibilityFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "ACCESSIBILITY"
+  };
+}
+
 export function manualQaPlanForFiles(request, files, poOutput = {}) {
   const normalizedFiles = files.map(normalizePath);
   const checklist = [
@@ -919,7 +1063,9 @@ export function manualQaPlanForFiles(request, files, poOutput = {}) {
   if (normalizedFiles.some((file) => file.startsWith("nexusos-web/src/"))) {
     checklist.push(qaStep("Frontend", "Validar carregamento, estado vazio, erro, loading e acao principal da tela alterada.", "Confirmar que o usuario entende o proximo passo."));
     checklist.push(qaStep("Responsividade", "Testar a tela alterada em desktop e mobile.", "Confirmar que nao ha texto cortado, botao fora da tela ou rolagem horizontal inesperada."));
+    checklist.push(qaStep("Acessibilidade", "Navegar pela tela alterada usando Tab/Shift+Tab e leitor de tela quando possivel.", "Confirmar foco visivel, ordem logica, botoes nomeados e campos com rotulo."));
     regressionAreas.add("Interface web");
+    regressionAreas.add("Acessibilidade");
     devices.add("Tablet 768px");
   }
 
@@ -1293,6 +1439,10 @@ Resultado: ${execution.databaseOutput?.status ?? "nao executado"}
 
 Resultado: ${execution.businessRulesOutput?.status ?? "nao executado"}
 
+## Acessibilidade
+
+Resultado: ${execution.accessibilityOutput?.status ?? "nao executado"}
+
 ## Deploy e producao
 
 Resultado: ${execution.deploymentOutput?.status ?? "nao executado"}
@@ -1334,6 +1484,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Seguranca revisada
 - [x] Banco de dados revisado
 - [x] Regras de negocio revisadas
+- [x] Acessibilidade revisada
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Deploy/producao revisado
 - [x] QA manual preparado

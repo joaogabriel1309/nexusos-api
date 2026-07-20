@@ -6,7 +6,7 @@
 pnpm agents:task "Implemente upload de imagens nas Ordens de Servico"
 ```
 
-Durante `task` e `resume`, o CLI mostra o progresso ao vivo: analise, desenvolvimento, seguranca, banco de dados, regras de negocio, UX, testes, deploy/producao, QA manual, commit e push.
+Durante `task` e `resume`, o CLI mostra o progresso ao vivo: analise, desenvolvimento, seguranca, banco de dados, regras de negocio, UX, acessibilidade, testes, deploy/producao, QA manual, commit e push.
 
 Para desativar a saida progressiva:
 
