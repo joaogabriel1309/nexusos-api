@@ -8,11 +8,7 @@ import java.text.NumberFormat;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -22,15 +18,9 @@ public class EmailService {
 
     private static final Locale PT_BR = Locale.of("pt", "BR");
 
-    private final ObjectProvider<JavaMailSender> mailSenderProvider;
+    private final ConfiguracaoEmailService configuracaoEmailService;
     private final NotificacaoService notificacaoService;
     private final ClienteService clienteService;
-
-    @Value("${nexusos.email.enabled:false}")
-    private boolean emailEnabled;
-
-    @Value("${nexusos.email.from:}")
-    private String emailFrom;
 
     @Value("${nexusos.email.frontend-base-url:http://localhost:3000}")
     private String frontendBaseUrl;
@@ -123,53 +113,28 @@ public class EmailService {
     }
 
     private void enviar(OrdemServico os, String destinatario, String assunto, String conteudo) {
-        if (!emailEnabled) {
+        var configuracao = configuracaoEmailService.buscarParaEnvio();
+        if (!configuracao.isHabilitado() || !configuracao.configurado()) {
             log.info("Envio de e-mail desabilitado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
             return;
         }
-
-        var mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender == null) {
-            log.warn("JavaMailSender nao configurado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
-            notificacaoService.notificarFalhaIntegracao(os, "e-mail", "JavaMailSender nao configurado");
-            return;
-        }
-
         try {
-            var mensagem = new SimpleMailMessage();
-            if (emailFrom != null && !emailFrom.isBlank()) {
-                mensagem.setFrom(emailFrom);
-            }
-            mensagem.setTo(destinatario);
-            mensagem.setSubject(assunto);
-            mensagem.setText(conteudo);
-            mailSender.send(mensagem);
-        } catch (MailException ex) {
-            log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getMessage());
-            notificacaoService.notificarFalhaIntegracao(os, "e-mail", ex.getMessage());
+            configuracaoEmailService.enviar(configuracao, destinatario, assunto, conteudo);
+        } catch (RuntimeException ex) {
+            log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getClass().getSimpleName());
+            notificacaoService.notificarFalhaIntegracao(os, "e-mail", "Falha no envio SMTP");
         }
     }
 
     private void enviarGenerico(String destinatario, String assunto, String conteudo) {
-        if (!emailEnabled) {
+        var configuracao = configuracaoEmailService.buscarParaEnvio();
+        if (!configuracao.isHabilitado() || !configuracao.configurado()) {
             log.info("Envio de e-mail de recuperacao desabilitado.");
             return;
         }
-        var mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender == null) {
-            log.warn("JavaMailSender nao configurado para recuperacao de senha.");
-            return;
-        }
         try {
-            var mensagem = new SimpleMailMessage();
-            if (emailFrom != null && !emailFrom.isBlank()) {
-                mensagem.setFrom(emailFrom);
-            }
-            mensagem.setTo(destinatario);
-            mensagem.setSubject(assunto);
-            mensagem.setText(conteudo);
-            mailSender.send(mensagem);
-        } catch (MailException ex) {
+            configuracaoEmailService.enviar(configuracao, destinatario, assunto, conteudo);
+        } catch (RuntimeException ex) {
             log.warn("Falha ao enviar e-mail de recuperacao de senha: {}", ex.getClass().getSimpleName());
         }
     }

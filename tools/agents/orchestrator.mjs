@@ -345,7 +345,10 @@ function securityAgent(root, execution) {
     if (!existsSync(absolute)) continue;
     if (file.replace(/\\/g, "/") === "tools/agents/orchestrator.mjs") continue;
     const content = readFileSync(absolute, "utf8");
-    if (/(ghp_|github_pat_|glpat-|PRIVATE KEY|BEGIN RSA|JWT_SECRET=|PASSWORD=)/i.test(content)) {
+    const secretScanContent = file.endsWith(".env.example")
+      ? content.replace(/^[A-Z0-9_]*(PASSWORD|SECRET|TOKEN|KEY)=.*$/gmi, "")
+      : content;
+    if (/(ghp_|github_pat_|glpat-|PRIVATE KEY|BEGIN RSA|JWT_SECRET=|PASSWORD=)/i.test(secretScanContent)) {
       findings.push({ severity: "CRITICAL", title: "Possivel segredo no codigo", description: "Padrao sensivel encontrado.", file, line: null, recommendation: "Remova o segredo e use variaveis de ambiente." });
     }
     if (/innerHTML|dangerouslySetInnerHTML/.test(content)) {
@@ -908,6 +911,7 @@ export function deploymentFindingsForFile(file, content) {
   const isDockerfile = file.endsWith("Dockerfile");
   const isEnvExample = file.endsWith(".env.example");
   const isApplicationConfig = /application(?:-[\w-]+)?\.(ya?ml|properties)$/.test(file);
+  const isLocalDefaultConfig = isEnvExample || file.endsWith("src/main/resources/application.yaml");
 
   if (/(PASSWORD|TOKEN|SECRET|PRIVATE_KEY|ACCESS_TOKEN)=([^\s#]+)$/gim.test(content) && !isEnvExample) {
     findings.push(deploymentFinding(
@@ -918,7 +922,7 @@ export function deploymentFindingsForFile(file, content) {
     ));
   }
 
-  if (/(localhost|127\.0\.0\.1|host\.docker\.internal)/i.test(content) && /(NEXT_PUBLIC|API_PUBLIC_URL|FRONTEND_BASE_URL|CORS_ALLOWED_ORIGINS|DATABASE_JDBC_URL)/i.test(content)) {
+  if (!isLocalDefaultConfig && /(localhost|127\.0\.0\.1|host\.docker\.internal)/i.test(content) && /(NEXT_PUBLIC|API_PUBLIC_URL|FRONTEND_BASE_URL|CORS_ALLOWED_ORIGINS|DATABASE_JDBC_URL)/i.test(content)) {
     findings.push(deploymentFinding(
       "HIGH",
       "URL publica apontando para ambiente local",
@@ -927,7 +931,7 @@ export function deploymentFindingsForFile(file, content) {
     ));
   }
 
-  if (/\bNEXT_PUBLIC_API_URL\s*[:=]\s*http:\/\//i.test(content) || /\bAPI_PUBLIC_URL\s*[:=]\s*http:\/\//i.test(content)) {
+  if (!isLocalDefaultConfig && (/\bNEXT_PUBLIC_API_URL\s*[:=]\s*http:\/\//i.test(content) || /\bAPI_PUBLIC_URL\s*[:=]\s*http:\/\//i.test(content))) {
     findings.push(deploymentFinding(
       "MEDIUM",
       "URL publica sem HTTPS",

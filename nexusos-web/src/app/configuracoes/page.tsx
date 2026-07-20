@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { aplicarCorPrincipal } from "@/lib/cor-principal";
 import { configuracaoEmpresaService } from "@/services/configuracao-empresa-service";
 import type { ConfiguracaoEmpresaPayload } from "@/types/configuracao-empresa";
+import { EmailSettingsCard } from "./email-settings-card";
 
 const vazio: ConfiguracaoEmpresaPayload = { nome: "", logo: null, documento: null, email: null, telefone: null, endereco: null, corPrincipal: "#087EA4" };
 
@@ -81,6 +82,7 @@ export default function ConfiguracoesPage() {
           </CardContent></Card><Button className="w-full" type="submit" disabled={mutation.isPending}>{mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvar configurações</Button></div>
         </form>
       )}
+      <EmailSettingsCard />
     </div></AppShell>
   );
 }

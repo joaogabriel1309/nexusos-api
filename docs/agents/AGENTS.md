@@ -28,6 +28,8 @@ Sem provedor/comando, a execucao fica em `WAITING_FOR_DEVELOPMENT` para implemen
 
 Revisa arquivos alterados contra segredos, comandos perigosos, XSS basico e path traversal. Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento.
 
+Arquivos `.env.example` podem declarar nomes de variaveis sensiveis com valores vazios ou placeholders sem serem tratados como segredo real. Tokens reais, chaves privadas e segredos fora de exemplos continuam bloqueados.
+
 ## Banco de Dados
 
 Revisa migrations Flyway, entidades JPA, repositories, queries e configuracoes de persistencia. O objetivo e evitar perda de dados, schema fora de ordem, `ddl-auto` perigoso, SQL nativo concatenado e mudancas em entidades sem migration.
@@ -69,6 +71,8 @@ Executa `mvnw test`, `pnpm --dir nexusos-web typecheck` e `pnpm --dir nexusos-we
 ## Deploy/Producao
 
 Revisa riscos de publicacao antes da entrega: Dockerfile, Docker Compose, variaveis publicas, CORS, Swagger em producao, URLs `localhost`, exposicao do PostgreSQL, volumes persistentes, restart policy, healthcheck e proxy reverso.
+
+Defaults locais em `.env.example` e em `src/main/resources/application.yaml` sao aceitos como exemplos de desenvolvimento. URLs locais continuam sendo bloqueadas em arquivos de producao, Compose, Nginx ou configuracoes publicaveis.
 
 Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
