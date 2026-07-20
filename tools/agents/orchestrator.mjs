@@ -17,6 +17,7 @@ import {
 
 const MAX_SECURITY_FIXES = 3;
 const MAX_DATABASE_FIXES = 3;
+const MAX_BUSINESS_RULE_FIXES = 3;
 const MAX_TEST_FIXES = 3;
 
 export async function startTask(root, request) {
@@ -47,6 +48,9 @@ async function runFlow(root, execution) {
     }
     if ([STATES.WAITING_FOR_DATABASE_REVIEW, STATES.DATABASE_REVIEW].includes(execution.status)) {
       databaseAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_BUSINESS_RULES_REVIEW, STATES.BUSINESS_RULES_REVIEW].includes(execution.status)) {
+      businessRulesAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
       uxAgent(root, execution);
@@ -392,7 +396,54 @@ function databaseAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Banco de dados reprovado; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Banco de dados aprovado");
+  transition(root, execution, STATES.WAITING_FOR_BUSINESS_RULES_REVIEW, "Banco de dados aprovado");
+}
+
+function businessRulesAgent(root, execution) {
+  execution.currentAgent = "BUSINESS_RULES";
+  transition(root, execution, STATES.BUSINESS_RULES_REVIEW, "Revisando regras de negocio");
+  const files = reviewFiles(root, execution);
+  const findings = [];
+  const relevantFiles = files.filter((file) => isBusinessRuleRelevantFile(normalizePath(file)));
+  const context = {
+    allChangedFiles: files.map(normalizePath),
+    testsCreated: execution.developerOutput?.testsCreated ?? []
+  };
+
+  for (const file of relevantFiles) {
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    const normalized = normalizePath(file);
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...businessRuleFindingsForFile(normalized, content, context));
+  }
+
+  if (relevantFiles.length > 0 && context.testsCreated.length === 0 && !files.some((file) => normalizePath(file).includes("/test/"))) {
+    findings.push(businessRuleFinding(
+      "MEDIUM",
+      "Mudanca de regra sem teste associado",
+      "tests",
+      "Fluxos de OS, cliente, pagamento e permissao precisam de teste quando a regra muda."
+    ));
+  }
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.businessRulesOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: relevantFiles,
+    findings,
+    approvedForUx: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.businessRuleFixAttempts = (execution.businessRuleFixAttempts ?? 0) + 1;
+    if (execution.businessRuleFixAttempts > MAX_BUSINESS_RULE_FIXES) {
+      throw new Error("Limite de correcoes de regras de negocio excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Regras de negocio reprovadas; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Regras de negocio aprovadas");
 }
 
 function uxAgent(root, execution) {
@@ -596,6 +647,123 @@ function isDatabaseRelevantFile(file) {
   );
 }
 
+function isBusinessRuleRelevantFile(file) {
+  return (
+    file.startsWith("src/main/java/") && /\.(java)$/.test(file) && /(ordemservico|status|portalcliente|cliente|pagamento|aprovacao|auditoria|notificacao|usuario|permissao|auth|dashboard)/i.test(file)
+  ) || (
+    file.startsWith("nexusos-web/src/") && /\.(ts|tsx|jsx)$/.test(file) && /(ordens-servico|portal|cliente|dashboard|notificacoes|usuarios|auth|services)/i.test(file)
+  );
+}
+
+export function businessRuleFindingsForFile(file, content, context = {}) {
+  const findings = [];
+  const isJava = file.endsWith(".java");
+  const isFrontend = /\.(ts|tsx|jsx)$/.test(file);
+  const lowerFile = file.toLowerCase();
+
+  if (isJava && /setStatus\s*\(/.test(content) && !/(auditoria|historico|registrar[a-zA-Z]*Auditoria|notifica|notificacao)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "HIGH",
+      "Alteracao de status sem rastreabilidade",
+      file,
+      "Toda mudanca de status da OS deve gerar auditoria e, quando fizer sentido, notificacao para os envolvidos."
+    ));
+  }
+
+  if (isJava && /(cancelar|reabrir|reprovar|aprovar|finalizar)[a-zA-Z0-9_]*\s*\(/i.test(content) && !/(motivo|descricao|observacao|justificativa)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "HIGH",
+      "Acao critica sem justificativa",
+      file,
+      "Cancelamento, reabertura, reprovacao, aprovacao e finalizacao devem registrar motivo, descricao ou observacao."
+    ));
+  }
+
+  if (isJava && /(cancelar|reabrir|aprovar|reprovar|finalizar|atribuir)[a-zA-Z0-9_]*\s*\(/i.test(content) && !/(@PreAuthorize|hasRole|hasAuthority|authentication|usuarioLogado|permiss)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "HIGH",
+      "Acao sensivel sem regra de permissao evidente",
+      file,
+      "Acoes de OS devem deixar claro quem pode executar: admin, desenvolvedor responsavel ou cliente pelo portal publico."
+    ));
+  }
+
+  if (isJava && /(FINALIZADA|CANCELADA)/.test(content) && /setStatus\s*\(/.test(content) && !/(nao pode|bloque|validar|transicao|TRANSICOES|statusPermitido|podeAvancar)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "MEDIUM",
+      "Fluxo terminal pode permitir avanco indevido",
+      file,
+      "Status finais como FINALIZADA e CANCELADA devem bloquear avanco normal e exigir fluxo especifico para reabertura."
+    ));
+  }
+
+  if (isJava && /StatusOrdemServico|enum\s+\w*Status/i.test(content) && !/(TRANSICOES|proximo|permitid|workflow|pode)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "MEDIUM",
+      "Status sem transicoes explicitas",
+      file,
+      "Ao incluir ou alterar status, atualize a matriz de transicoes e os fluxos de tela/API."
+    ));
+  }
+
+  if (isJava && /(valor|pagamento|cobranca)/i.test(content) && /(cliente|portal)/i.test(content) && !/(admin|aprovad|permiss|visivel|ocultar)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "MEDIUM",
+      "Regra financeira no portal precisa de limite claro",
+      file,
+      "Campos financeiros devem deixar claro o que o cliente pode ver e o que fica restrito ao admin."
+    ));
+  }
+
+  if (isFrontend && /portal/i.test(lowerFile) && /(valorPrevisto|cobrar|cobranca|responsavel|prazo|ultimaAtualizacao|updatedAt)/.test(content)) {
+    findings.push(businessRuleFinding(
+      "HIGH",
+      "Portal do cliente expondo campo interno",
+      file,
+      "O portal deve mostrar somente informacoes uteis para decisao do cliente, evitando prazo interno, cobranca tecnica e responsavel interno."
+    ));
+  }
+
+  if (isFrontend && /(aprovar|reprovar|cancelar|reabrir|finalizar)/i.test(content) && !/(confirm|motivo|reason|observacao|descricao|justificativa|Dialog|AlertDialog)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "MEDIUM",
+      "Acao critica na interface sem coleta/confirmacao",
+      file,
+      "Acoes importantes devem confirmar intencao e coletar motivo quando alteram o fluxo da OS."
+    ));
+  }
+
+  if (isFrontend && /(admin|desenvolvedor|cliente)/i.test(content) && /(role|perfil|tipoUsuario)/i.test(content) && !/(can|pode|permiss|isAdmin|isDeveloper|isCliente)/i.test(content)) {
+    findings.push(businessRuleFinding(
+      "LOW",
+      "Permissao de tela pouco explicita",
+      file,
+      "Prefira helpers claros de permissao para evitar divergencia entre frontend e backend."
+    ));
+  }
+
+  if ((context.allChangedFiles ?? []).some((changedFile) => /StatusOrdemServico|status-ordem|ordem-servico-status/i.test(changedFile)) && /dashboard|notificacao/i.test(lowerFile) && !/(FINALIZADA|CANCELADA|APROVADA|REPROVADA|EM_DESENVOLVIMENTO|AGUARDANDO_APROVACAO)/.test(content)) {
+    findings.push(businessRuleFinding(
+      "LOW",
+      "Tela auxiliar pode nao refletir novos status",
+      file,
+      "Quando status mudam, revise dashboard, notificacoes, filtros e listagens relacionadas."
+    ));
+  }
+
+  return findings;
+}
+
+function businessRuleFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "BUSINESS_RULES"
+  };
+}
+
 export function databaseFindingsForFile(file, content, context = {}) {
   const findings = [];
   const isMigration = file.includes("src/main/resources/db/migration/");
@@ -791,6 +959,10 @@ Resultado: ${execution.securityOutput?.status ?? "nao executado"}
 
 Resultado: ${execution.databaseOutput?.status ?? "nao executado"}
 
+## Regras de negocio
+
+Resultado: ${execution.businessRulesOutput?.status ?? "nao executado"}
+
 ## Testes
 
 Resultado: ${execution.testOutput?.status ?? "nao executado"}
@@ -821,6 +993,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Codigo revisado
 - [x] Seguranca revisada
 - [x] Banco de dados revisado
+- [x] Regras de negocio revisadas
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Documentacao atualizada
 - [x] Commit criado

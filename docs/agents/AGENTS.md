@@ -34,6 +34,12 @@ Revisa migrations Flyway, entidades JPA, repositories, queries e configuracoes d
 
 Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
+## Regras de Negocio
+
+Revisa fluxos do produto e invariantes do NexusOS: transicao de status da OS, acoes criticas com motivo, auditoria, notificacoes, permissao por perfil, exposicao de campos no portal do cliente e impactos em dashboard/listagens.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes para revisao manual.
+
 ## UX
 
 Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza de textos, responsividade mobile/tablet/desktop, tamanho de modais e risco de rotinas confusas. Achados `HIGH` reprovam a etapa e retornam ao desenvolvimento; achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.

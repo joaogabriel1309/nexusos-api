@@ -6,10 +6,11 @@
 4. O desenvolvedor usa a branch alvo e executa a implementacao automatizada, se configurada.
 5. A seguranca revisa as alteracoes.
 6. O agente de Banco de Dados revisa migrations, entidades, repositories, queries e configuracoes de persistencia.
-7. O agente de UX revisa experiencia, clareza e responsividade quando houver frontend.
-8. Os testes e builds sao executados.
-9. A entrega cria commit e push direto para a branch alvo.
-10. O estado final esperado e `COMPLETED`.
+7. O agente de Regras de Negocio revisa fluxo de OS, permissoes, auditoria, notificacoes e exposicao de dados.
+8. O agente de UX revisa experiencia, clareza e responsividade quando houver frontend.
+9. Os testes e builds sao executados.
+10. A entrega cria commit e push direto para a branch alvo.
+11. O estado final esperado e `COMPLETED`.
 
 ## Retomada
 

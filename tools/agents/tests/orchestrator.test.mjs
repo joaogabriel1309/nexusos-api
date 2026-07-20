@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { databaseFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { businessRuleFindingsForFile, databaseFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -124,6 +124,30 @@ test("agente de banco reprova ddl automatico perigoso", () => {
   const findings = databaseFindingsForFile(
     "src/main/resources/application-prod.properties",
     "spring.jpa.hibernate.ddl-auto=update"
+  );
+  assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
+});
+
+test("agente de regras reprova alteracao de status sem auditoria", () => {
+  const findings = businessRuleFindingsForFile(
+    "src/main/java/com/nexusos/ordemservico/OrdemServicoService.java",
+    "void avancar(OrdemServico os) { os.setStatus(StatusOrdemServico.FINALIZADA); }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("rastreabilidade")), true);
+});
+
+test("agente de regras reprova acao critica sem permissao", () => {
+  const findings = businessRuleFindingsForFile(
+    "src/main/java/com/nexusos/ordemservico/OrdemServicoService.java",
+    "void cancelar(OrdemServico os, String motivo) { registrarAuditoria(os); os.setStatus(StatusOrdemServico.CANCELADA); }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("permissao")), true);
+});
+
+test("agente de regras reprova campo interno no portal do cliente", () => {
+  const findings = businessRuleFindingsForFile(
+    "nexusos-web/src/app/portal/cliente/page.tsx",
+    "export function Portal() { return <span>{ordem.valorPrevisto} {ordem.cobranca}</span>; }"
   );
   assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
 });
