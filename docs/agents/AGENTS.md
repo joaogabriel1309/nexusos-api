@@ -40,6 +40,12 @@ Revisa fluxos do produto e invariantes do NexusOS: transicao de status da OS, ac
 
 Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes para revisao manual.
 
+## Produto
+
+Revisa valor e coerencia de produto antes da UX: fluxo principal, caminho de acao, estados vazio/loading/erro, feedback de sucesso/falha, indicadores acionaveis, portal orientado a decisao e alinhamento entre backend e superficie de uso.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
+
 ## UX
 
 Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza de textos, responsividade mobile/tablet/desktop, tamanho de modais e risco de rotinas confusas. Achados `HIGH` reprovam a etapa e retornam ao desenvolvimento; achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
@@ -47,6 +53,12 @@ Revisa arquivos alterados do frontend para avaliar simplicidade de uso, clareza 
 ## Acessibilidade
 
 Revisa arquivos alterados do frontend para detectar problemas de acessibilidade: botoes sem nome acessivel, campos sem rotulo, imagens sem `alt`, elementos clicaveis sem teclado, foco invisivel, contraste possivelmente baixo, dialogs sem titulo/descricao e tabelas sem contexto.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
+
+## Performance
+
+Revisa riscos de desempenho em backend e frontend: consultas sem paginacao, acesso ao banco dentro de loops, relacoes JPA potencialmente pesadas, transacoes com chamadas externas, buscas sem cache/cancelamento, listas grandes sem paginacao/virtualizacao, imagens sem otimizacao e timers sem cleanup.
 
 Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
@@ -65,6 +77,12 @@ Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Ach
 Prepara um checklist manual orientado pelos arquivos alterados e criterios de aceitacao. Cobre fluxo principal, permissoes, regressao basica, mobile/desktop, portal do cliente, OS, dashboard, notificacoes, autenticacao, banco e deploy quando esses modulos forem afetados.
 
 Nao substitui testes automatizados. A saida fica registrada no relatorio de entrega para guiar a validacao humana antes de publicar.
+
+## Documentacao
+
+Revisa se mudancas no produto, API, variaveis de ambiente, deploy ou sistema de agentes exigem documentacao. Gera checklist de documentacao e bloqueia casos criticos, como alteracao do pipeline de agentes sem docs ou variavel de ambiente nova sem exemplo versionado.
+
+Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
 ## Entrega
 

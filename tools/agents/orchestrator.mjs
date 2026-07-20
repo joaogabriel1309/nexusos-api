@@ -18,9 +18,12 @@ import {
 const MAX_SECURITY_FIXES = 3;
 const MAX_DATABASE_FIXES = 3;
 const MAX_BUSINESS_RULE_FIXES = 3;
+const MAX_PRODUCT_FIXES = 3;
 const MAX_TEST_FIXES = 3;
 const MAX_DEPLOYMENT_FIXES = 3;
 const MAX_ACCESSIBILITY_FIXES = 3;
+const MAX_PERFORMANCE_FIXES = 3;
+const MAX_DOCUMENTATION_FIXES = 3;
 
 export async function startTask(root, request) {
   const execution = newExecution(root, request);
@@ -54,11 +57,17 @@ async function runFlow(root, execution) {
     if ([STATES.WAITING_FOR_BUSINESS_RULES_REVIEW, STATES.BUSINESS_RULES_REVIEW].includes(execution.status)) {
       businessRulesAgent(root, execution);
     }
+    if ([STATES.WAITING_FOR_PRODUCT_REVIEW, STATES.PRODUCT_REVIEW].includes(execution.status)) {
+      productAgent(root, execution);
+    }
     if ([STATES.WAITING_FOR_UX_REVIEW, STATES.UX_REVIEW].includes(execution.status)) {
       uxAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_ACCESSIBILITY_REVIEW, STATES.ACCESSIBILITY_REVIEW].includes(execution.status)) {
       accessibilityAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_PERFORMANCE_REVIEW, STATES.PERFORMANCE_REVIEW].includes(execution.status)) {
+      performanceAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_TESTS, STATES.TESTING].includes(execution.status)) {
       testAgent(root, execution);
@@ -68,6 +77,9 @@ async function runFlow(root, execution) {
     }
     if ([STATES.WAITING_FOR_MANUAL_QA_REVIEW, STATES.MANUAL_QA_REVIEW].includes(execution.status)) {
       manualQaAgent(root, execution);
+    }
+    if ([STATES.WAITING_FOR_DOCUMENTATION_REVIEW, STATES.DOCUMENTATION_REVIEW].includes(execution.status)) {
+      documentationAgent(root, execution);
     }
     if ([STATES.WAITING_FOR_DELIVERY, STATES.CREATING_COMMITS, STATES.PUSHING_BRANCH, STATES.CREATING_PULL_REQUEST].includes(execution.status)) {
       deliveryAgent(root, execution);
@@ -454,7 +466,49 @@ function businessRulesAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Regras de negocio reprovadas; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Regras de negocio aprovadas");
+  transition(root, execution, STATES.WAITING_FOR_PRODUCT_REVIEW, "Regras de negocio aprovadas");
+}
+
+function productAgent(root, execution) {
+  execution.currentAgent = "PRODUCT";
+  transition(root, execution, STATES.PRODUCT_REVIEW, "Revisando produto");
+  const files = reviewFiles(root, execution);
+  const relevantFiles = files.filter((file) => isProductRelevantFile(normalizePath(file)));
+  const findings = [];
+  const context = {
+    originalRequest: execution.originalRequest,
+    allChangedFiles: files.map(normalizePath),
+    poOutput: execution.poOutput
+  };
+
+  for (const file of relevantFiles) {
+    const normalized = normalizePath(file);
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...productFindingsForFile(normalized, content, context));
+  }
+
+  findings.push(...productFindingsForChangeSet(files, context));
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.productOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: relevantFiles,
+    findings,
+    productChecklist: productChecklistForFiles(files, execution.originalRequest),
+    approvedForUx: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.productFixAttempts = (execution.productFixAttempts ?? 0) + 1;
+    if (execution.productFixAttempts > MAX_PRODUCT_FIXES) {
+      throw new Error("Limite de correcoes de produto excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Produto reprovado; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_UX_REVIEW, "Produto aprovado");
 }
 
 function uxAgent(root, execution) {
@@ -542,7 +596,41 @@ function accessibilityAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Acessibilidade reprovada; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_TESTS, "Acessibilidade aprovada");
+  transition(root, execution, STATES.WAITING_FOR_PERFORMANCE_REVIEW, "Acessibilidade aprovada");
+}
+
+function performanceAgent(root, execution) {
+  execution.currentAgent = "PERFORMANCE";
+  transition(root, execution, STATES.PERFORMANCE_REVIEW, "Revisando performance");
+  const files = reviewFiles(root, execution);
+  const relevantFiles = files.filter((file) => isPerformanceRelevantFile(normalizePath(file)));
+  const findings = [];
+
+  for (const file of relevantFiles) {
+    const normalized = normalizePath(file);
+    const absolute = join(root, file);
+    if (!existsSync(absolute)) continue;
+    const content = readFileSync(absolute, "utf8");
+    findings.push(...performanceFindingsForFile(normalized, content));
+  }
+
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.performanceOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: relevantFiles,
+    findings,
+    approvedForTesting: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.performanceFixAttempts = (execution.performanceFixAttempts ?? 0) + 1;
+    if (execution.performanceFixAttempts > MAX_PERFORMANCE_FIXES) {
+      throw new Error("Limite de correcoes de performance excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Performance reprovada; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_TESTS, "Performance aprovada");
 }
 
 function testAgent(root, execution) {
@@ -652,7 +740,36 @@ function manualQaAgent(root, execution) {
     approvedForDelivery: true
   };
   saveExecution(root, execution);
-  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "QA manual preparado");
+  transition(root, execution, STATES.WAITING_FOR_DOCUMENTATION_REVIEW, "QA manual preparado");
+}
+
+function documentationAgent(root, execution) {
+  execution.currentAgent = "DOCUMENTATION";
+  transition(root, execution, STATES.DOCUMENTATION_REVIEW, "Revisando documentacao");
+  const files = reviewFiles(root, execution);
+  const findings = documentationFindingsForFiles(files, {
+    originalRequest: execution.originalRequest,
+    poOutput: execution.poOutput,
+    changedFileContents: readChangedFiles(root, files)
+  });
+  const rejected = findings.some((item) => item.severity === "CRITICAL" || item.severity === "HIGH");
+  execution.documentationOutput = {
+    status: rejected ? "rejected" : "approved",
+    reviewedFiles: files,
+    findings,
+    checklist: documentationChecklistForFiles(files, execution.originalRequest),
+    approvedForDelivery: !rejected
+  };
+  saveExecution(root, execution);
+  if (rejected) {
+    execution.documentationFixAttempts = (execution.documentationFixAttempts ?? 0) + 1;
+    if (execution.documentationFixAttempts > MAX_DOCUMENTATION_FIXES) {
+      throw new Error("Limite de correcoes de documentacao excedido.");
+    }
+    transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Documentacao reprovada; voltando ao desenvolvimento");
+    return;
+  }
+  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "Documentacao aprovada");
 }
 
 function deliveryAgent(root, execution) {
@@ -1037,6 +1154,444 @@ function accessibilityFinding(severity, title, file, recommendation) {
   };
 }
 
+function isPerformanceRelevantFile(file) {
+  return (
+    file.startsWith("src/main/java/") && file.endsWith(".java")
+  ) || (
+    file.startsWith("nexusos-web/src/") && /\.(ts|tsx|jsx)$/.test(file)
+  ) || (
+    file === "nexusos-web/next.config.ts" ||
+    file === "nexusos-web/next.config.js" ||
+    file === "pom.xml" ||
+    file === "nexusos-web/package.json"
+  );
+}
+
+export function performanceFindingsForFile(file, content) {
+  const findings = [];
+  const isJava = file.endsWith(".java");
+  const isFrontend = /\.(ts|tsx|jsx)$/.test(file);
+
+  if (isJava && /findAll\s*\(/.test(content) && !/(Pageable|Page<|Slice<|Limit|setMaxResults|Top\d+|First\d+)/.test(content)) {
+    findings.push(performanceFinding(
+      "HIGH",
+      "Consulta sem paginacao aparente",
+      file,
+      "Listagens e rotinas operacionais devem usar Pageable, limit ou filtros para evitar carregar toda a tabela."
+    ));
+  }
+
+  if (isJava && /for\s*\([^)]*\)\s*\{[\s\S]{0,500}\.(findBy|findAll|save|delete)/.test(content)) {
+    findings.push(performanceFinding(
+      "HIGH",
+      "Acesso ao banco dentro de loop",
+      file,
+      "Evite N+1 e escritas item a item; prefira query em lote, join fetch, projection ou operacao bulk."
+    ));
+  }
+
+  if (isJava && /@OneToMany|@ManyToMany/.test(content) && !/FetchType\.LAZY/.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Relacionamento plural sem lazy explicito",
+      file,
+      "Colecoes JPA devem ser lazy por padrao e carregadas com projection/fetch planejado quando necessario."
+    ));
+  }
+
+  if (isJava && /@Transactional\b/.test(content) && /RestTemplate|WebClient|MercadoPago|send|Email|WhatsApp/i.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Transacao envolvendo chamada externa",
+      file,
+      "Evite manter transacao de banco aberta durante chamadas externas; separe persistencia e integracoes."
+    ));
+  }
+
+  if (isJava && /@Query\s*\(/.test(content) && !/(countQuery|Page<|Pageable|LIMIT|limit)/.test(content) && /(JOIN|LEFT JOIN|GROUP BY|ORDER BY)/i.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Query complexa sem paginacao/count planejado",
+      file,
+      "Queries com joins, ordenacao ou agrupamento devem ter paginacao e indices revisados."
+    ));
+  }
+
+  if (isFrontend && /useEffect\s*\([\s\S]{0,600}(fetch\(|api\.|axios\.|service\.)/.test(content) && !/useQuery|queryKey|AbortController|cancelToken/.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Busca de dados sem cache/cancelamento evidente",
+      file,
+      "Prefira React Query ou AbortController para cache, deduplicacao e cancelamento ao trocar de tela."
+    ));
+  }
+
+  if (isFrontend && /\.(map)\s*\(/.test(content) && /(ordens|items|dados|rows|notificacoes|clientes|usuarios|projetos)\.map/i.test(content) && !/(slice\(|virtual|Virtuoso|FixedSizeList|pagination|paginacao|pageSize)/i.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Lista potencialmente grande sem paginacao ou virtualizacao",
+      file,
+      "Listas de OS, clientes, usuarios e notificacoes devem ter paginacao, limite ou virtualizacao."
+    ));
+  }
+
+  if (isFrontend && /<Image\b/.test(content) && !/(sizes=|priority=|placeholder=)/.test(content)) {
+    findings.push(performanceFinding(
+      "LOW",
+      "Imagem Next sem hint de carregamento",
+      file,
+      "Imagens importantes devem declarar sizes/priority/placeholder conforme o caso para melhorar LCP e evitar layout shift."
+    ));
+  }
+
+  if (isFrontend && /<img\b/i.test(content) && !/loading=/.test(content)) {
+    findings.push(performanceFinding(
+      "LOW",
+      "Imagem HTML sem lazy loading",
+      file,
+      "Use loading=\"lazy\" em imagens nao criticas ou troque para next/image quando fizer sentido."
+    ));
+  }
+
+  if (isFrontend && /setInterval|setTimeout/.test(content) && !/clearInterval|clearTimeout/.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Timer sem limpeza evidente",
+      file,
+      "Timers em componentes precisam de cleanup para evitar trabalho em background e vazamento de memoria."
+    ));
+  }
+
+  if (isFrontend && /router\.refresh\(\)|window\.location\.reload\(\)/.test(content)) {
+    findings.push(performanceFinding(
+      "LOW",
+      "Recarregamento amplo da tela",
+      file,
+      "Prefira invalidar queries ou atualizar estado local em vez de recarregar tudo quando possivel."
+    ));
+  }
+
+  if ((file.endsWith("next.config.ts") || file.endsWith("next.config.js")) && /unoptimized:\s*true/.test(content)) {
+    findings.push(performanceFinding(
+      "MEDIUM",
+      "Otimizacao de imagens desativada",
+      file,
+      "Revise se next/image precisa ficar unoptimized; isso pode piorar carregamento em producao."
+    ));
+  }
+
+  return findings;
+}
+
+function performanceFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "PERFORMANCE"
+  };
+}
+
+function isProductRelevantFile(file) {
+  return (
+    file.startsWith("nexusos-web/src/") && /\.(ts|tsx|jsx)$/.test(file) && /(app|components|services|hooks|contexts)/i.test(file)
+  ) || (
+    file.startsWith("src/main/java/") && file.endsWith(".java") && /(controller|service|dto|ordemservico|cliente|dashboard|notificacao|pagamento|usuario|portal)/i.test(file)
+  );
+}
+
+export function productFindingsForFile(file, content, context = {}) {
+  const findings = [];
+  const isFrontend = /\.(ts|tsx|jsx)$/.test(file);
+  const isBackend = file.endsWith(".java");
+  const lowerFile = file.toLowerCase();
+
+  if (isFrontend && /export default function|function\s+[A-Z]\w*\s*\(|const\s+[A-Z]\w*\s*=/.test(content) && /(fetch|useQuery|api\.|service\.|axios)/i.test(content)) {
+    if (!/(loading|isLoading|pending|skeleton|carregando)/i.test(content)) {
+      findings.push(productFinding(
+        "MEDIUM",
+        "Tela com dados sem estado de carregamento evidente",
+        file,
+        "Fluxos com dados remotos precisam deixar claro que a informacao esta carregando."
+      ));
+    }
+    if (!/(error|isError|erro|falha|tentar novamente|retry)/i.test(content)) {
+      findings.push(productFinding(
+        "MEDIUM",
+        "Tela com dados sem estado de erro evidente",
+        file,
+        "Quando a API falhar, o usuario precisa entender o problema e ter uma acao de recuperacao."
+      ));
+    }
+  }
+
+  if (isFrontend && /\.(map)\s*\(/.test(content) && !/(empty|vazio|nenhum|sem resultado|sem dados|length === 0|\.length \?)/i.test(content)) {
+    findings.push(productFinding(
+      "MEDIUM",
+      "Listagem sem estado vazio evidente",
+      file,
+      "Listas devem explicar quando nao ha resultados e oferecer proximo passo quando fizer sentido."
+    ));
+  }
+
+  if (isFrontend && /(onClick|onSubmit|mutate|handle[A-Z]\w*)/i.test(content) && /(aprovar|reprovar|salvar|cancelar|finalizar|excluir|criar|atualizar)/i.test(content) && !/(toast|sonner|setSuccess|sucesso|erro|isSubmitting|disabled|loading)/i.test(content)) {
+    findings.push(productFinding(
+      "HIGH",
+      "Acao principal sem feedback de resultado",
+      file,
+      "Acoes importantes precisam comunicar sucesso, falha e estado de processamento."
+    ));
+  }
+
+  if (isFrontend && /dashboard/i.test(lowerFile) && /(Card|Metric|indicador|vencidas|vence hoje|status)/i.test(content) && !/(href=|router\.push|Link|onClick|filter|filtro)/i.test(content)) {
+    findings.push(productFinding(
+      "HIGH",
+      "Indicador do dashboard sem caminho de acao",
+      file,
+      "Indicadores operacionais devem levar para a lista filtrada ou proximo passo acionavel."
+    ));
+  }
+
+  if (isFrontend && /portal/i.test(lowerFile) && /(status|prioridade|sequencia|responsavel|workflow)/i.test(content) && !/(proximo passo|acompanhar|aprovar|solicitar ajuste|pagar|decidir|entrega)/i.test(content)) {
+    findings.push(productFinding(
+      "MEDIUM",
+      "Portal pode estar orientado a termos internos",
+      file,
+      "Portal do cliente deve priorizar decisao: o que foi feito, o que falta, aprovar, ajustar ou pagar."
+    ));
+  }
+
+  if (isFrontend && /(Dialog|Modal|Sheet)/.test(content) && /(criar|editar|finalizar|analise|pagamento|cancelar|reabrir)/i.test(content) && content.length > 26000 && !/(\/new|\/editar|page\.tsx|router\.push)/i.test(content)) {
+    findings.push(productFinding(
+      "MEDIUM",
+      "Fluxo complexo pode estar escondido em modal",
+      file,
+      "Rotinas longas ou criticas tendem a funcionar melhor como tela dedicada, principalmente no mobile."
+    ));
+  }
+
+  if (isBackend && /@(PostMapping|PutMapping|PatchMapping|DeleteMapping)/.test(content) && /(ResponseEntity|void|Dto|DTO)/.test(content) && !/(Notificacao|Auditoria|Historico|Created|NoContent|BadRequest|mensagem|message)/i.test(content)) {
+    findings.push(productFinding(
+      "LOW",
+      "Endpoint mutavel sem sinal claro de retorno operacional",
+      file,
+      "Acoes de produto devem retornar estado suficiente para atualizar a interface sem recarregar tudo."
+    ));
+  }
+
+  if (isBackend && /(dashboard|relatorio|metric|indicador)/i.test(lowerFile + content) && !/(filtro|periodo|status|cliente|responsavel|dataInicio|dataFim)/i.test(content)) {
+    findings.push(productFinding(
+      "MEDIUM",
+      "Indicador sem recorte operacional evidente",
+      file,
+      "Metricas de produto devem permitir recorte por periodo/status/cliente/responsavel quando forem usadas para decisao."
+    ));
+  }
+
+  return findings;
+}
+
+export function productFindingsForChangeSet(files, context = {}) {
+  const normalizedFiles = files.map(normalizePath);
+  const findings = [];
+  const backendProductChanged = normalizedFiles.some((file) => file.startsWith("src/main/java/") && /(controller|service|dto|ordemservico|cliente|dashboard|notificacao|pagamento|usuario|portal)/i.test(file));
+  const frontendChanged = normalizedFiles.some((file) => file.startsWith("nexusos-web/src/"));
+  const frontendServiceOnly = normalizedFiles.some((file) => file.startsWith("nexusos-web/src/services/")) && !normalizedFiles.some((file) => file.startsWith("nexusos-web/src/app/") || file.startsWith("nexusos-web/src/components/"));
+
+  if (backendProductChanged && !frontendChanged && /(tela|botao|portal|dashboard|listagem|cliente|usuario|fluxo|status|aprov|pagamento)/i.test(context.originalRequest ?? "")) {
+    findings.push(productFinding(
+      "MEDIUM",
+      "Mudanca de produto sem superficie frontend alterada",
+      "nexusos-web/src",
+      "Se a regra muda uma rotina do usuario, confirme se a tela, textos, filtros ou acoes tambem precisam refletir isso."
+    ));
+  }
+
+  if (frontendServiceOnly) {
+    findings.push(productFinding(
+      "LOW",
+      "Servico frontend alterado sem tela consumidora",
+      "nexusos-web/src/services",
+      "Confirme se a mudanca no contrato ja esta refletida em telas, estados e mensagens."
+    ));
+  }
+
+  return findings;
+}
+
+function productChecklistForFiles(files, originalRequest) {
+  const normalizedFiles = files.map(normalizePath);
+  const checklist = [
+    `Confirmar qual problema do usuario o pedido resolve: ${originalRequest}`,
+    "Validar caminho principal, estado vazio, erro, loading e feedback de sucesso/falha.",
+    "Confirmar se a mudanca aumenta ou reduz passos na rotina principal."
+  ];
+
+  if (normalizedFiles.some((file) => /dashboard/i.test(file))) {
+    checklist.push("Conferir se indicadores sao acionaveis e levam para listas filtradas.");
+  }
+  if (normalizedFiles.some((file) => /portal|cliente/i.test(file))) {
+    checklist.push("Conferir se o cliente entende proximo passo, aprovacao, ajuste e pagamento sem termos internos.");
+  }
+  if (normalizedFiles.some((file) => /ordens-servico|ordemservico/i.test(file))) {
+    checklist.push("Conferir se o fluxo de OS continua claro para admin e desenvolvedor.");
+  }
+  if (normalizedFiles.some((file) => /notificacao/i.test(file))) {
+    checklist.push("Conferir se notificacoes chegam para quem precisa agir e com link util.");
+  }
+
+  return checklist;
+}
+
+function productFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "PRODUCT"
+  };
+}
+
+function readChangedFiles(root, files) {
+  return Object.fromEntries(files.map((file) => {
+    const absolute = join(root, file);
+    return [normalizePath(file), existsSync(absolute) ? readFileSync(absolute, "utf8") : ""];
+  }));
+}
+
+export function documentationFindingsForFiles(files, context = {}) {
+  const normalizedFiles = files.map(normalizePath);
+  const docsChanged = normalizedFiles.some(isDocumentationFile);
+  const envExampleChanged = normalizedFiles.some((file) => file.endsWith(".env.example"));
+  const agentDocsChanged = normalizedFiles.some((file) => file.startsWith("docs/agents/"));
+  const findings = [];
+  const changedContents = context.changedFileContents ?? {};
+  const nonDocFiles = normalizedFiles.filter((file) => !isDocumentationFile(file));
+
+  if (normalizedFiles.some((file) => file.startsWith("tools/agents/")) && !agentDocsChanged) {
+    findings.push(documentationFinding(
+      "HIGH",
+      "Sistema de agentes alterado sem documentacao",
+      "docs/agents",
+      "Mudancas no fluxo dos agentes devem atualizar AGENTS, WORKFLOW, ARCHITECTURE ou USAGE."
+    ));
+  }
+
+  if (normalizedFiles.some((file) => /Controller\.java$|Dto\.java$|DTO\.java$/.test(file)) && !docsChanged) {
+    findings.push(documentationFinding(
+      "MEDIUM",
+      "Contrato de API possivelmente alterado sem documentacao",
+      "docs",
+      "Quando controllers ou DTOs mudam, revise docs de API, exemplos de payload e criterios de integracao."
+    ));
+  }
+
+  if (normalizedFiles.some((file) => /docker-compose|Dockerfile|nginx|application(?:-[\w-]+)?\.(ya?ml|properties)$/.test(file)) && !docsChanged) {
+    findings.push(documentationFinding(
+      "MEDIUM",
+      "Configuracao operacional alterada sem guia atualizado",
+      "docs",
+      "Mudancas de deploy, Docker, Nginx ou application config devem atualizar instrucoes operacionais."
+    ));
+  }
+
+  if (normalizedFiles.some((file) => file.startsWith("nexusos-web/src/") || file.startsWith("src/main/java/")) && !docsChanged) {
+    findings.push(documentationFinding(
+      "LOW",
+      "Mudanca de produto sem nota de documentacao",
+      "docs",
+      "Avalie atualizar guia de uso, changelog ou descricao operacional quando o comportamento do usuario mudar."
+    ));
+  }
+
+  for (const file of nonDocFiles) {
+    const content = changedContents[file] ?? "";
+    const envVars = extractEnvVariables(content);
+    if (envVars.length > 0 && !envExampleChanged) {
+      findings.push(documentationFinding(
+        "HIGH",
+        "Variavel de ambiente sem exemplo versionado",
+        file,
+        `Inclua ${envVars.slice(0, 5).join(", ")} em .env.example ou documente o motivo de nao expor exemplo.`
+      ));
+      break;
+    }
+  }
+
+  if (/relatorio|export|pdf|excel|pagamento|mercado pago|email|whatsapp|deploy|dominio|cloudflare/i.test(context.originalRequest ?? "") && !docsChanged) {
+    findings.push(documentationFinding(
+      "MEDIUM",
+      "Funcionalidade operacional sem instrucoes de uso",
+      "docs",
+      "Recursos operacionais ou integracoes precisam de passos de configuracao, uso e troubleshooting."
+    ));
+  }
+
+  return findings;
+}
+
+function documentationChecklistForFiles(files, originalRequest) {
+  const normalizedFiles = files.map(normalizePath);
+  const checklist = [
+    `Confirmar se o pedido "${originalRequest}" precisa de nota de uso ou troubleshooting.`,
+    "Revisar se exemplos de ambiente continuam completos.",
+    "Revisar se novos fluxos aparecem em guias operacionais ou criterios de QA."
+  ];
+
+  if (normalizedFiles.some((file) => file.startsWith("tools/agents/"))) {
+    checklist.push("Atualizar docs/agents/AGENTS.md, WORKFLOW.md, ARCHITECTURE.md e USAGE.md quando o pipeline mudar.");
+  }
+  if (normalizedFiles.some((file) => /Controller\.java$|Dto\.java$|DTO\.java$/.test(file))) {
+    checklist.push("Atualizar exemplos de request/response e permissao dos endpoints alterados.");
+  }
+  if (normalizedFiles.some((file) => /docker-compose|Dockerfile|nginx|application(?:-[\w-]+)?\.(ya?ml|properties)$/.test(file))) {
+    checklist.push("Atualizar passos de deploy, variaveis, portas, proxy e rollback.");
+  }
+  if (normalizedFiles.some((file) => file.endsWith("db/migration") || file.includes("db/migration/"))) {
+    checklist.push("Documentar impacto de migration, backup e validacao pos-deploy.");
+  }
+  if (normalizedFiles.some((file) => file.startsWith("nexusos-web/src/"))) {
+    checklist.push("Atualizar textos de ajuda, roteiro de QA ou guia do usuario quando a tela mudar.");
+  }
+
+  return checklist;
+}
+
+function isDocumentationFile(file) {
+  return (
+    file.toLowerCase().endsWith(".md") ||
+    file.startsWith("docs/") ||
+    file.includes("/docs/") ||
+    file.endsWith(".env.example")
+  );
+}
+
+function extractEnvVariables(content) {
+  const vars = new Set();
+  for (const match of content.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)) {
+    vars.add(match[1]);
+  }
+  for (const match of content.matchAll(/\$\{([A-Z][A-Z0-9_]*)(?::[^}]*)?\}/g)) {
+    vars.add(match[1]);
+  }
+  for (const match of content.matchAll(/@Value\s*\(\s*"\$\{([A-Z][A-Z0-9_]*)(?::[^}]*)?\}"/g)) {
+    vars.add(match[1]);
+  }
+  return [...vars];
+}
+
+function documentationFinding(severity, title, file, recommendation) {
+  return {
+    severity,
+    title,
+    file,
+    recommendation,
+    category: "DOCUMENTATION"
+  };
+}
+
 export function manualQaPlanForFiles(request, files, poOutput = {}) {
   const normalizedFiles = files.map(normalizePath);
   const checklist = [
@@ -1057,15 +1612,19 @@ export function manualQaPlanForFiles(request, files, poOutput = {}) {
 
   if (normalizedFiles.some((file) => file.startsWith("src/main/"))) {
     checklist.push(qaStep("API", "Executar o endpoint alterado com dados validos e invalidos.", "Confirmar status HTTP, mensagem de erro e persistencia correta."));
+    checklist.push(qaStep("Performance da API", "Executar listagens/filtros com volume maior de dados.", "Confirmar paginacao, tempo de resposta aceitavel e ausencia de erro nos logs."));
     regressionAreas.add("API REST");
+    regressionAreas.add("Performance backend");
   }
 
   if (normalizedFiles.some((file) => file.startsWith("nexusos-web/src/"))) {
     checklist.push(qaStep("Frontend", "Validar carregamento, estado vazio, erro, loading e acao principal da tela alterada.", "Confirmar que o usuario entende o proximo passo."));
     checklist.push(qaStep("Responsividade", "Testar a tela alterada em desktop e mobile.", "Confirmar que nao ha texto cortado, botao fora da tela ou rolagem horizontal inesperada."));
     checklist.push(qaStep("Acessibilidade", "Navegar pela tela alterada usando Tab/Shift+Tab e leitor de tela quando possivel.", "Confirmar foco visivel, ordem logica, botoes nomeados e campos com rotulo."));
+    checklist.push(qaStep("Performance visual", "Abrir a tela com muitos registros e repetir filtros/navegacao.", "Confirmar que a interface nao trava, nao pisca em excesso e mantem resposta rapida."));
     regressionAreas.add("Interface web");
     regressionAreas.add("Acessibilidade");
+    regressionAreas.add("Performance frontend");
     devices.add("Tablet 768px");
   }
 
@@ -1439,9 +1998,19 @@ Resultado: ${execution.databaseOutput?.status ?? "nao executado"}
 
 Resultado: ${execution.businessRulesOutput?.status ?? "nao executado"}
 
+## Produto
+
+Resultado: ${execution.productOutput?.status ?? "nao executado"}
+
+${(execution.productOutput?.productChecklist ?? []).map((item) => `- ${item}`).join("\n") || "- Checklist nao gerado."}
+
 ## Acessibilidade
 
 Resultado: ${execution.accessibilityOutput?.status ?? "nao executado"}
+
+## Performance
+
+Resultado: ${execution.performanceOutput?.status ?? "nao executado"}
 
 ## Deploy e producao
 
@@ -1452,6 +2021,12 @@ Resultado: ${execution.deploymentOutput?.status ?? "nao executado"}
 Resultado: ${execution.manualQaOutput?.status ?? "nao executado"}
 
 ${(execution.manualQaOutput?.checklist ?? []).map((item, index) => `${index + 1}. ${item.area}: ${item.action} Esperado: ${item.expected}`).join("\n") || "- Checklist nao gerado."}
+
+## Documentacao
+
+Resultado: ${execution.documentationOutput?.status ?? "nao executado"}
+
+${(execution.documentationOutput?.checklist ?? []).map((item) => `- ${item}`).join("\n") || "- Checklist nao gerado."}
 
 ## Testes
 
@@ -1484,10 +2059,13 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Seguranca revisada
 - [x] Banco de dados revisado
 - [x] Regras de negocio revisadas
+- [x] Produto revisado
 - [x] Acessibilidade revisada
+- [x] Performance revisada
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Deploy/producao revisado
 - [x] QA manual preparado
+- [x] Documentacao revisada
 - [x] Documentacao atualizada
 - [x] Commit criado
 - [x] Push realizado

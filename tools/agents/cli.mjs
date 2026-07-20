@@ -66,11 +66,14 @@ function printReport(execution) {
   console.log(`Seguranca: ${execution.securityOutput?.status ?? "-"}`);
   console.log(`Banco de dados: ${execution.databaseOutput?.status ?? "-"}`);
   console.log(`Regras de negocio: ${execution.businessRulesOutput?.status ?? "-"}`);
+  console.log(`Produto: ${execution.productOutput?.status ?? "-"}`);
   console.log(`UX: ${execution.uxOutput?.status ?? "-"}`);
   console.log(`Acessibilidade: ${execution.accessibilityOutput?.status ?? "-"}`);
+  console.log(`Performance: ${execution.performanceOutput?.status ?? "-"}`);
   console.log(`Testes: ${tests ? `${tests.passed} aprovados, ${tests.failed} falhos` : "-"}`);
   console.log(`Deploy/producao: ${execution.deploymentOutput?.status ?? "-"}`);
   console.log(`QA manual: ${execution.manualQaOutput?.status ?? "-"}`);
+  console.log(`Documentacao: ${execution.documentationOutput?.status ?? "-"}`);
   console.log(`Push: ${delivery.push ?? "-"}`);
   console.log(`Pull Request: ${delivery.pullRequestCreated ? "criado" : "nao utilizado"}`);
   console.log(`URL: ${delivery.pullRequestUrl ?? "-"}`);

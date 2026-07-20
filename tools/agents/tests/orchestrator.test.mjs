@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { accessibilityFindingsForFile, businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, manualQaPlanForFiles, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { accessibilityFindingsForFile, businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, documentationFindingsForFiles, manualQaPlanForFiles, performanceFindingsForFile, productFindingsForChangeSet, productFindingsForFile, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -208,6 +208,70 @@ test("agente de acessibilidade reprova clique sem teclado", () => {
   assert.equal(findings.some((finding) => finding.title.includes("teclado")), true);
 });
 
+test("agente de performance reprova consulta sem paginacao", () => {
+  const findings = performanceFindingsForFile(
+    "src/main/java/com/nexusos/ordemservico/OrdemServicoService.java",
+    "class OrdemServicoService { List<OrdemServico> listar() { return repository.findAll(); } }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("paginacao")), true);
+});
+
+test("agente de performance reprova acesso ao banco dentro de loop", () => {
+  const findings = performanceFindingsForFile(
+    "src/main/java/com/nexusos/notificacao/NotificacaoService.java",
+    "void salvar(List<Item> items) { for (Item item : items) { repository.save(item); } }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("loop")), true);
+});
+
+test("agente de performance alerta lista grande sem paginacao", () => {
+  const findings = performanceFindingsForFile(
+    "nexusos-web/src/app/ordens-servico/page.tsx",
+    "export function Page() { return <>{ordens.map((ordem) => <Card key={ordem.id} />)}</>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Lista potencialmente grande")), true);
+});
+
+test("agente de performance alerta timer sem cleanup", () => {
+  const findings = performanceFindingsForFile(
+    "nexusos-web/src/components/timer.tsx",
+    "useEffect(() => { setInterval(carregar, 1000); }, []);"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Timer")), true);
+});
+
+test("agente de produto reprova acao sem feedback", () => {
+  const findings = productFindingsForFile(
+    "nexusos-web/src/app/ordens-servico/[id]/page.tsx",
+    "function Page() { const handleFinalizar = () => finalizar(); return <Button onClick={handleFinalizar}>Finalizar</Button>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("feedback")), true);
+});
+
+test("agente de produto reprova dashboard sem caminho de acao", () => {
+  const findings = productFindingsForFile(
+    "nexusos-web/src/app/dashboard/page.tsx",
+    "function Dashboard() { return <Card><span>OS vencidas</span><strong>{indicador}</strong></Card>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("dashboard")), true);
+});
+
+test("agente de produto alerta listagem sem estado vazio", () => {
+  const findings = productFindingsForFile(
+    "nexusos-web/src/app/clientes/page.tsx",
+    "function Clientes() { return <>{clientes.map((cliente) => <Card key={cliente.id} />)}</>; }"
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("estado vazio")), true);
+});
+
+test("agente de produto alerta backend sem superficie quando pedido fala de tela", () => {
+  const findings = productFindingsForChangeSet(
+    ["src/main/java/com/nexusos/ordemservico/OrdemServicoService.java"],
+    { originalRequest: "Criar botao para aprovar pagamento na tela da OS" }
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("frontend")), true);
+});
+
 test("agente de qa manual cria checklist para fluxo de OS", () => {
   const plan = manualQaPlanForFiles(
     "Melhorar workflow da OS",
@@ -237,4 +301,28 @@ test("agente de qa manual inclui deploy quando arquivo operacional muda", () => 
   );
   assert.equal(plan.checklist.some((item) => item.area === "Deploy"), true);
   assert.equal(plan.regressionAreas.includes("Deploy/Producao"), true);
+});
+
+test("agente de documentacao reprova agente alterado sem docs", () => {
+  const findings = documentationFindingsForFiles(
+    ["tools/agents/orchestrator.mjs"],
+    { changedFileContents: { "tools/agents/orchestrator.mjs": "const novoFluxo = true;" } }
+  );
+  assert.equal(findings.some((finding) => finding.severity === "HIGH"), true);
+});
+
+test("agente de documentacao reprova variavel de ambiente sem exemplo", () => {
+  const findings = documentationFindingsForFiles(
+    ["src/main/java/com/nexusos/config/EmailConfig.java"],
+    { changedFileContents: { "src/main/java/com/nexusos/config/EmailConfig.java": "@Value(\"${EMAIL_API_TOKEN}\") String token;" } }
+  );
+  assert.equal(findings.some((finding) => finding.title.includes("Variavel de ambiente")), true);
+});
+
+test("agente de documentacao aprova quando docs acompanham agente", () => {
+  const findings = documentationFindingsForFiles(
+    ["tools/agents/orchestrator.mjs", "docs/agents/AGENTS.md"],
+    { changedFileContents: { "tools/agents/orchestrator.mjs": "const novoFluxo = true;", "docs/agents/AGENTS.md": "docs" } }
+  );
+  assert.equal(findings.some((finding) => finding.severity === "HIGH"), false);
 });
