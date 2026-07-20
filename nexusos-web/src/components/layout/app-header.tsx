@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Laptop, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun } from "lucide-react";
+import { Bell, Building2, ClipboardList, FolderKanban, Laptop, Loader2, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { getResumoNotificacao } from "@/lib/notificacao-labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ import { Separator } from "@/components/ui/separator";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useAuth } from "@/providers/auth-provider";
 import { notificacaoService } from "@/services/notificacao-service";
+import { buscaGlobalService } from "@/services/busca-global-service";
 import { useTheme, type Theme } from "@/providers/theme-provider";
+import type { BuscaGlobalItem } from "@/types";
 
 type AppHeaderProps = {
   sidebarCollapsed?: boolean;
@@ -26,6 +28,8 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   const { logout, usuario } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const [buscaGlobal, setBuscaGlobal] = useState("");
+  const [termoBusca, setTermoBusca] = useState("");
+  const [buscaAberta, setBuscaAberta] = useState(false);
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
   const notificacoesQuery = useQuery({
     queryKey: ["notificacoes"],
@@ -44,6 +48,17 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
       queryClient.invalidateQueries({ queryKey: ["notificacoes"] });
     }
   });
+  const buscaGlobalQuery = useQuery({
+    queryKey: ["busca-global", termoBusca],
+    queryFn: () => buscaGlobalService.buscar(termoBusca),
+    enabled: termoBusca.length >= 2,
+    staleTime: 30_000
+  });
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setTermoBusca(buscaGlobal.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [buscaGlobal]);
 
   const notificacoes = notificacoesQuery.data?.itens ?? [];
   const naoLidas = notificacoesQuery.data?.naoLidas ?? 0;
@@ -61,9 +76,14 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
 
   function buscarGlobalmente(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const termo = buscaGlobal.trim();
+    const primeiroResultado = gruposBusca.flatMap((grupo) => grupo.itens)[0];
+    if (primeiroResultado) abrirResultado(primeiroResultado);
+  }
 
-    router.push(termo ? `/ordens-servico?busca=${encodeURIComponent(termo)}` : "/ordens-servico");
+  function abrirResultado(item: BuscaGlobalItem) {
+    setBuscaAberta(false);
+    setBuscaGlobal("");
+    router.push(item.href);
   }
 
   function formatarDataHora(data: string) {
@@ -73,6 +93,13 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
     }).format(new Date(data));
   }
 
+  const gruposBusca = [
+    { titulo: "Ordens de serviço", itens: buscaGlobalQuery.data?.ordensServico ?? [], icon: ClipboardList },
+    { titulo: "Clientes", itens: buscaGlobalQuery.data?.clientes ?? [], icon: Building2 },
+    { titulo: "Projetos", itens: buscaGlobalQuery.data?.projetos ?? [], icon: FolderKanban },
+    { titulo: "Usuários", itens: buscaGlobalQuery.data?.usuarios ?? [], icon: Users }
+  ].filter((grupo) => grupo.itens.length > 0);
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur lg:px-6">
       <MobileNav />
@@ -80,14 +107,38 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         <SidebarIcon className="h-5 w-5" />
         <span className="sr-only">{sidebarCollapsed ? "Abrir menu lateral" : "Esconder menu lateral"}</span>
       </Button>
-      <form onSubmit={buscarGlobalmente} className="relative hidden w-full max-w-md md:block">
+      <form onSubmit={buscarGlobalmente} className="relative hidden w-full max-w-md md:block" role="search">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
             placeholder="Buscar OS, cliente ou responsável"
           value={buscaGlobal}
-          onChange={(event) => setBuscaGlobal(event.target.value)}
+          onFocus={() => setBuscaAberta(true)}
+          onBlur={() => window.setTimeout(() => setBuscaAberta(false), 150)}
+          onChange={(event) => { setBuscaGlobal(event.target.value); setBuscaAberta(true); }}
+          aria-label="Busca global"
         />
+        {buscaAberta && termoBusca.length >= 2 ? (
+          <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 max-h-[min(70vh,480px)] w-full overflow-y-auto rounded-md border bg-popover p-2 text-popover-foreground shadow-md">
+            {buscaGlobalQuery.isFetching ? (
+              <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Buscando...</div>
+            ) : buscaGlobalQuery.isError ? (
+              <div className="px-3 py-4 text-sm text-destructive">Não foi possível realizar a busca.</div>
+            ) : gruposBusca.length === 0 ? (
+              <div className="px-3 py-4 text-sm text-muted-foreground">Nenhum resultado encontrado.</div>
+            ) : gruposBusca.map(({ titulo, itens, icon: Icon }) => (
+              <div key={titulo} className="py-1">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase text-muted-foreground"><Icon className="h-3.5 w-3.5" /> {titulo}</div>
+                {itens.map((item) => (
+                  <button key={item.id} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => abrirResultado(item)} className="w-full rounded-sm px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none">
+                    <span className="block truncate text-sm font-medium">{item.titulo}</span>
+                    {item.subtitulo ? <span className="block truncate text-xs text-muted-foreground">{item.subtitulo}</span> : null}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </form>
       <div className="ml-auto flex items-center gap-2">
         <DropdownMenu>

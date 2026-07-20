@@ -1,5 +1,14 @@
 export type PerfilUsuario = "ADMIN" | "DESENVOLVEDOR";
 
+export type BuscaGlobalItem = { id: string; titulo: string; subtitulo?: string; href: string };
+
+export type BuscaGlobalResultado = {
+  ordensServico: BuscaGlobalItem[];
+  clientes: BuscaGlobalItem[];
+  projetos: BuscaGlobalItem[];
+  usuarios: BuscaGlobalItem[];
+};
+
 export type StatusOS =
   | "RECEBIDA"
   | "EM_ANALISE"

@@ -31,6 +31,11 @@ export default function ProjetosPage() {
   const [projetoParaInativar, setProjetoParaInativar] = useState<Projeto | null>(null);
   const [projetoInativandoId, setProjetoInativandoId] = useState<string | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [buscaInicial, setBuscaInicial] = useState("");
+
+  useEffect(() => {
+    setBuscaInicial(new URLSearchParams(window.location.search).get("busca")?.toLocaleLowerCase("pt-BR") ?? "");
+  }, []);
 
   const projetosQuery = useQuery({
     queryKey: projetosQueryKey,
@@ -78,7 +83,9 @@ export default function ProjetosPage() {
     onSettled: () => setProjetoInativandoId(null)
   });
 
-  const projetos = useMemo(() => projetosQuery.data ?? [], [projetosQuery.data]);
+  const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) =>
+    !buscaInicial || projeto.nome.toLocaleLowerCase("pt-BR").includes(buscaInicial)
+  ), [buscaInicial, projetosQuery.data]);
   const clientes = (clientesQuery.data ?? []).filter((cliente) => cliente.ativo);
   const totalPaginas = Math.max(1, Math.ceil(projetos.length / itensPorPagina));
   const projetosPaginados = useMemo(() => {

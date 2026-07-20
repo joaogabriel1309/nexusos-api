@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
@@ -12,4 +13,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
     List<Usuario> findByPerfilAndAtivoTrue(PerfilUsuario perfil);
 
     boolean existsByEmail(String email);
+
+    List<Usuario> findByEmailContainingIgnoreCaseOrderByEmailAsc(String termo, Pageable pageable);
 }

@@ -7,9 +7,27 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 public interface OrdemServicoRepository extends JpaRepository<OrdemServico, UUID> {
+
+    @Query("""
+            select os from OrdemServico os
+            join fetch os.cliente
+            left join fetch os.projeto
+            where (:emailResponsavel is null or os.responsavel.email = :emailResponsavel)
+              and (lower(os.titulo) like lower(concat('%', :termo, '%'))
+                   or lower(os.cliente.nome) like lower(concat('%', :termo, '%'))
+                   or (:codigo is not null and os.codigo = :codigo))
+            order by os.atualizadoEm desc
+            """)
+    List<OrdemServico> buscarGlobalmente(
+            @Param("termo") String termo,
+            @Param("codigo") Long codigo,
+            @Param("emailResponsavel") String emailResponsavel,
+            Pageable pageable
+    );
 
     @Query("""
             select distinct os from OrdemServico os

@@ -34,6 +34,11 @@ export default function UsuariosPage() {
   const [usuarioParaInativar, setUsuarioParaInativar] = useState<Usuario | null>(null);
   const [usuarioInativandoId, setUsuarioInativandoId] = useState<string | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [buscaInicial, setBuscaInicial] = useState("");
+
+  useEffect(() => {
+    setBuscaInicial(new URLSearchParams(window.location.search).get("busca")?.toLocaleLowerCase("pt-BR") ?? "");
+  }, []);
 
   const usuariosQuery = useQuery({
     queryKey: usuariosQueryKey,
@@ -90,7 +95,9 @@ export default function UsuariosPage() {
     }
   });
 
-  const usuarios = useMemo(() => usuariosQuery.data ?? [], [usuariosQuery.data]);
+  const usuarios = useMemo(() => (usuariosQuery.data ?? []).filter((usuario) =>
+    !buscaInicial || usuario.email.toLocaleLowerCase("pt-BR").includes(buscaInicial)
+  ), [buscaInicial, usuariosQuery.data]);
   const totalPaginas = Math.max(1, Math.ceil(usuarios.length / itensPorPagina));
   const usuariosPaginados = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina;

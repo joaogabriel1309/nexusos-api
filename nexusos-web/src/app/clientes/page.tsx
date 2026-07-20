@@ -28,6 +28,11 @@ export default function ClientesPage() {
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
   const [clienteParaInativar, setClienteParaInativar] = useState<Cliente | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [buscaInicial, setBuscaInicial] = useState("");
+
+  useEffect(() => {
+    setBuscaInicial(new URLSearchParams(window.location.search).get("busca")?.toLocaleLowerCase("pt-BR") ?? "");
+  }, []);
 
   const clientesQuery = useQuery({
     queryKey: clientesQueryKey,
@@ -82,7 +87,9 @@ export default function ClientesPage() {
     }
   });
 
-  const clientes = useMemo(() => clientesQuery.data ?? [], [clientesQuery.data]);
+  const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) =>
+    !buscaInicial || cliente.nome.toLocaleLowerCase("pt-BR").includes(buscaInicial)
+  ), [buscaInicial, clientesQuery.data]);
   const totalPaginas = Math.max(1, Math.ceil(clientes.length / itensPorPagina));
   const clientesPaginados = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina;
