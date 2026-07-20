@@ -36,4 +36,9 @@ public class AuditoriaService {
                 .map(AuditoriaOSResponse::from)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<AuditoriaOS> listarEntidadesPorOrdemServico(UUID ordemServicoId) {
+        return auditoriaOSRepository.findByOrdemServicoIdOrderByCriadoEmDesc(ordemServicoId);
+    }
 }

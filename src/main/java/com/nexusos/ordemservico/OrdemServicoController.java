@@ -20,6 +20,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrdemServicoController {
 
     private final OrdemServicoService ordemServicoService;
+    private final OrdemServicoPdfService ordemServicoPdfService;
 
     @Operation(summary = "Lista ordens de servico")
     @GetMapping
@@ -87,6 +90,19 @@ public class OrdemServicoController {
     public ResponseEntity<OrdemServicoResponse> reabrir(@PathVariable UUID id,
             @Valid @RequestBody ReaberturaOrdemServicoRequest request) {
         return ResponseEntity.ok(ordemServicoService.reabrir(id, request));
+    }
+
+    @Operation(summary = "Baixa o comprovante PDF de finalizacao da ordem de servico")
+    @GetMapping(value = "/{id}/comprovante-finalizacao", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<byte[]> baixarComprovanteFinalizacao(@PathVariable UUID id) {
+        var ordem = ordemServicoService.buscarPorId(id);
+        var arquivo = ordemServicoPdfService.gerarComprovanteFinalizacao(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"os-" + ordem.codigo() + "-comprovante-finalizacao.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(arquivo);
     }
 
     @Operation(summary = "Cancela uma ordem de servico preservando seu historico")

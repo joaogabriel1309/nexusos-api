@@ -13,6 +13,7 @@ import {
   History,
   Loader2,
   MessageSquare,
+  Download,
   RefreshCcw,
   Trash2,
   UserRound,
@@ -473,6 +474,14 @@ export default function OrdemServicoDetalhePage() {
     onSettled: () => setOsEmAcao(false)
   });
 
+  const comprovanteMutation = useMutation({
+    mutationFn: () => {
+      if (!ordem) throw new Error("OS nao carregada.");
+      return ordemServicoService.baixarComprovanteFinalizacao(ordem.id, ordem.codigo);
+    },
+    onError: () => toast.error("Nao foi possivel baixar o comprovante de finalizacao.")
+  });
+
   function executarAcaoWorkflow(action: WorkflowAction) {
     if (!ordem) {
       return;
@@ -596,10 +605,18 @@ export default function OrdemServicoDetalhePage() {
                     ) : (
               <div className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm text-foreground">
                         <p>Esta OS está {ordem.status === "CANCELADA" ? "cancelada" : "finalizada"}. Não existem próximas etapas operacionais disponíveis.</p>
-                        {!isDesenvolvedor && ordem.status === "FINALIZADA" ? (
-                          <Button variant="outline" onClick={() => setReaberturaOpen(true)}>
-                            <RefreshCcw className="h-4 w-4" /> Reabrir OS
-                          </Button>
+                        {ordem.status === "FINALIZADA" ? (
+                          <div className="flex flex-wrap gap-2">
+                            <Button onClick={() => comprovanteMutation.mutate()} disabled={comprovanteMutation.isPending}>
+                              {comprovanteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                              Baixar PDF
+                            </Button>
+                            {!isDesenvolvedor ? (
+                              <Button variant="outline" onClick={() => setReaberturaOpen(true)}>
+                                <RefreshCcw className="h-4 w-4" /> Reabrir OS
+                              </Button>
+                            ) : null}
+                          </div>
                         ) : null}
                       </div>
                     )}

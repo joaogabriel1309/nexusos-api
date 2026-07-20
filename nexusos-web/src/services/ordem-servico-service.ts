@@ -83,6 +83,20 @@ export const ordemServicoService = {
     return data;
   },
 
+  async baixarComprovanteFinalizacao(id: string, codigo: number) {
+    const { data } = await api.get<Blob>(`/ordens-servico/${id}/comprovante-finalizacao`, {
+      responseType: "blob"
+    });
+    const url = URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `os-${codigo}-comprovante-finalizacao.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
   async cancelar(id: string, motivo: string) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/cancelar`, { motivo });
     return data;

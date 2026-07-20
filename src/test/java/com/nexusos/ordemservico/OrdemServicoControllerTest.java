@@ -16,6 +16,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 class OrdemServicoControllerTest {
 
     @Test
+    void comprovanteFinalizacaoPermiteAdminEDesenvolvedor() throws NoSuchMethodException {
+        var metodo = OrdemServicoController.class.getMethod("baixarComprovanteFinalizacao", UUID.class);
+        assertThat(metodo.getAnnotation(PreAuthorize.class).value())
+                .isEqualTo("hasAnyRole('ADMIN','DESENVOLVEDOR')");
+    }
+
+    @Test
     void cancelarExigePerfilAdmin() throws NoSuchMethodException {
         var metodo = OrdemServicoController.class.getMethod(
                 "cancelar", UUID.class, CancelamentoOrdemServicoRequest.class);
