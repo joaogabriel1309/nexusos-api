@@ -54,6 +54,12 @@ Revisa riscos de publicacao antes da entrega: Dockerfile, Docker Compose, variav
 
 Achados `CRITICAL` ou `HIGH` reprovam a etapa e retornam ao desenvolvimento. Achados `MEDIUM` e `LOW` ficam registrados como recomendacoes.
 
+## QA Manual
+
+Prepara um checklist manual orientado pelos arquivos alterados e criterios de aceitacao. Cobre fluxo principal, permissoes, regressao basica, mobile/desktop, portal do cliente, OS, dashboard, notificacoes, autenticacao, banco e deploy quando esses modulos forem afetados.
+
+Nao substitui testes automatizados. A saida fica registrada no relatorio de entrega para guiar a validacao humana antes de publicar.
+
 ## Entrega
 
 Cria commit e faz push direto para a branch alvo. Nao cria Pull Request e nao faz merge.

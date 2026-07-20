@@ -69,6 +69,7 @@ function printReport(execution) {
   console.log(`UX: ${execution.uxOutput?.status ?? "-"}`);
   console.log(`Testes: ${tests ? `${tests.passed} aprovados, ${tests.failed} falhos` : "-"}`);
   console.log(`Deploy/producao: ${execution.deploymentOutput?.status ?? "-"}`);
+  console.log(`QA manual: ${execution.manualQaOutput?.status ?? "-"}`);
   console.log(`Push: ${delivery.push ?? "-"}`);
   console.log(`Pull Request: ${delivery.pullRequestCreated ? "criado" : "nao utilizado"}`);
   console.log(`URL: ${delivery.pullRequestUrl ?? "-"}`);

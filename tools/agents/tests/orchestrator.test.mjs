@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newExecution } from "../core.mjs";
-import { businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
+import { businessRuleFindingsForFile, databaseFindingsForFile, deploymentFindingsForFile, developerAutomationDiagnostics, manualQaPlanForFiles, renderDeveloperCommand, resolveDeveloperCommand, writeDeveloperPrompt } from "../orchestrator.mjs";
 
 function fakeExecution(root) {
   const execution = newExecution(root, "Criar tela de teste");
@@ -174,4 +174,35 @@ test("agente de deploy alerta swagger em producao", () => {
     "springdoc.swagger-ui.enabled=true"
   );
   assert.equal(findings.some((finding) => finding.title.includes("Swagger")), true);
+});
+
+test("agente de qa manual cria checklist para fluxo de OS", () => {
+  const plan = manualQaPlanForFiles(
+    "Melhorar workflow da OS",
+    ["src/main/java/com/nexusos/ordemservico/OrdemServicoService.java", "nexusos-web/src/app/ordens-servico/[id]/page.tsx"],
+    { acceptanceCriteria: ["Usuario consegue avancar status permitido"] }
+  );
+  assert.equal(plan.checklist.some((item) => item.area === "Ordem de servico"), true);
+  assert.equal(plan.checklist.some((item) => item.area === "Workflow da OS"), true);
+  assert.equal(plan.checklist.some((item) => item.area === "Criterio de aceitacao"), true);
+});
+
+test("agente de qa manual cria checklist para portal do cliente", () => {
+  const plan = manualQaPlanForFiles(
+    "Ajustar portal do cliente",
+    ["nexusos-web/src/app/portal/cliente/page.tsx"],
+    {}
+  );
+  assert.equal(plan.checklist.some((item) => item.area === "Portal do cliente"), true);
+  assert.equal(plan.regressionAreas.includes("Portal do Cliente"), true);
+});
+
+test("agente de qa manual inclui deploy quando arquivo operacional muda", () => {
+  const plan = manualQaPlanForFiles(
+    "Ajustar compose",
+    ["docker-compose.yml"],
+    {}
+  );
+  assert.equal(plan.checklist.some((item) => item.area === "Deploy"), true);
+  assert.equal(plan.regressionAreas.includes("Deploy/Producao"), true);
 });

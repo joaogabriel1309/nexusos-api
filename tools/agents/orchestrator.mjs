@@ -62,6 +62,9 @@ async function runFlow(root, execution) {
     if ([STATES.WAITING_FOR_DEPLOYMENT_REVIEW, STATES.DEPLOYMENT_REVIEW].includes(execution.status)) {
       deploymentAgent(root, execution);
     }
+    if ([STATES.WAITING_FOR_MANUAL_QA_REVIEW, STATES.MANUAL_QA_REVIEW].includes(execution.status)) {
+      manualQaAgent(root, execution);
+    }
     if ([STATES.WAITING_FOR_DELIVERY, STATES.CREATING_COMMITS, STATES.PUSHING_BRANCH, STATES.CREATING_PULL_REQUEST].includes(execution.status)) {
       deliveryAgent(root, execution);
     }
@@ -591,7 +594,27 @@ function deploymentAgent(root, execution) {
     transition(root, execution, STATES.WAITING_FOR_DEVELOPMENT, "Deploy/producao reprovado; voltando ao desenvolvimento");
     return;
   }
-  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "Deploy/producao aprovado");
+  transition(root, execution, STATES.WAITING_FOR_MANUAL_QA_REVIEW, "Deploy/producao aprovado");
+}
+
+function manualQaAgent(root, execution) {
+  execution.currentAgent = "MANUAL_QA";
+  transition(root, execution, STATES.MANUAL_QA_REVIEW, "Preparando QA manual");
+  const files = reviewFiles(root, execution);
+  const plan = manualQaPlanForFiles(execution.originalRequest, files, execution.poOutput);
+  execution.manualQaOutput = {
+    status: "prepared",
+    reviewedFiles: files,
+    checklist: plan.checklist,
+    smokeTests: plan.smokeTests,
+    regressionAreas: plan.regressionAreas,
+    devices: plan.devices,
+    dataSetup: plan.dataSetup,
+    notes: plan.notes,
+    approvedForDelivery: true
+  };
+  saveExecution(root, execution);
+  transition(root, execution, STATES.WAITING_FOR_DELIVERY, "QA manual preparado");
 }
 
 function deliveryAgent(root, execution) {
@@ -868,6 +891,98 @@ function deploymentFinding(severity, title, file, recommendation) {
     recommendation,
     category: "DEPLOYMENT"
   };
+}
+
+export function manualQaPlanForFiles(request, files, poOutput = {}) {
+  const normalizedFiles = files.map(normalizePath);
+  const checklist = [
+    qaStep("Fluxo principal", `Executar o pedido original: ${request}`, "Confirmar que o fluxo termina sem erro visual, erro de API ou estado inconsistente."),
+    qaStep("Permissoes", "Validar o comportamento com usuario ADMIN e DESENVOLVEDOR quando a tela/API for autenticada.", "Confirmar que cada perfil ve somente as acoes permitidas."),
+    qaStep("Regressao basica", "Abrir dashboard, listagem de OS, detalhe de OS e notificacoes.", "Confirmar que dados carregam e navegacao continua funcionando.")
+  ];
+  const smokeTests = [
+    "Login com usuario valido.",
+    "Recarregar a pagina depois do login.",
+    "Abrir a tela alterada diretamente pela URL.",
+    "Testar erro de API/rede quando houver acao de salvar."
+  ];
+  const regressionAreas = new Set(["Autenticacao", "Navegacao principal"]);
+  const devices = new Set(["Desktop 1366px", "Mobile 390px"]);
+  const dataSetup = ["Usar pelo menos uma OS existente com cliente, responsavel e status ativo."];
+  const notes = [];
+
+  if (normalizedFiles.some((file) => file.startsWith("src/main/"))) {
+    checklist.push(qaStep("API", "Executar o endpoint alterado com dados validos e invalidos.", "Confirmar status HTTP, mensagem de erro e persistencia correta."));
+    regressionAreas.add("API REST");
+  }
+
+  if (normalizedFiles.some((file) => file.startsWith("nexusos-web/src/"))) {
+    checklist.push(qaStep("Frontend", "Validar carregamento, estado vazio, erro, loading e acao principal da tela alterada.", "Confirmar que o usuario entende o proximo passo."));
+    checklist.push(qaStep("Responsividade", "Testar a tela alterada em desktop e mobile.", "Confirmar que nao ha texto cortado, botao fora da tela ou rolagem horizontal inesperada."));
+    regressionAreas.add("Interface web");
+    devices.add("Tablet 768px");
+  }
+
+  if (normalizedFiles.some((file) => /ordens-servico|ordemservico/i.test(file))) {
+    checklist.push(qaStep("Ordem de servico", "Criar/abrir uma OS e validar status, prioridade, responsavel, textos, valores e auditoria quando aplicavel.", "Confirmar que a OS fica no status esperado e com historico coerente."));
+    checklist.push(qaStep("Workflow da OS", "Avancar a OS pelo fluxo permitido e tentar uma acao nao permitida.", "Confirmar que transicoes invalidas sao bloqueadas com mensagem clara."));
+    regressionAreas.add("Fluxo de OS");
+    dataSetup.push("Ter OS em status RECEBIDA, EM_ANALISE, AGUARDANDO_APROVACAO, EM_DESENVOLVIMENTO e FINALIZADA.");
+  }
+
+  if (normalizedFiles.some((file) => /portal|cliente/i.test(file))) {
+    checklist.push(qaStep("Portal do cliente", "Abrir o link publico do cliente, acompanhar OS, aprovar e reprovar com motivo.", "Confirmar linguagem clara e ausencia de campos internos desnecessarios."));
+    regressionAreas.add("Portal do Cliente");
+    dataSetup.push("Usar uma OS com token publico ativo e uma OS aguardando aprovacao do cliente.");
+  }
+
+  if (normalizedFiles.some((file) => /dashboard/i.test(file))) {
+    checklist.push(qaStep("Dashboard", "Validar cards, graficos, filtros e navegacao clicavel para listagens filtradas.", "Confirmar que os numeros batem com a listagem filtrada."));
+    regressionAreas.add("Dashboard e indicadores");
+  }
+
+  if (normalizedFiles.some((file) => /notificacao|notificacoes/i.test(file))) {
+    checklist.push(qaStep("Notificacoes", "Executar o evento alterado e conferir notificacao para admin/desenvolvedor.", "Confirmar destinatario, texto, link e leitura da notificacao."));
+    regressionAreas.add("Notificacoes");
+  }
+
+  if (normalizedFiles.some((file) => /auth|security|cookie|jwt/i.test(file))) {
+    checklist.push(qaStep("Sessao e seguranca", "Validar login, refresh, logout e tentativa de acesso sem permissao.", "Confirmar cookies/tokens, expiracao e redirecionamento correto."));
+    regressionAreas.add("Autenticacao e autorizacao");
+  }
+
+  if (normalizedFiles.some((file) => /db\/migration|entity|repository/i.test(file))) {
+    checklist.push(qaStep("Dados", "Aplicar migration em banco limpo e em banco com dados existentes.", "Confirmar que dados antigos permanecem acessiveis e consistentes."));
+    regressionAreas.add("Banco de dados");
+    dataSetup.push("Manter um backup ou dump pequeno para comparar dados antes/depois.");
+  }
+
+  if (normalizedFiles.some((file) => isDeploymentRelevantFile(file))) {
+    checklist.push(qaStep("Deploy", "Subir containers localmente ou em ambiente de homologacao com variaveis de producao simuladas.", "Confirmar healthcheck, portas, URLs publicas, CORS e logs sem erro."));
+    regressionAreas.add("Deploy/Producao");
+  }
+
+  const acceptanceCriteria = poOutput?.acceptanceCriteria ?? [];
+  for (const criterion of acceptanceCriteria) {
+    checklist.push(qaStep("Criterio de aceitacao", criterion, "Marcar como aprovado somente com evidencia visual ou funcional."));
+  }
+
+  if (normalizedFiles.length === 0) {
+    notes.push("Nenhum arquivo alterado detectado; checklist gerado apenas pelo pedido original.");
+  }
+
+  return {
+    checklist,
+    smokeTests,
+    regressionAreas: [...regressionAreas],
+    devices: [...devices],
+    dataSetup,
+    notes
+  };
+}
+
+function qaStep(area, action, expected) {
+  return { area, action, expected };
 }
 
 export function businessRuleFindingsForFile(file, content, context = {}) {
@@ -1182,6 +1297,12 @@ Resultado: ${execution.businessRulesOutput?.status ?? "nao executado"}
 
 Resultado: ${execution.deploymentOutput?.status ?? "nao executado"}
 
+## QA manual
+
+Resultado: ${execution.manualQaOutput?.status ?? "nao executado"}
+
+${(execution.manualQaOutput?.checklist ?? []).map((item, index) => `${index + 1}. ${item.area}: ${item.action} Esperado: ${item.expected}`).join("\n") || "- Checklist nao gerado."}
+
 ## Testes
 
 Resultado: ${execution.testOutput?.status ?? "nao executado"}
@@ -1215,6 +1336,7 @@ ${(execution.developerOutput?.knownLimitations ?? []).map((item) => `- ${item}`)
 - [x] Regras de negocio revisadas
 - [x] Verificacao de tipos/testes/build executados conforme configuracao local
 - [x] Deploy/producao revisado
+- [x] QA manual preparado
 - [x] Documentacao atualizada
 - [x] Commit criado
 - [x] Push realizado
