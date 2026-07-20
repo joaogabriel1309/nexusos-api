@@ -16,6 +16,7 @@ import { aplicarCorPrincipal } from "@/lib/cor-principal";
 import { configuracaoEmpresaService } from "@/services/configuracao-empresa-service";
 import type { ConfiguracaoEmpresaPayload } from "@/types/configuracao-empresa";
 import { EmailSettingsCard } from "./email-settings-card";
+import { WhatsappSettingsCard } from "./whatsapp-settings-card";
 
 const vazio: ConfiguracaoEmpresaPayload = { nome: "", logo: null, documento: null, email: null, telefone: null, endereco: null, corPrincipal: "#087EA4" };
 
@@ -83,6 +84,7 @@ export default function ConfiguracoesPage() {
         </form>
       )}
       <EmailSettingsCard />
+      <WhatsappSettingsCard />
     </div></AppShell>
   );
 }

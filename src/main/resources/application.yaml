@@ -65,12 +65,9 @@ nexusos:
     encryption-key: ${EMAIL_ENCRYPTION_KEY:${JWT_SECRET:}}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
   whatsapp:
-    enabled: ${WHATSAPP_ENABLED:false}
-    provider: ${WHATSAPP_PROVIDER:callmebot}
+    encryption-key: ${WHATSAPP_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}
     callmebot-api-url: ${WHATSAPP_CALLMEBOT_API_URL:https://api.callmebot.com}
-    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
-    access-token: ${WHATSAPP_ACCESS_TOKEN:}
     default-country-code: ${WHATSAPP_DEFAULT_COUNTRY_CODE:55}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
 
