@@ -32,6 +32,14 @@ export const authService = {
     await authApi.post("/auth/logout").catch(() => undefined);
   },
 
+  async forgotPassword(email: string) {
+    await authApi.post("/auth/forgot-password", { email });
+  },
+
+  async resetPassword(token: string, novaSenha: string) {
+    await authApi.post("/auth/reset-password", { token, novaSenha });
+  },
+
   getUsuarioFromResponse(response: AuthResponse | null) {
     return response?.usuario ?? null satisfies AuthUsuario | null;
   },

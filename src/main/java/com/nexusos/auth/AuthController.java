@@ -3,6 +3,8 @@ package com.nexusos.auth;
 import com.nexusos.auth.dto.LoginRequest;
 import com.nexusos.auth.dto.RefreshTokenRequest;
 import com.nexusos.auth.dto.TokenResponse;
+import com.nexusos.auth.dto.ForgotPasswordRequest;
+import com.nexusos.auth.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -56,6 +58,20 @@ public class AuthController {
         var headers = new HttpHeaders();
         authCookieService.limparCookies(headers);
         return ResponseEntity.noContent().headers(headers).build();
+    }
+
+    @Operation(summary = "Solicita um link de recuperacao de senha")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.solicitarRecuperacaoSenha(request.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Redefine a senha usando um token de recuperacao")
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.redefinirSenha(request.token(), request.novaSenha());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Retorna o usuario autenticado")

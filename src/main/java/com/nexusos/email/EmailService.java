@@ -101,6 +101,20 @@ public class EmailService {
                 ));
     }
 
+    public void enviarRecuperacaoSenha(String destinatario, String token) {
+        var link = frontendBaseUrl.replaceAll("/+$", "") + "/redefinir-senha?token=" + token;
+        enviarGenerico(destinatario, "Recuperacao de senha - NexusOS", """
+                Ola.
+
+                Recebemos uma solicitacao para redefinir sua senha no NexusOS.
+                Use o link abaixo em ate 60 minutos:
+
+                %s
+
+                Se voce nao fez esta solicitacao, ignore esta mensagem.
+                """.formatted(link));
+    }
+
     private boolean deveEnviar(OrdemServico os) {
         return os.getCliente() != null
                 && os.getCliente().isEnviarEmail()
@@ -133,6 +147,30 @@ public class EmailService {
         } catch (MailException ex) {
             log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getMessage());
             notificacaoService.notificarFalhaIntegracao(os, "e-mail", ex.getMessage());
+        }
+    }
+
+    private void enviarGenerico(String destinatario, String assunto, String conteudo) {
+        if (!emailEnabled) {
+            log.info("Envio de e-mail de recuperacao desabilitado.");
+            return;
+        }
+        var mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null) {
+            log.warn("JavaMailSender nao configurado para recuperacao de senha.");
+            return;
+        }
+        try {
+            var mensagem = new SimpleMailMessage();
+            if (emailFrom != null && !emailFrom.isBlank()) {
+                mensagem.setFrom(emailFrom);
+            }
+            mensagem.setTo(destinatario);
+            mensagem.setSubject(assunto);
+            mensagem.setText(conteudo);
+            mailSender.send(mensagem);
+        } catch (MailException ex) {
+            log.warn("Falha ao enviar e-mail de recuperacao de senha: {}", ex.getClass().getSimpleName());
         }
     }
 

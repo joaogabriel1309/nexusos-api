@@ -11,6 +11,7 @@ import { ClipboardCheck, Loader2, Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -82,6 +83,11 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              <div className="text-right">
+                <Link href="/esqueci-senha" className="text-sm text-primary hover:underline">
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Entrar

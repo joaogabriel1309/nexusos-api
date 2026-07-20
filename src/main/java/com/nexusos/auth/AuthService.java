@@ -4,21 +4,30 @@ import com.nexusos.auth.dto.LoginRequest;
 import com.nexusos.auth.dto.RefreshTokenRequest;
 import com.nexusos.auth.dto.TokenResponse;
 import com.nexusos.auth.dto.AuthUsuarioResponse;
+import com.nexusos.email.EmailService;
 import com.nexusos.security.JwtService;
 import com.nexusos.usuario.Usuario;
+import com.nexusos.usuario.UsuarioRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
+import java.util.Base64;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +37,13 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Duration PASSWORD_RESET_VALIDITY = Duration.ofMinutes(60);
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
@@ -78,6 +94,46 @@ public class AuthService {
                     token.setRevogadoEm(OffsetDateTime.now());
                     refreshTokenRepository.save(token);
                 });
+    }
+
+    @Transactional
+    public void solicitarRecuperacaoSenha(String email) {
+        usuarioRepository.findByEmail(email.trim().toLowerCase(Locale.ROOT))
+                .filter(Usuario::isAtivo)
+                .ifPresent(usuario -> {
+                    var agora = OffsetDateTime.now();
+                    passwordResetTokenRepository.invalidarDoUsuario(usuario, agora);
+                    var token = gerarTokenSeguro();
+                    passwordResetTokenRepository.save(PasswordResetToken.builder()
+                            .usuario(usuario)
+                            .tokenHash(hashToken(token))
+                            .expiraEm(agora.plus(PASSWORD_RESET_VALIDITY))
+                            .build());
+                    emailService.enviarRecuperacaoSenha(usuario.getEmail(), token);
+                });
+    }
+
+    @Transactional
+    public void redefinirSenha(String token, String novaSenha) {
+        var agora = OffsetDateTime.now();
+        var resetToken = passwordResetTokenRepository.findByTokenHash(hashToken(token))
+                .filter(item -> item.estaAtivo(agora))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Link de recuperacao invalido ou expirado."));
+        var usuario = resetToken.getUsuario();
+        if (!usuario.isAtivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Link de recuperacao invalido ou expirado.");
+        }
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
+        usuarioRepository.save(usuario);
+        passwordResetTokenRepository.invalidarDoUsuario(usuario, agora);
+        refreshTokenRepository.revogarDoUsuario(usuario, agora);
+    }
+
+    private String gerarTokenSeguro() {
+        var bytes = new byte[32];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private TokenResponse tokens(org.springframework.security.core.userdetails.UserDetails userDetails) {
