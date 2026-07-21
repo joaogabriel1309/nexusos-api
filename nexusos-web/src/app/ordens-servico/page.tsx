@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Columns3, Edit, Eye, FileSpreadsheet, FileText, List, Plus, RefreshCcw, Search } from "lucide-react";
+import { ArrowRight, CalendarClock, Columns3, Edit, Eye, FileSpreadsheet, FileText, List, MessageSquare, Plus, RefreshCcw, Search, UserRound } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,15 +42,8 @@ const kanbanStatuses: StatusOS[] = [
   "RECEBIDA", "EM_ANALISE", "AGUARDANDO_APROVACAO", "APROVADA",
   "EM_DESENVOLVIMENTO", "EM_TESTE", "AGUARDANDO_PAGAMENTO", "FINALIZADA"
 ];
-const transicoesKanban: Partial<Record<StatusOS, StatusOS[]>> = {
-  RECEBIDA: ["EM_ANALISE"],
-  EM_ANALISE: ["AGUARDANDO_APROVACAO"],
-  AGUARDANDO_APROVACAO: ["APROVADA", "EM_ANALISE"],
-  APROVADA: ["EM_DESENVOLVIMENTO"],
-  EM_DESENVOLVIMENTO: ["EM_TESTE"],
-  EM_TESTE: ["AGUARDANDO_PAGAMENTO", "EM_DESENVOLVIMENTO"],
-  AGUARDANDO_PAGAMENTO: ["FINALIZADA", "EM_DESENVOLVIMENTO"]
-};
+type OrdenacaoKanban = "fila" | "prioridade" | "prazo";
+const pesoPrioridade: Record<PrioridadeOS, number> = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAIXA: 3 };
 
 type PrazoFiltro = "" | "vencidas" | "hoje" | "proximas" | "sem-prazo";
 
@@ -184,6 +178,7 @@ function OrdensServicoPageContent() {
   const [dataFim, setDataFim] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [visao, setVisao] = useState<"lista" | "kanban">("lista");
+  const [ordenacaoKanban, setOrdenacaoKanban] = useState<OrdenacaoKanban>("fila");
   const [ordemArrastada, setOrdemArrastada] = useState<OrdemServico | null>(null);
 
   const ordensQuery = useQuery({
@@ -399,27 +394,47 @@ function OrdensServicoPageContent() {
     mutationFn: ({ ordem, status }: { ordem: OrdemServico; status: StatusOS }) =>
       ordemServicoService.atualizarStatus(ordem.id, status),
     onSuccess: (ordemAtualizada) => {
-      queryClient.setQueryData<OrdemServico[]>(ordensQueryKey, (atuais = []) =>
-        atuais.map((ordem) => ordem.id === ordemAtualizada.id ? ordemAtualizada : ordem)
-      );
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       toast.success(`OS ${ordemAtualizada.codigo} movida para ${statusLabels[ordemAtualizada.status]}.`);
     },
     onError: () => toast.error("Não foi possível alterar o status da OS.")
   });
 
+  const assumirMutation = useMutation({
+    mutationFn: (ordem: OrdemServico) => ordemServicoService.assumir(ordem.id),
+    onSuccess: (ordem) => {
+      queryClient.invalidateQueries({ queryKey: ordensQueryKey });
+      toast.success(`Você assumiu a OS ${ordem.codigo}.`);
+    },
+    onError: () => toast.error("Não foi possível assumir esta OS.")
+  });
+
   function podeMover(ordem: OrdemServico, destino: StatusOS) {
-    if (isDesenvolvedor && ordem.status === "EM_ANALISE") return false;
-    return transicoesKanban[ordem.status]?.includes(destino) ?? false;
+    return ordem.transicoesStatus?.some((transicao) => transicao.status === destino && transicao.permitida) ?? false;
+  }
+
+  function motivoBloqueio(ordem: OrdemServico, destino: StatusOS) {
+    return ordem.transicoesStatus?.find((transicao) => transicao.status === destino)?.motivoBloqueio
+      ?? "Movimento não permitido para esta etapa.";
   }
 
   function soltarNoStatus(destino: StatusOS) {
-    if (!ordemArrastada || !podeMover(ordemArrastada, destino)) return;
-    if (destino === "FINALIZADA") {
-      router.push(`/ordens-servico/${ordemArrastada.id}/finalizar`);
-    } else {
-      statusMutation.mutate({ ordem: ordemArrastada, status: destino });
-    }
+    if (!ordemArrastada) return;
+    moverOrdem(ordemArrastada, destino);
     setOrdemArrastada(null);
+  }
+
+  function moverOrdem(ordem: OrdemServico, destino: StatusOS) {
+    if (!podeMover(ordem, destino)) {
+      toast.error(motivoBloqueio(ordem, destino));
+      setOrdemArrastada(null);
+      return;
+    }
+    if (destino === "FINALIZADA") {
+      router.push(`/ordens-servico/${ordem.id}/finalizar`);
+    } else {
+      statusMutation.mutate({ ordem, status: destino });
+    }
   }
 
   const filtrosAtivos = [
@@ -546,6 +561,7 @@ function OrdensServicoPageContent() {
             <div className="relative w-full lg:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                aria-label="Buscar ordens de serviço"
                 className="pl-9"
                 placeholder="Buscar por OS, titulo, cliente, responsavel..."
                 value={busca}
@@ -581,7 +597,7 @@ function OrdensServicoPageContent() {
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por cliente">
                 <SelectValue placeholder="Cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -597,7 +613,7 @@ function OrdensServicoPageContent() {
               value={projetoFiltro || todosProjetosOption}
               onValueChange={(value) => setProjetoFiltro(value === todosProjetosOption ? "" : value)}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por projeto">
                 <SelectValue placeholder="Projeto" />
               </SelectTrigger>
               <SelectContent>
@@ -610,7 +626,7 @@ function OrdensServicoPageContent() {
               </SelectContent>
             </Select>
             <Select value={statusFiltro || todosOption} onValueChange={(value) => setStatusFiltro(value === todosOption ? "" : (value as StatusFiltro))}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -626,7 +642,7 @@ function OrdensServicoPageContent() {
               value={prioridadeFiltro || todosOption}
               onValueChange={(value) => setPrioridadeFiltro(value === todosOption ? "" : (value as PrioridadeOS))}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por prioridade">
                 <SelectValue placeholder="Prioridade" />
               </SelectTrigger>
               <SelectContent>
@@ -639,7 +655,7 @@ function OrdensServicoPageContent() {
               </SelectContent>
             </Select>
             <Select value={prazoFiltro || todosOption} onValueChange={(value) => setPrazoFiltro(value === todosOption ? "" : (value as PrazoFiltro))}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por prazo">
                 <SelectValue placeholder="Prazo" />
               </SelectTrigger>
               <SelectContent>
@@ -654,7 +670,7 @@ function OrdensServicoPageContent() {
               value={responsavelFiltro || todosResponsaveisOption}
               onValueChange={(value) => setResponsavelFiltro(value === todosResponsaveisOption ? "" : value)}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Filtrar por responsável">
                 <SelectValue placeholder="Responsável" />
               </SelectTrigger>
               <SelectContent>
@@ -667,8 +683,8 @@ function OrdensServicoPageContent() {
                 ))}
               </SelectContent>
             </Select>
-            <Input type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
-            <Input type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
+            <Input aria-label="Data inicial" type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
+            <Input aria-label="Data final" type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
             <Button variant="outline" onClick={limparFiltros} className="w-full sm:w-auto">
               Limpar
             </Button>
@@ -707,31 +723,49 @@ function OrdensServicoPageContent() {
             </div>
           ) : (
             visao === "kanban" ? (
+              <div>
+                <div className="mb-3 flex items-center justify-end gap-2">
+                  <span className="text-sm text-muted-foreground">Ordenar por</span>
+                  <Select value={ordenacaoKanban} onValueChange={(value) => setOrdenacaoKanban(value as OrdenacaoKanban)}>
+                    <SelectTrigger aria-label="Ordenar Kanban por" className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fila">Fila de trabalho</SelectItem>
+                      <SelectItem value="prioridade">Prioridade</SelectItem>
+                      <SelectItem value="prazo">Prazo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               <div className="overflow-x-auto pb-3">
                 <div className="flex min-w-max gap-4" aria-label="Kanban de ordens de serviço">
                   {kanbanStatuses.map((status) => {
-                    const ordensDaColuna = ordensFiltradas.filter((ordem) => ordem.status === status);
+                    const ordensDaColuna = ordensFiltradas.filter((ordem) => ordem.status === status).sort((a, b) => {
+                      if (ordenacaoKanban === "prioridade") return pesoPrioridade[a.prioridade] - pesoPrioridade[b.prioridade];
+                      if (ordenacaoKanban === "prazo") return (a.prazo ?? "9999-12-31").localeCompare(b.prazo ?? "9999-12-31");
+                      return (a.sequenciaExecucao ?? Number.MAX_SAFE_INTEGER) - (b.sequenciaExecucao ?? Number.MAX_SAFE_INTEGER);
+                    });
+                    const hoje = new Date().toISOString().slice(0, 10);
+                    const vencidas = ordensDaColuna.filter((ordem) => ordem.prazo && ordem.prazo < hoje).length;
                     const destinoValido = ordemArrastada ? podeMover(ordemArrastada, status) : false;
                     return (
                       <section
                         key={status}
                         className={`w-72 shrink-0 rounded-lg border bg-muted/30 p-3 transition-colors ${destinoValido ? "border-primary bg-primary/5" : ""}`}
-                        onDragOver={(event) => { if (destinoValido) event.preventDefault(); }}
+                        onDragOver={(event) => event.preventDefault()}
                         onDrop={() => soltarNoStatus(status)}
                       >
-                        <header className="mb-3 flex items-center justify-between gap-2">
+                        <header className="sticky top-0 z-10 -mx-1 mb-3 flex items-center justify-between gap-2 rounded-md bg-muted p-2 shadow-sm">
                           <span className="text-sm font-semibold">{statusLabels[status]}</span>
-                          <Badge variant="secondary">{ordensDaColuna.length}</Badge>
+                          <div className="flex gap-1"><Badge variant="secondary">{ordensDaColuna.length}</Badge>{vencidas > 0 ? <Badge variant="danger">{vencidas} vencida(s)</Badge> : null}</div>
                         </header>
                         <div className="space-y-3">
                           {ordensDaColuna.length === 0 ? (
                             <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                              Nenhuma OS
+                              Nenhuma OS nesta etapa. Mova um card permitido para cá.
                             </div>
                           ) : ordensDaColuna.map((ordem) => (
                             <article
                               key={ordem.id}
-                              draggable={!statusMutation.isPending && (transicoesKanban[ordem.status]?.length ?? 0) > 0 && !(isDesenvolvedor && ordem.status === "EM_ANALISE")}
+                              draggable={!statusMutation.isPending && ordem.transicoesStatus?.some((transicao) => transicao.permitida)}
                               onDragStart={() => setOrdemArrastada(ordem)}
                               onDragEnd={() => setOrdemArrastada(null)}
                               onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
@@ -739,10 +773,25 @@ function OrdensServicoPageContent() {
                             >
                               <div className="font-medium">OS {ordem.codigo}</div>
                               <div className="mt-1 line-clamp-2 text-sm">{ordem.titulo}</div>
-                              <div className="mt-3 truncate text-xs text-muted-foreground">{ordem.clienteNome}</div>
-                              <div className="mt-2 flex items-center justify-between gap-2">
+                              <div className="mt-3 space-y-1 text-xs text-muted-foreground"><div className="truncate">Cliente: {ordem.clienteNome}</div><div className="truncate">Responsável: {ordem.responsavelNome ?? "Sem responsável"}</div></div>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <Badge variant="outline">{prioridadeLabels[ordem.prioridade]}</Badge>
-                                <span className="text-xs text-muted-foreground">{formatarDataPrazo(ordem.prazo)}</span>
+                                <span className={`rounded border px-1.5 py-0.5 text-xs ${prazoClasses(ordem.prazo)}`}>{formatarDataPrazo(ordem.prazo)}</span>
+                                {!ordem.responsavelId ? <Badge variant="danger">Sem responsável</Badge> : null}
+                                {ordem.status === "AGUARDANDO_APROVACAO" ? <Badge variant="secondary">Aguardando cliente</Badge> : null}
+                                {ordem.status === "AGUARDANDO_PAGAMENTO" ? <Badge variant="secondary">Aguardando pagamento</Badge> : null}
+                                {ordem.transicoesStatus?.some((item) => item.motivoBloqueio?.includes("administrador")) ? <Badge variant="danger">Aprovação do admin</Badge> : null}
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-1 border-t pt-2" onClick={(event) => event.stopPropagation()}>
+                                <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => router.push(`/ordens-servico/${ordem.id}`)}><Eye className="h-4 w-4" /><span className="sr-only">Ver detalhes</span></Button>
+                                <Button variant="ghost" size="icon" title="Comentar" onClick={() => router.push(`/ordens-servico/${ordem.id}#comentarios`)}><MessageSquare className="h-4 w-4" /><span className="sr-only">Comentar</span></Button>
+                                {!ordem.responsavelId ? <Button variant="ghost" size="icon" title="Assumir OS" disabled={assumirMutation.isPending} onClick={() => assumirMutation.mutate(ordem)}><UserRound className="h-4 w-4" /><span className="sr-only">Assumir OS</span></Button> : null}
+                                {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Alterar responsável" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><UserRound className="h-4 w-4" /><span className="sr-only">Alterar responsável</span></Button> : null}
+                                {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Definir prazo" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><CalendarClock className="h-4 w-4" /><span className="sr-only">Definir prazo</span></Button> : null}
+                                <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-auto"><ArrowRight className="h-4 w-4" />Mover</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+                                  {ordem.transicoesStatus?.filter((item) => item.permitida).map((item) => <DropdownMenuItem key={item.status} onSelect={() => moverOrdem(ordem, item.status)}>{statusLabels[item.status]}</DropdownMenuItem>)}
+                                  {!ordem.transicoesStatus?.some((item) => item.permitida) ? <DropdownMenuItem disabled>Nenhum movimento disponível</DropdownMenuItem> : null}
+                                </DropdownMenuContent></DropdownMenu>
                               </div>
                             </article>
                           ))}
@@ -751,6 +800,7 @@ function OrdensServicoPageContent() {
                     );
                   })}
                 </div>
+              </div>
               </div>
             ) : <>
               <div className="grid gap-3 md:hidden">

@@ -18,6 +18,7 @@ import com.nexusos.ordemservico.dto.ResponsavelUpdateRequest;
 import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
+import com.nexusos.ordemservico.dto.TransicaoStatusResponse;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import com.nexusos.pagamento.ConfiguracaoPagamentoService;
 import com.nexusos.projeto.ProjetoService;
@@ -81,8 +82,11 @@ public class OrdemServicoService {
                 ? ordemServicoRepository.findByResponsavelEmailOrderByAtualizadoEmDesc(email)
                 : ordemServicoRepository.findAllByOrderByAtualizadoEmDesc();
 
+        var configuracao = configuracaoOSService.buscarEntidade();
         return ordens.stream()
-                .map(ordem -> OrdemServicoResponse.from(ordem, desenvolvedor ? email : null))
+                .map(ordem -> responder(ordem, desenvolvedor ? email : null,
+                        desenvolvedor, configuracao != null && Boolean.TRUE.equals(configuracao.getExigirAnaliseAntesCliente()),
+                        configuracao != null && Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente())))
                 .toList();
     }
 
@@ -90,7 +94,11 @@ public class OrdemServicoService {
     public OrdemServicoResponse buscarPorId(UUID id) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         var email = authentication != null ? authentication.getName() : null;
-        return OrdemServicoResponse.from(buscarEntidade(id), ehDesenvolvedor() ? email : null);
+        var desenvolvedor = ehDesenvolvedor();
+        var configuracao = configuracaoOSService.buscarEntidade();
+        return responder(buscarEntidade(id), desenvolvedor ? email : null, desenvolvedor,
+                configuracao != null && Boolean.TRUE.equals(configuracao.getExigirAnaliseAntesCliente()),
+                configuracao != null && Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente()));
     }
 
     @Transactional
@@ -513,6 +521,55 @@ public class OrdemServicoService {
 
     private String limparTextoOpcional(String valor) {
         return valor == null || valor.isBlank() ? null : valor.trim();
+    }
+
+    @Transactional
+    public OrdemServicoResponse assumir(UUID id) {
+        var os = buscarEntidade(id);
+        var usuario = usuarioService.buscarAutenticado();
+        if (os.getResponsavel() != null) {
+            throw new RegraNegocioException("Esta OS ja possui responsavel.");
+        }
+        os.setResponsavel(usuario);
+        os.setSequenciaExecucao(null);
+        auditoriaService.registrar(os, usuario, "RESPONSAVEL", "OS assumida pelo usuario autenticado.",
+                null, os.getStatus());
+        var salva = ordemServicoRepository.save(os);
+        notificacaoService.notificarAtribuicao(salva, "Voce assumiu a OS.");
+        return OrdemServicoResponse.from(salva);
+    }
+
+    private OrdemServicoResponse responder(OrdemServico os, String emailResponsavelVisivel,
+            boolean desenvolvedor, boolean exigirAnalise, boolean exigirAprovacaoAdmin) {
+        var destinosBase = TRANSICOES.getOrDefault(os.getStatus(), Set.of());
+        var transicoes = java.util.Arrays.stream(StatusOS.values())
+                .filter(status -> status != os.getStatus())
+                .map(status -> descreverTransicao(os, status, destinosBase, desenvolvedor,
+                        exigirAnalise, exigirAprovacaoAdmin))
+                .toList();
+        return OrdemServicoResponse.from(os, emailResponsavelVisivel).withTransicoesStatus(transicoes);
+    }
+
+    private TransicaoStatusResponse descreverTransicao(OrdemServico os, StatusOS destino,
+            Set<StatusOS> destinosBase, boolean desenvolvedor, boolean exigirAnalise,
+            boolean exigirAprovacaoAdmin) {
+        if (!destinosBase.contains(destino)) {
+            var motivo = os.getStatus() == StatusOS.RECEBIDA
+                    ? "Esta OS precisa passar por analise antes."
+                    : "Esta etapa nao permite mover diretamente para o status selecionado.";
+            return new TransicaoStatusResponse(destino, false, motivo);
+        }
+        if (destino == StatusOS.AGUARDANDO_APROVACAO && exigirAprovacaoAdmin && desenvolvedor) {
+            return new TransicaoStatusResponse(destino, false,
+                    "Aguardando aprovacao do administrador.");
+        }
+        if (destino == StatusOS.AGUARDANDO_APROVACAO && exigirAnalise
+                && (textoVazio(os.getEntendimento()) || textoVazio(os.getImpacto())
+                || textoVazio(os.getRiscos()) || os.getEstimativaHoras() == null)) {
+            return new TransicaoStatusResponse(destino, false,
+                    "Esta OS precisa ter a analise preenchida antes.");
+        }
+        return new TransicaoStatusResponse(destino, true, null);
     }
 
     private void validarResponsavelObrigatorio(Usuario responsavel) {

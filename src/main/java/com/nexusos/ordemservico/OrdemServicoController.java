@@ -157,6 +157,13 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarResponsavel(id, request));
     }
 
+    @Operation(summary = "Atribui a ordem de servico ao usuario autenticado")
+    @PatchMapping("/{id}/assumir")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<OrdemServicoResponse> assumir(@PathVariable UUID id) {
+        return ResponseEntity.ok(ordemServicoService.assumir(id));
+    }
+
     @Operation(summary = "Atualiza prioridade da ordem de servico")
     @PatchMapping("/{id}/prioridade")
     @PreAuthorize("hasRole('ADMIN')")

@@ -179,6 +179,33 @@ class OrdemServicoServiceTest {
     }
 
     @Test
+    void transicoesDaOsInformamPermissaoEMotivoDeBloqueio() {
+        autenticar("dev@nexusos.com", "ROLE_DESENVOLVEDOR");
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder().id(UUID.randomUUID()).codigo(10L).titulo("OS")
+                .descricao("Descricao").cliente(cliente).status(StatusOS.EM_ANALISE).build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setExigirAnaliseAntesCliente(false);
+        configuracao.setExigirAprovacaoAdminAntesCliente(true);
+        when(ordemServicoRepository.findByResponsavelEmailOrderByAtualizadoEmDesc("dev@nexusos.com"))
+                .thenReturn(List.of(ordem));
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
+
+        var response = ordemServicoService.listar().getFirst();
+
+        assertThat(response.transicoesStatus()).anySatisfy(transicao -> {
+            assertThat(transicao.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+            assertThat(transicao.permitida()).isFalse();
+            assertThat(transicao.motivoBloqueio()).contains("administrador");
+        });
+        assertThat(response.transicoesStatus()).anySatisfy(transicao -> {
+            assertThat(transicao.status()).isEqualTo(StatusOS.EM_DESENVOLVIMENTO);
+            assertThat(transicao.permitida()).isFalse();
+            assertThat(transicao.motivoBloqueio()).contains("nao permite");
+        });
+    }
+
+    @Test
     void adminListaTodasAsFilas() {
         autenticar("admin@nexusos.com", "ROLE_ADMIN");
         when(ordemServicoRepository.findAllByOrderByAtualizadoEmDesc()).thenReturn(List.of());

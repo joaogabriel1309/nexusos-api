@@ -107,6 +107,13 @@ export type OrdemServico = {
   atualizadoEm: string;
   finalizadoEm?: string;
   ordensVinculadas: OrdemServicoVinculada[];
+  transicoesStatus: TransicaoStatus[];
+};
+
+export type TransicaoStatus = {
+  status: StatusOS;
+  permitida: boolean;
+  motivoBloqueio?: string;
 };
 
 export type OrdemServicoVinculada = {

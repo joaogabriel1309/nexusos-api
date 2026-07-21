@@ -49,7 +49,8 @@ public record OrdemServicoResponse(
         OffsetDateTime criadoEm,
         OffsetDateTime atualizadoEm,
         OffsetDateTime finalizadoEm,
-        List<OrdemServicoVinculadaResponse> ordensVinculadas
+        List<OrdemServicoVinculadaResponse> ordensVinculadas,
+        List<TransicaoStatusResponse> transicoesStatus
 ) {
     public static OrdemServicoResponse from(OrdemServico os) {
         return from(os, null);
@@ -103,7 +104,19 @@ public record OrdemServicoResponse(
                                 && emailResponsavelVisivel.equals(vinculada.getResponsavel().getEmail()))
                         .map(OrdemServicoVinculadaResponse::from)
                         .sorted(Comparator.comparing(OrdemServicoVinculadaResponse::codigo))
-                        .toList()
+                        .toList(),
+                List.of()
         );
+    }
+
+    public OrdemServicoResponse withTransicoesStatus(List<TransicaoStatusResponse> transicoes) {
+        return new OrdemServicoResponse(id, codigo, titulo, descricao, clienteId, clienteNome,
+                responsavelId, responsavelNome, projetoId, projetoNome, status, prioridade, prazo,
+                sequenciaExecucao, entendimento, impacto, riscos, estimativaHoras, valorTotalEstimado,
+                cobrar, paga, descricaoFinalizacao, commitsFinalizacao, branchFinalizacao,
+                arquivosAlteradosFinalizacao, branchGithub, pullRequestNumero, pullRequestUrl,
+                pullRequestStatus, commitsGithub, arquivosAlteradosGithub, ultimaSincronizacaoGithub,
+                aprovadaPeloCliente, aprovadoPeloClienteEm, observacaoAprovacaoCliente, criadoEm,
+                atualizadoEm, finalizadoEm, ordensVinculadas, List.copyOf(transicoes));
     }
 }

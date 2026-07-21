@@ -1,17 +1,9 @@
 # Kanban de ordens de serviço
 
-O Kanban é uma representação visual do mesmo fluxo de status usado pela API. Ele não cria atalhos entre etapas e a listagem tradicional continua disponível.
+- O backend é a fonte única das transições de status. Cada representação interna de OS informa os próximos status permitidos e o motivo dos destinos bloqueados.
+- As transições continuam seguindo o fluxo `RECEBIDA -> EM_ANALISE -> AGUARDANDO_APROVACAO -> APROVADA -> EM_DESENVOLVIMENTO -> EM_TESTE -> AGUARDANDO_PAGAMENTO -> FINALIZADA`, incluindo os retornos já suportados.
+- Quando a configuração exigir análise, uma OS sem análise preenchida não pode ser enviada ao cliente.
+- Quando a configuração exigir aprovação administrativa, um desenvolvedor não pode enviar a análise ao cliente; o motivo deve indicar que aguarda aprovação do administrador.
+- A permissão HTTP continua sendo validada no backend. Informações de transição servem à interface e não substituem autorização.
+- A ordenação visual por prioridade ou prazo não altera dados. Alterações manuais de fila continuam restritas ao administrador.
 
-## Transições permitidas
-
-- Recebida → Em análise
-- Em análise → Aguardando aprovação
-- Aguardando aprovação → Aprovada ou Em análise
-- Aprovada → Em desenvolvimento
-- Em desenvolvimento → Em teste
-- Em teste → Aguardando pagamento ou Em desenvolvimento
-- Aguardando pagamento → Finalizada ou Em desenvolvimento
-
-Ordens finalizadas e canceladas não aceitam transição pelo Kanban. A finalização exige a descrição da entrega e, por isso, o drop abre o formulário de finalização. A reabertura e o cancelamento permanecem nos fluxos específicos existentes.
-
-Administradores podem executar as transições acima. Desenvolvedores veem somente as ordens atribuídas a eles e não podem avançar uma ordem que esteja em análise, pois essa aprovação cabe ao administrador.
