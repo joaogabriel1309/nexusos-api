@@ -1,0 +1,105 @@
+name: Deploy de producao
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy na VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
+    steps:
+      - name: Validar secrets obrigatorios
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in VPS_HOST VPS_USER VPS_PORT VPS_SSH_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Secrets obrigatorios ausentes: ${missing[*]}"
+            exit 1
+          fi
+
+          if [[ ! "$VPS_PORT" =~ ^[0-9]+$ ]] || (( VPS_PORT < 1 || VPS_PORT > 65535 )); then
+            echo "::error::VPS_PORT deve ser uma porta TCP valida."
+            exit 1
+          fi
+
+      - name: Preparar acesso SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+          if ! ssh-keyscan -T 10 -p "$VPS_PORT" -H "$VPS_HOST" > "$HOME/.ssh/known_hosts"; then
+            echo "::error::Nao foi possivel obter a chave publica SSH da VPS."
+            exit 1
+          fi
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Atualizar aplicacao e containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -i "$HOME/.ssh/deploy_key" \
+            -p "$VPS_PORT" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          trap 'echo "Deploy falhou na linha $LINENO." >&2' ERR
+
+          cd /opt/nexusos-api
+
+          if [[ ! -f docker-compose.prod.yml ]]; then
+            echo "docker-compose.prod.yml nao foi encontrado em /opt/nexusos-api." >&2
+            exit 1
+          fi
+
+          echo "Atualizando a branch master..."
+          git fetch origin master
+          git reset --hard origin/master
+
+          echo "Validando e subindo os containers..."
+          docker compose -f docker-compose.prod.yml config --quiet
+          docker compose -f docker-compose.prod.yml up -d --build
+
+          echo "Removendo somente imagens sem uso..."
+          docker image prune -f
+
+          echo "Status dos containers:"
+          docker ps
+
+          echo "Ultimas linhas dos logs:"
+          docker compose -f docker-compose.prod.yml logs --tail=50 --no-color
+          REMOTE_SCRIPT
+
+      - name: Remover chave SSH temporaria
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
