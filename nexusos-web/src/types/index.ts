@@ -148,13 +148,11 @@ export type PortalOrdemServico = {
   descricao: string;
   status: StatusOS;
   prioridade: PrioridadeOS;
-  prazo?: string;
   projetoId?: string;
   projetoNome?: string;
   textoAnalise?: string;
-  estimativaHoras?: number;
   valorTotalEstimado?: number;
-  cobrar?: boolean;
+  pagamentoDisponivel?: boolean;
   paga?: boolean;
   pagamentoIniciado?: boolean;
   descricaoFinalizacao?: string;
@@ -169,6 +167,17 @@ export type PortalOrdemServico = {
 export type PortalCliente = {
   clienteNome: string;
   ordens: PortalOrdemServico[];
+};
+
+export type Anexo = {
+  id: string;
+  ordemServicoId: string;
+  nomeArquivo: string;
+  tipoArquivo: string;
+  tamanho: number;
+  descricao?: string;
+  enviadoPeloCliente: boolean;
+  criadoEm: string;
 };
 
 export type PagamentoCheckoutResponse = {

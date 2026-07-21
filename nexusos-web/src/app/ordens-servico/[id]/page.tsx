@@ -28,6 +28,7 @@ import { AIAnalysisCard } from "./ai-analysis-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { MensagemClienteComposer } from "@/components/shared/mensagem-cliente-composer";
+import { CentralAnexos } from "@/components/shared/central-anexos";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -725,6 +726,7 @@ export default function OrdemServicoDetalhePage() {
                   <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
                 </CardContent>
               </Card>
+              <CentralAnexos ordemId={ordem.id} podeExcluir={!isDesenvolvedor} />
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> OS vinculadas</CardTitle>

@@ -1,5 +1,6 @@
 package com.nexusos.portalcliente;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -82,5 +83,32 @@ class PortalClienteServiceTest {
                 .isInstanceOf(RecursoNaoEncontradoException.class);
 
         verify(ordemServicoService, never()).registrarAprovacaoCliente(ordemId, false, "Motivo valido");
+    }
+
+    @Test
+    void naoDeveAutorizarAcessoAAnexosDeOrdemDeOutroCliente() {
+        var cliente = Cliente.builder().id(UUID.randomUUID()).build();
+        var ordemId = UUID.randomUUID();
+        var ordemDeOutroCliente = OrdemServico.builder()
+                .id(ordemId)
+                .cliente(Cliente.builder().id(UUID.randomUUID()).build())
+                .build();
+        when(clienteService.buscarPorTokenAcesso("token-valido")).thenReturn(cliente);
+        when(ordemServicoRepository.findById(ordemId)).thenReturn(Optional.of(ordemDeOutroCliente));
+
+        assertThatThrownBy(() -> portalClienteService.validarAcesso("token-valido", ordemId))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessage("OS nao encontrada para este cliente.");
+    }
+
+    @Test
+    void deveAutorizarAcessoDoClienteAAnexosDaPropriaOrdem() {
+        var cliente = Cliente.builder().id(UUID.randomUUID()).build();
+        var ordemId = UUID.randomUUID();
+        var ordem = OrdemServico.builder().id(ordemId).cliente(cliente).build();
+        when(clienteService.buscarPorTokenAcesso("token-valido")).thenReturn(cliente);
+        when(ordemServicoRepository.findById(ordemId)).thenReturn(Optional.of(ordem));
+
+        assertThat(portalClienteService.validarAcesso("token-valido", ordemId)).isSameAs(ordem);
     }
 }

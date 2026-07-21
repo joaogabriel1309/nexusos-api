@@ -33,6 +33,8 @@ public class Anexo {
     @Column(nullable = false)
     private String caminho;
     private String descricao;
+    @Column(nullable = false)
+    private boolean enviadoPeloCliente;
     @Column(nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
     @PrePersist

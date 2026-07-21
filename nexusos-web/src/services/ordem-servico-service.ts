@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { AnaliseIA, CentralPendencias, OrdemServico, PrioridadeOS, StatusOS } from "@/types";
+import type { AnaliseIA, Anexo, CentralPendencias, OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 
@@ -27,6 +27,22 @@ function toRequest(payload: OrdemServicoFormData) {
 }
 
 export const ordemServicoService = {
+  async listarAnexos(id: string) {
+    return (await api.get<Anexo[]>(`/ordens-servico/${id}/anexos`)).data;
+  },
+  async enviarAnexo(id: string, arquivo: File, descricao?: string) {
+    const form = new FormData();
+    form.append("arquivo", arquivo);
+    if (descricao) form.append("descricao", descricao);
+    return (await api.post<Anexo>(`/ordens-servico/${id}/anexos`, form)).data;
+  },
+  async baixarAnexo(id: string, anexo: Anexo) {
+    const data = (await api.get<Blob>(`/ordens-servico/${id}/anexos/${anexo.id}/arquivo`, { responseType: "blob" })).data;
+    baixarBlob(data, anexo.nomeArquivo);
+  },
+  async excluirAnexo(id: string, anexoId: string) {
+    await api.delete(`/ordens-servico/${id}/anexos/${anexoId}`);
+  },
   async listar() {
     const { data } = await api.get<OrdemServico[]>("/ordens-servico");
     return data;
@@ -152,3 +168,12 @@ export const ordemServicoService = {
   async sincronizarGithub(id:string){ return (await api.post<OrdemServico>(`/ordens-servico/${id}/github/sincronizar`)).data; },
   async sugerirBranchGithub(id:string){ return (await api.get<string>(`/ordens-servico/${id}/github/branch-sugerida`)).data; }
 };
+
+function baixarBlob(blob: Blob, nome: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nome;
+  link.click();
+  URL.revokeObjectURL(url);
+}

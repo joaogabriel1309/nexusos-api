@@ -8,6 +8,7 @@ import com.nexusos.ordemservico.OrdemServicoService;
 import com.nexusos.pagamento.MercadoPagoService;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
 import com.nexusos.pagamento.dto.PagamentoPixResponse;
+import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.portalcliente.dto.PortalClienteResponse;
 import com.nexusos.portalcliente.dto.PortalOrdemServicoResponse;
 import java.util.UUID;
@@ -48,30 +49,21 @@ public class PortalClienteService {
 
     @Transactional
     public PagamentoCheckoutResponse iniciarPagamento(String token, UUID ordemServicoId) {
-        var cliente = clienteService.buscarPorTokenAcesso(token);
-        var os = ordemServicoRepository.findById(ordemServicoId)
-                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+        var os = buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
 
         return mercadoPagoService.criarCheckout(os, token);
     }
 
     @Transactional
     public PagamentoPixResponse gerarPix(String token, UUID ordemServicoId) {
-        var cliente = clienteService.buscarPorTokenAcesso(token);
-        var os = ordemServicoRepository.findById(ordemServicoId)
-                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+        var os = buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
 
         return mercadoPagoService.criarPix(os);
     }
 
     @Transactional
     public PortalOrdemServicoResponse confirmarPagamento(String token, UUID ordemServicoId, String paymentId) {
-        var cliente = clienteService.buscarPorTokenAcesso(token);
-        var os = ordemServicoRepository.findById(ordemServicoId)
-                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+        var os = buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
 
         var osAtualizada = mercadoPagoService.confirmarPagamentoCliente(os, paymentId);
         return PortalOrdemServicoResponse.from(osAtualizada);
@@ -79,22 +71,35 @@ public class PortalClienteService {
 
     @Transactional
     public PortalOrdemServicoResponse verificarPagamento(String token, UUID ordemServicoId) {
-        var cliente = clienteService.buscarPorTokenAcesso(token);
-        var os = ordemServicoRepository.findById(ordemServicoId)
-                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+        var os = buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
 
         var osAtualizada = mercadoPagoService.verificarPagamentoCliente(os);
         return PortalOrdemServicoResponse.from(osAtualizada);
     }
 
     private PortalOrdemServicoResponse registrarDecisao(String token, UUID ordemServicoId, boolean aprovado, String observacao) {
-        var cliente = clienteService.buscarPorTokenAcesso(token);
-        var os = ordemServicoRepository.findById(ordemServicoId)
-                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+        var os = buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
 
         ordemServicoService.registrarAprovacaoCliente(os.getId(), aprovado, observacao);
         return PortalOrdemServicoResponse.from(os);
+    }
+
+    @Transactional(readOnly = true)
+    public OrdemServico validarAcesso(String token, UUID ordemServicoId) {
+        return buscarOrdemAutorizadaPeloToken(token, ordemServicoId);
+    }
+
+    /**
+     * Regra de permissao do portal publico:
+     * o cliente so pode executar acoes ou acessar anexos de OS vinculadas ao proprio token.
+     *
+     * Autoriza a acao publica somente quando o token pertence ao cliente da OS.
+     * A resposta indistinguivel de recurso inexistente evita revelar OS de outro cliente.
+     */
+    private OrdemServico buscarOrdemAutorizadaPeloToken(String token, UUID ordemServicoId) {
+        var cliente = clienteService.buscarPorTokenAcesso(token);
+        return ordemServicoRepository.findById(ordemServicoId)
+                .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
     }
 }

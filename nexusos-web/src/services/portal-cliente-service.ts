@@ -1,7 +1,22 @@
 import { api } from "@/lib/api";
-import type { PagamentoCheckoutResponse, PagamentoPixResponse, PortalCliente, PortalOrdemServico } from "@/types";
+import type { Anexo, PagamentoCheckoutResponse, PagamentoPixResponse, PortalCliente, PortalOrdemServico } from "@/types";
 
 export const portalClienteService = {
+  async listarAnexos(token: string, ordemId: string) {
+    return (await api.get<Anexo[]>(`/portal/clientes/${token}/ordens-servico/${ordemId}/anexos`)).data;
+  },
+  async enviarAnexo(token: string, ordemId: string, arquivo: File, descricao?: string) {
+    const form = new FormData();
+    form.append("arquivo", arquivo);
+    if (descricao) form.append("descricao", descricao);
+    return (await api.post<Anexo>(`/portal/clientes/${token}/ordens-servico/${ordemId}/anexos`, form)).data;
+  },
+  async baixarAnexo(token: string, ordemId: string, anexo: Anexo) {
+    const blob = (await api.get<Blob>(`/portal/clientes/${token}/ordens-servico/${ordemId}/anexos/${anexo.id}/arquivo`, { responseType: "blob" })).data;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.href = url; link.download = anexo.nomeArquivo; link.click();
+    URL.revokeObjectURL(url);
+  },
   async listarOrdens(token: string) {
     const response = await api.get<PortalCliente>(`/portal/clientes/${token}/ordens-servico`);
     return response.data;

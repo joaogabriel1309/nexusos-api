@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { TablePagination } from "@/components/shared/table-pagination";
+import { CentralAnexos } from "@/components/shared/central-anexos";
 import { statusBadgeClasses } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
@@ -125,7 +126,7 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
 
 function podeIniciarPagamento(ordem: PortalOrdemServico) {
   return (
-    ordem.cobrar !== false &&
+    ordem.pagamentoDisponivel !== false &&
     !ordem.paga &&
     (ordem.valorTotalEstimado ?? 0) > 0 &&
     ordem.status !== "RECEBIDA" &&
@@ -416,16 +417,14 @@ export default function PortalClientePage() {
                 ) : null}
               </div>
 
+              <CentralAnexos ordemId={ordemSelecionada.id} token={token} />
+
               <Card className="min-w-0 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Valores</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid min-w-0 gap-4 md:grid-cols-4">
-                    <CampoDetalhe
-                      label="Tempo estimado"
-                      value={ordemSelecionada.estimativaHoras != null ? `${ordemSelecionada.estimativaHoras}h` : "-"}
-                    />
+                  <div className="grid min-w-0 gap-4 md:grid-cols-2">
                     <CampoDetalhe label="Valor total" value={formatarValor(ordemSelecionada.valorTotalEstimado)} />
                     <CampoDetalhe label="Pagamento" value={ordemSelecionada.paga ? "Pago" : "A pagar"} />
                   </div>

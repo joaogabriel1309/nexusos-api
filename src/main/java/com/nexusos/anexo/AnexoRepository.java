@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AnexoRepository extends JpaRepository<Anexo, UUID> {
     List<Anexo> findByOrdemServicoIdOrderByCriadoEmDesc(UUID ordemServicoId);
+    long countByOrdemServicoId(UUID ordemServicoId);
 }
