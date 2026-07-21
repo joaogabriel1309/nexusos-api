@@ -11,6 +11,7 @@ import com.nexusos.ordemservico.StatusOS;
 import com.nexusos.pagamento.dto.PagamentoCheckoutResponse;
 import com.nexusos.pagamento.dto.PagamentoPixResponse;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,9 +32,7 @@ public class MercadoPagoService {
     private final OrdemServicoRepository ordemServicoRepository;
     private final ObjectMapper objectMapper;
     private final NotificacaoService notificacaoService;
-
-    @Value("${nexusos.mercado-pago.access-token:}")
-    private String accessToken;
+    private final ConfiguracaoPagamentoService configuracaoPagamentoService;
 
     @Value("${nexusos.mercado-pago.api-url:https://api.mercadopago.com}")
     private String apiUrl;
@@ -266,6 +265,7 @@ public class MercadoPagoService {
     }
 
     private boolean mercadoPagoConfigurado() {
+        var accessToken = configuracaoPagamentoService.buscarAccessToken();
         return accessToken != null && !accessToken.isBlank();
     }
 
@@ -332,7 +332,8 @@ public class MercadoPagoService {
                 ),
                 apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",
                 os.getId().toString(),
-                deveUsarAutoReturn() ? "approved" : null
+                deveUsarAutoReturn() ? "approved" : null,
+                OffsetDateTime.now().plusMinutes(configuracaoPagamentoService.buscarEntidade().getExpiracaoLinkMinutos())
         );
     }
 
@@ -357,7 +358,7 @@ public class MercadoPagoService {
     private RestClient restClient() {
         return RestClient.builder()
                 .baseUrl(apiUrl)
-                .defaultHeader("Authorization", "Bearer " + accessToken)
+                .defaultHeader("Authorization", "Bearer " + configuracaoPagamentoService.buscarAccessToken())
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
@@ -369,7 +370,8 @@ public class MercadoPagoService {
             Map<String, String> back_urls,
             String notification_url,
             String external_reference,
-            String auto_return
+            String auto_return,
+            OffsetDateTime date_of_expiration
     ) {
     }
 

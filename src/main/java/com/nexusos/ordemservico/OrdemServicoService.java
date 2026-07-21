@@ -19,6 +19,7 @@ import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
+import com.nexusos.pagamento.ConfiguracaoPagamentoService;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioService;
@@ -67,6 +68,7 @@ public class OrdemServicoService {
     private final NotificacaoService notificacaoService;
     private final SlaPrioridadeService slaPrioridadeService;
     private final ConfiguracaoOSService configuracaoOSService;
+    private final ConfiguracaoPagamentoService configuracaoPagamentoService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -191,6 +193,12 @@ public class OrdemServicoService {
         var os = buscarEntidade(id);
         var statusAnterior = os.getStatus();
         var configuracao = configuracaoOSService.buscarEntidade();
+        var statusDestino = request.status();
+        if (request.status() == StatusOS.FINALIZADA && statusAnterior == StatusOS.EM_TESTE
+                && Boolean.TRUE.equals(os.getCobrar()) && !Boolean.TRUE.equals(os.getPaga())
+                && Boolean.TRUE.equals(configuracaoPagamentoService.buscarEntidade().getCobrarAutomaticamenteOsFinalizada())) {
+            statusDestino = StatusOS.AGUARDANDO_PAGAMENTO;
+        }
         if (request.status() == StatusOS.AGUARDANDO_APROVACAO
                 && Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente()) && ehDesenvolvedor()) {
             throw new RegraNegocioException("A analise deve ser aprovada por um administrador antes de avancar a OS.");
@@ -199,9 +207,9 @@ public class OrdemServicoService {
                 && Boolean.TRUE.equals(configuracao.getExigirAnaliseAntesCliente())) {
             validarAnalisePreenchida(os);
         }
-        validarTransicao(statusAnterior, request.status());
-        os.setStatus(request.status());
-        if (request.status() == StatusOS.FINALIZADA) {
+        validarTransicao(statusAnterior, statusDestino);
+        os.setStatus(statusDestino);
+        if (statusDestino == StatusOS.FINALIZADA) {
             if (request.descricao() == null || request.descricao().isBlank()) {
                 throw new RegraNegocioException("Informe o que foi feito antes de finalizar a OS.");
             }
@@ -211,7 +219,7 @@ public class OrdemServicoService {
             os.setBranchFinalizacao(limparTextoOpcional(request.branchFinalizacao()));
             os.setArquivosAlteradosFinalizacao(limparTextoOpcional(request.arquivosAlteradosFinalizacao()));
         }
-        if (request.status() != StatusOS.FINALIZADA) {
+        if (statusDestino != StatusOS.FINALIZADA) {
             os.setFinalizadoEm(null);
             os.setDescricaoFinalizacao(null);
             os.setCommitsFinalizacao(null);
@@ -222,9 +230,9 @@ public class OrdemServicoService {
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, usuario, "ALTERACAO_STATUS",
                 request.descricao() != null ? request.descricao() : "Status da OS alterado.",
-                statusAnterior, request.status());
+                statusAnterior, statusDestino);
         notificacaoService.notificarStatus(salva);
-        if (request.status() == StatusOS.FINALIZADA) {
+        if (statusDestino == StatusOS.FINALIZADA) {
             emailService.enviarOrdemServicoFinalizada(salva);
             whatsappService.enviarOrdemServicoFinalizada(salva);
         }
@@ -314,6 +322,10 @@ public class OrdemServicoService {
             os.setImpacto(request.impacto());
             os.setRiscos(request.riscos());
             os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
+            if (!Boolean.TRUE.equals(os.getCobrar())
+                    && !Boolean.TRUE.equals(configuracaoPagamentoService.buscarEntidade().getPermitirOsSemCobranca())) {
+                throw new RegraNegocioException("A configuracao atual nao permite OS sem cobranca.");
+            }
         }
         os.setEstimativaHoras(request.estimativaHoras());
         recalcularValorTotalEstimado(os);

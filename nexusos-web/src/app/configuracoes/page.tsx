@@ -18,6 +18,7 @@ import type { ConfiguracaoEmpresaPayload } from "@/types/configuracao-empresa";
 import { EmailSettingsCard } from "./email-settings-card";
 import { WhatsappSettingsCard } from "./whatsapp-settings-card";
 import { OSSettingsCard } from "./os-settings-card";
+import { PaymentSettingsCard } from "./payment-settings-card";
 
 const vazio: ConfiguracaoEmpresaPayload = { nome: "", logo: null, documento: null, email: null, telefone: null, endereco: null, corPrincipal: "#087EA4" };
 
@@ -86,6 +87,7 @@ export default function ConfiguracoesPage() {
       )}
       <EmailSettingsCard />
       <WhatsappSettingsCard />
+      <PaymentSettingsCard />
       <OSSettingsCard />
     </div></AppShell>
   );

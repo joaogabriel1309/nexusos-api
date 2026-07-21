@@ -58,6 +58,7 @@ nexusos:
     critica-dias: ${SLA_CRITICA_DIAS:1}
   mercado-pago:
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+    encryption-key: ${PAGAMENTO_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
     api-base-url: ${API_PUBLIC_URL:http://localhost:8080}

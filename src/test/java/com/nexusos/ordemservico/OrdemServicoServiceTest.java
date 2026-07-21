@@ -14,6 +14,7 @@ import com.nexusos.configuracao.ConfiguracaoOSService;
 import com.nexusos.email.EmailService;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
+import com.nexusos.pagamento.ConfiguracaoPagamentoService;
 import com.nexusos.ordemservico.dto.AnaliseUpdateRequest;
 import com.nexusos.ordemservico.dto.CancelamentoOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.PrioridadeUpdateRequest;
@@ -54,6 +55,7 @@ class OrdemServicoServiceTest {
     @Mock NotificacaoService notificacaoService;
     @Mock SlaPrioridadeService slaPrioridadeService;
     @Mock ConfiguracaoOSService configuracaoOSService;
+    @Mock ConfiguracaoPagamentoService configuracaoPagamentoService;
     @InjectMocks OrdemServicoService ordemServicoService;
 
     @AfterEach
