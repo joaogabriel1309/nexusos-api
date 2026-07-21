@@ -65,6 +65,9 @@ nexusos:
   email:
     encryption-key: ${EMAIL_ENCRYPTION_KEY:${JWT_SECRET:}}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  github:
+    encryption-key: ${GITHUB_ENCRYPTION_KEY:${JWT_SECRET:}}
+    api-url: ${GITHUB_API_URL:https://api.github.com}
   whatsapp:
     encryption-key: ${WHATSAPP_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}

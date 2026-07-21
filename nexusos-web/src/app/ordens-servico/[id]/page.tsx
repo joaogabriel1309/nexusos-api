@@ -23,6 +23,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
+import { GithubDevelopmentCard } from "./github-development-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
 import { MensagemClienteComposer } from "@/components/shared/mensagem-cliente-composer";
@@ -890,6 +891,7 @@ export default function OrdemServicoDetalhePage() {
         </div>
       )}
 
+      {ordem ? <GithubDevelopmentCard ordem={ordem} /> : null}
       <CriticalActionDialog
         open={confirmacaoExclusaoOpen}
         title="Excluir ordem de servico?"

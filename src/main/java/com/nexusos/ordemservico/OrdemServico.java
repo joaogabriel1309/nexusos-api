@@ -108,6 +108,14 @@ public class OrdemServico {
     @Column(columnDefinition = "text")
     private String arquivosAlteradosFinalizacao;
 
+    private String branchGithub;
+    private Integer pullRequestNumero;
+    @Column(columnDefinition = "text") private String pullRequestUrl;
+    private String pullRequestStatus;
+    @Column(columnDefinition = "text") private String commitsGithub;
+    @Column(columnDefinition = "text") private String arquivosAlteradosGithub;
+    private OffsetDateTime ultimaSincronizacaoGithub;
+
     private Boolean aprovadaPeloCliente;
 
     private OffsetDateTime aprovadoPeloClienteEm;

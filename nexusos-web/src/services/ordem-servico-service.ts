@@ -138,5 +138,8 @@ export const ordemServicoService = {
   async atualizarVinculos(id: string, ordemServicoIds: string[]) {
     const { data } = await api.put<OrdemServico>(`/ordens-servico/${id}/vinculos`, { ordemServicoIds });
     return data;
-  }
+  },
+  async vincularGithub(id:string,branch:string){ return (await api.patch<OrdemServico>(`/ordens-servico/${id}/github`,{branch})).data; },
+  async sincronizarGithub(id:string){ return (await api.post<OrdemServico>(`/ordens-servico/${id}/github/sincronizar`)).data; },
+  async sugerirBranchGithub(id:string){ return (await api.get<string>(`/ordens-servico/${id}/github/branch-sugerida`)).data; }
 };

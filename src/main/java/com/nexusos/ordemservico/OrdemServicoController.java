@@ -13,6 +13,7 @@ import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
+import com.nexusos.ordemservico.dto.GithubBranchRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -40,6 +41,23 @@ public class OrdemServicoController {
 
     private final OrdemServicoService ordemServicoService;
     private final OrdemServicoPdfService ordemServicoPdfService;
+    private final GithubOrdemServicoService githubService;
+
+    @PatchMapping("/{id}/github")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<OrdemServicoResponse> vincularGithub(@PathVariable UUID id, @Valid @RequestBody GithubBranchRequest request) {
+        return ResponseEntity.ok(githubService.vincular(id, request));
+    }
+
+    @PostMapping("/{id}/github/sincronizar")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<OrdemServicoResponse> sincronizarGithub(@PathVariable UUID id) {
+        return ResponseEntity.ok(githubService.sincronizar(id));
+    }
+
+    @GetMapping("/{id}/github/branch-sugerida")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<String> sugerirBranchGithub(@PathVariable UUID id) { return ResponseEntity.ok(githubService.sugerir(id)); }
 
     // Acoes criticas usam DTOs com motivo, descricao ou justificativa e sao auditadas no service.
 

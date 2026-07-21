@@ -16,6 +16,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { ordemServicoService, type OrdemServicoFinalizacaoPayload } from "@/services/ordem-servico-service";
 import { combinarComTextoAtual } from "@/lib/templates";
 
+function normalizarCaminhoRelativoRepositorio(caminho: string): string | null {
+  const normalizado = caminho.trim().normalize("NFC");
+
+  if (
+    !normalizado ||
+    normalizado.includes("\0") ||
+    normalizado.includes("\\") ||
+    normalizado.startsWith("/") ||
+    /^[a-zA-Z]:/.test(normalizado) ||
+    normalizado.includes("%")
+  ) {
+    return null;
+  }
+
+  const segmentos = normalizado.split("/");
+  const possuiSegmentoDeNavegacao = segmentos.some(
+    (segmento) =>
+      !segmento ||
+      (segmento.length <= 2 && Array.from(segmento).every((caractere) => caractere === "."))
+  );
+  if (possuiSegmentoDeNavegacao) {
+    return null;
+  }
+
+  return segmentos.join("/");
+}
+
+function normalizarListaCaminhosRepositorio(valor: string): string | null {
+  if (!valor.trim()) {
+    return "";
+  }
+
+  const caminhos = valor.split(/\r?\n/).map(normalizarCaminhoRelativoRepositorio);
+  return caminhos.some((caminho) => caminho === null) ? null : caminhos.join("\n");
+}
+
 export default function FinalizarOrdemServicoPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -41,9 +77,20 @@ export default function FinalizarOrdemServicoPage() {
     }
 
     setDescricao(ordem.descricaoFinalizacao ?? "");
-    setCommitsFinalizacao(ordem.commitsFinalizacao ?? "");
-    setBranchFinalizacao(ordem.branchFinalizacao ?? "");
-    setArquivosAlteradosFinalizacao(ordem.arquivosAlteradosFinalizacao ?? "");
+    const commitsGithub = (() => { try { return (JSON.parse(ordem.commitsGithub ?? "[]") as { sha:string; url:string }[]).map(c => `${c.sha} - ${c.url}`).join("\n"); } catch { return ""; } })();
+    const arquivosGithub = (() => {
+      try {
+        const nomes = (JSON.parse(ordem.arquivosAlteradosGithub ?? "[]") as { nome: string }[])
+          .map((arquivo) => arquivo.nome)
+          .join("\n");
+        return normalizarListaCaminhosRepositorio(nomes) ?? "";
+      } catch {
+        return "";
+      }
+    })();
+    setCommitsFinalizacao(ordem.commitsFinalizacao ?? [commitsGithub, ordem.pullRequestUrl].filter(Boolean).join("\n"));
+    setBranchFinalizacao(ordem.branchFinalizacao ?? ordem.branchGithub ?? "");
+    setArquivosAlteradosFinalizacao(ordem.arquivosAlteradosFinalizacao ?? arquivosGithub);
   }, [ordem]);
 
   const finalizarMutation = useMutation({
@@ -78,11 +125,17 @@ export default function FinalizarOrdemServicoPage() {
       return;
     }
 
+    const arquivosAlteradosNormalizados = normalizarListaCaminhosRepositorio(arquivosAlteradosFinalizacao);
+    if (arquivosAlteradosNormalizados === null) {
+      toast.error("Informe apenas caminhos relativos válidos dentro do repositório.");
+      return;
+    }
+
     finalizarMutation.mutate({
       descricao: descricao.trim(),
       commitsFinalizacao: commitsFinalizacao.trim() || null,
       branchFinalizacao: branchFinalizacao.trim() || null,
-      arquivosAlteradosFinalizacao: arquivosAlteradosFinalizacao.trim() || null
+      arquivosAlteradosFinalizacao: arquivosAlteradosNormalizados || null
     });
   }
 
@@ -166,7 +219,7 @@ export default function FinalizarOrdemServicoPage() {
                     id="commits-finalizacao"
                     value={commitsFinalizacao}
                     onChange={(event) => setCommitsFinalizacao(event.target.value)}
-                    placeholder="ex: a1b2c3d, https://github.com/.../commit/..."
+                    placeholder="ex: a1b2c3d, https://github.com/owner/repositorio/commit/a1b2c3d"
                     className="min-h-24 resize-y"
                   />
                 </div>

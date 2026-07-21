@@ -96,6 +96,13 @@ export type OrdemServico = {
   commitsFinalizacao?: string;
   branchFinalizacao?: string;
   arquivosAlteradosFinalizacao?: string;
+  branchGithub?: string;
+  pullRequestNumero?: number;
+  pullRequestUrl?: string;
+  pullRequestStatus?: string;
+  commitsGithub?: string;
+  arquivosAlteradosGithub?: string;
+  ultimaSincronizacaoGithub?: string;
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm?: string;
