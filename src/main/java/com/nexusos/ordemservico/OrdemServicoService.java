@@ -2,6 +2,7 @@ package com.nexusos.ordemservico;
 
 import com.nexusos.auditoria.AuditoriaService;
 import com.nexusos.cliente.ClienteService;
+import com.nexusos.configuracao.ConfiguracaoOSService;
 import com.nexusos.email.EmailService;
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
@@ -65,6 +66,7 @@ public class OrdemServicoService {
     private final WhatsappService whatsappService;
     private final NotificacaoService notificacaoService;
     private final SlaPrioridadeService slaPrioridadeService;
+    private final ConfiguracaoOSService configuracaoOSService;
 
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listar() {
@@ -91,8 +93,14 @@ public class OrdemServicoService {
 
     @Transactional
     public OrdemServicoResponse criar(OrdemServicoRequest request) {
+        var configuracao = configuracaoOSService.buscarEntidade();
         var cliente = clienteService.buscarEntidade(request.clienteId());
-        var responsavel = request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null;
+        var responsavel = request.responsavelId() != null
+                ? usuarioService.buscarEntidade(request.responsavelId()) : configuracao.getResponsavelPadrao();
+        if (responsavel == null && !Boolean.TRUE.equals(configuracao.getPermitirSemResponsavel())) {
+            throw new RegraNegocioException("Informe um responsavel para a OS.");
+        }
+        var prioridade = request.prioridade() != null ? request.prioridade() : configuracao.getPrioridadePadrao();
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         validarProjetoDoCliente(projeto, cliente.getId());
         var os = OrdemServico.builder()
@@ -102,9 +110,9 @@ public class OrdemServicoService {
                 .cliente(cliente)
                 .responsavel(responsavel)
                 .projeto(projeto)
-                .status(StatusOS.RECEBIDA)
-                .prioridade(request.prioridade())
-                .prazo(request.prazo() != null ? request.prazo() : slaPrioridadeService.calcularPrazo(request.prioridade()))
+                .status(configuracao.getStatusInicial())
+                .prioridade(prioridade)
+                .prazo(request.prazo() != null ? request.prazo() : configuracaoOSService.calcularPrazo(prioridade))
                 .estimativaHoras(request.estimativaHoras())
                 .cobrar(Boolean.TRUE)
                 .paga(Boolean.FALSE)
@@ -131,6 +139,7 @@ public class OrdemServicoService {
         os.setDescricao(request.descricao());
         os.setCliente(clienteService.buscarEntidade(request.clienteId()));
         os.setResponsavel(request.responsavelId() != null ? usuarioService.buscarEntidade(request.responsavelId()) : null);
+        validarResponsavelObrigatorio(os.getResponsavel());
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         validarProjetoDoCliente(projeto, os.getCliente().getId());
         os.setProjeto(projeto);
@@ -181,8 +190,14 @@ public class OrdemServicoService {
     public OrdemServicoResponse atualizarStatus(UUID id, StatusUpdateRequest request) {
         var os = buscarEntidade(id);
         var statusAnterior = os.getStatus();
-        if (ehDesenvolvedor() && statusAnterior == StatusOS.EM_ANALISE) {
+        var configuracao = configuracaoOSService.buscarEntidade();
+        if (request.status() == StatusOS.AGUARDANDO_APROVACAO
+                && Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente()) && ehDesenvolvedor()) {
             throw new RegraNegocioException("A analise deve ser aprovada por um administrador antes de avancar a OS.");
+        }
+        if (request.status() == StatusOS.AGUARDANDO_APROVACAO
+                && Boolean.TRUE.equals(configuracao.getExigirAnaliseAntesCliente())) {
+            validarAnalisePreenchida(os);
         }
         validarTransicao(statusAnterior, request.status());
         os.setStatus(request.status());
@@ -486,5 +501,22 @@ public class OrdemServicoService {
 
     private String limparTextoOpcional(String valor) {
         return valor == null || valor.isBlank() ? null : valor.trim();
+    }
+
+    private void validarResponsavelObrigatorio(Usuario responsavel) {
+        if (responsavel == null && !Boolean.TRUE.equals(configuracaoOSService.buscarEntidade().getPermitirSemResponsavel())) {
+            throw new RegraNegocioException("A configuracao atual nao permite OS sem responsavel.");
+        }
+    }
+
+    private void validarAnalisePreenchida(OrdemServico os) {
+        if (textoVazio(os.getEntendimento()) || textoVazio(os.getImpacto()) || textoVazio(os.getRiscos())
+                || os.getEstimativaHoras() == null) {
+            throw new RegraNegocioException("Preencha entendimento, impacto, riscos e estimativa antes de enviar ao cliente.");
+        }
+    }
+
+    private boolean textoVazio(String valor) {
+        return valor == null || valor.isBlank();
     }
 }

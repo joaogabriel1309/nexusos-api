@@ -31,9 +31,12 @@ type OrdemServicoFormProps = {
   ordem?: OrdemServico | null;
   isSubmitting?: boolean;
   onSubmit: (data: OrdemServicoFormData) => void;
+  prioridadePadrao?: PrioridadeOS;
+  responsavelPadraoId?: string | null;
+  permitirSemResponsavel?: boolean;
 };
 
-export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSubmitting = false, onSubmit }: OrdemServicoFormProps) {
+export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSubmitting = false, onSubmit, prioridadePadrao = "MEDIA", responsavelPadraoId = null, permitirSemResponsavel = true }: OrdemServicoFormProps) {
   const form = useForm<OrdemServicoFormData>({
     resolver: zodResolver(ordemServicoSchema),
     defaultValues: {
@@ -42,7 +45,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
       clienteId: "",
       responsavelId: "",
       projetoId: "",
-      prioridade: "MEDIA",
+      prioridade: prioridadePadrao,
       prazo: ""
     }
   });
@@ -56,12 +59,12 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
       titulo: ordem?.titulo ?? "",
       descricao: ordem?.descricao ?? "",
       clienteId: ordem?.clienteId ?? "",
-      responsavelId: ordem?.responsavelId ?? "",
+      responsavelId: ordem?.responsavelId ?? responsavelPadraoId ?? "",
       projetoId: ordem?.projetoId ?? "",
-      prioridade: ordem?.prioridade ?? "MEDIA",
+      prioridade: ordem?.prioridade ?? prioridadePadrao,
       prazo: ordem?.prazo ?? ""
     });
-  }, [form, ordem]);
+  }, [form, ordem, prioridadePadrao, responsavelPadraoId]);
 
   useEffect(() => {
     const projetoId = form.getValues("projetoId");
@@ -81,7 +84,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
               <FormItem className="md:col-span-2">
                 <FormLabel>Título</FormLabel>
                 <FormControl>
-                  <Input placeholder="Resumo objetivo da demanda" {...field} />
+                  <Input aria-label="Titulo da OS" placeholder="Resumo objetivo da demanda" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -95,7 +98,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                 <FormLabel>Cliente</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Cliente">
                       <SelectValue placeholder="Selecione o cliente" />
                     </SelectTrigger>
                   </FormControl>
@@ -122,12 +125,12 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                   value={field.value || responsavelNaoAtribuido}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Responsável">
                       <SelectValue placeholder="Atribuir depois" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={responsavelNaoAtribuido}>Atribuir depois</SelectItem>
+                    {permitirSemResponsavel ? <SelectItem value={responsavelNaoAtribuido}>Atribuir depois</SelectItem> : null}
                     {responsaveis.map((responsavel) => (
                       <SelectItem key={responsavel.id} value={responsavel.id}>
                         {responsavel.nome}
@@ -150,7 +153,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                   value={field.value || projetoNaoVinculado}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Projeto">
                       <SelectValue placeholder="Sem projeto" />
                     </SelectTrigger>
                   </FormControl>
@@ -175,7 +178,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                 <FormLabel>Prioridade</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Prioridade">
                       <SelectValue placeholder="Selecione a prioridade" />
                     </SelectTrigger>
                   </FormControl>
@@ -198,7 +201,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
               <FormItem>
                 <FormLabel>Prazo</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input aria-label="Prazo" type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -215,7 +218,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                   onApply={(conteudo) => form.setValue("descricao", combinarComTextoAtual(field.value, conteudo), { shouldDirty: true, shouldValidate: true })}
                 />
                 <FormControl>
-                  <Textarea placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
+                  <Textarea aria-label="Descricao da OS" placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

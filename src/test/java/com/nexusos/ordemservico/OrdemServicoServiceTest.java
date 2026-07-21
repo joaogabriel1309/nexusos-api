@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 import com.nexusos.auditoria.AuditoriaService;
 import com.nexusos.cliente.Cliente;
 import com.nexusos.cliente.ClienteService;
+import com.nexusos.configuracao.ConfiguracaoOS;
+import com.nexusos.configuracao.ConfiguracaoOSService;
 import com.nexusos.email.EmailService;
 import com.nexusos.exception.RegraNegocioException;
 import com.nexusos.notificacao.NotificacaoService;
@@ -51,6 +53,7 @@ class OrdemServicoServiceTest {
     @Mock WhatsappService whatsappService;
     @Mock NotificacaoService notificacaoService;
     @Mock SlaPrioridadeService slaPrioridadeService;
+    @Mock ConfiguracaoOSService configuracaoOSService;
     @InjectMocks OrdemServicoService ordemServicoService;
 
     @AfterEach
@@ -237,7 +240,11 @@ class OrdemServicoServiceTest {
         autenticar("dev@nexusos.com", "ROLE_DESENVOLVEDOR");
         var id = UUID.randomUUID();
         var ordem = OrdemServico.builder().id(id).status(StatusOS.EM_ANALISE).build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setExigirAnaliseAntesCliente(false);
+        configuracao.setExigirAprovacaoAdminAntesCliente(true);
         when(ordemServicoRepository.findByIdAndResponsavelEmail(id, "dev@nexusos.com")).thenReturn(Optional.of(ordem));
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
 
         assertThatThrownBy(() -> ordemServicoService.atualizarStatus(id,
                 new StatusUpdateRequest(StatusOS.AGUARDANDO_APROVACAO, null, null, null, null, null)))

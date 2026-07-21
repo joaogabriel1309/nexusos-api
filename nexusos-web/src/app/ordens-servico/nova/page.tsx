@@ -17,6 +17,7 @@ import { clienteService } from "@/services/cliente-service";
 import { ordemServicoService } from "@/services/ordem-servico-service";
 import { projetoService } from "@/services/projeto-service";
 import { usuarioService } from "@/services/usuario-service";
+import { configuracaoOSService } from "@/services/configuracao-os-service";
 
 export default function NovaOrdemServicoPage() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function NovaOrdemServicoPage() {
     queryFn: usuarioService.listar,
     enabled: !isDesenvolvedor
   });
+  const configuracaoQuery = useQuery({ queryKey: ["configuracoes", "os"], queryFn: configuracaoOSService.buscar, enabled: !isDesenvolvedor });
 
   const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
   const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
@@ -46,8 +48,8 @@ export default function NovaOrdemServicoPage() {
     () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo),
     [usuariosQuery.data]
   );
-  const isLoading = clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading;
-  const isError = clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError;
+  const isLoading = clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading || configuracaoQuery.isLoading;
+  const isError = clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError || configuracaoQuery.isError;
 
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => ordemServicoService.criar(data),
@@ -65,6 +67,7 @@ export default function NovaOrdemServicoPage() {
     clientesQuery.refetch();
     projetosQuery.refetch();
     usuariosQuery.refetch();
+    configuracaoQuery.refetch();
   }
 
   return (
@@ -104,6 +107,9 @@ export default function NovaOrdemServicoPage() {
               responsaveis={responsaveis}
               projetos={projetos}
               isSubmitting={salvarMutation.isPending}
+              prioridadePadrao={configuracaoQuery.data?.prioridadePadrao}
+              responsavelPadraoId={configuracaoQuery.data?.responsavelPadraoId}
+              permitirSemResponsavel={configuracaoQuery.data?.permitirSemResponsavel}
               onSubmit={(data) => salvarMutation.mutate(data)}
             />
           )}
