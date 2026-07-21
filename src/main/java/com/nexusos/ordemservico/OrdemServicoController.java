@@ -42,6 +42,13 @@ public class OrdemServicoController {
     private final OrdemServicoService ordemServicoService;
     private final OrdemServicoPdfService ordemServicoPdfService;
     private final GithubOrdemServicoService githubService;
+    private final OrdemServicoIAService iaService;
+
+    @PostMapping("/{id}/ia/analisar")
+    @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
+    public ResponseEntity<com.nexusos.ordemservico.dto.AnaliseIAResponse> analisarComIA(@PathVariable UUID id) {
+        return ResponseEntity.ok(iaService.gerar(id));
+    }
 
     @PatchMapping("/{id}/github")
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")

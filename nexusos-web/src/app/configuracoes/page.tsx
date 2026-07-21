@@ -20,6 +20,7 @@ import { WhatsappSettingsCard } from "./whatsapp-settings-card";
 import { OSSettingsCard } from "./os-settings-card";
 import { PaymentSettingsCard } from "./payment-settings-card";
 import { GithubSettingsCard } from "./github-settings-card";
+import { AISettingsCard } from "./ai-settings-card";
 
 const vazio: ConfiguracaoEmpresaPayload = { nome: "", logo: null, documento: null, email: null, telefone: null, endereco: null, corPrincipal: "#087EA4" };
 
@@ -90,6 +91,7 @@ export default function ConfiguracoesPage() {
       <WhatsappSettingsCard />
       <PaymentSettingsCard />
       <GithubSettingsCard />
+      <AISettingsCard />
       <OSSettingsCard />
     </div></AppShell>
   );

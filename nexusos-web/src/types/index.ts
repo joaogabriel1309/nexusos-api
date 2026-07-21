@@ -22,6 +22,14 @@ export type StatusOS =
 
 export type PrioridadeOS = "BAIXA" | "MEDIA" | "ALTA" | "CRITICA";
 
+export type AnaliseIA = {
+  resumoTecnico: string;
+  descricaoCliente: string;
+  prioridadeSugerida: PrioridadeOS;
+  riscoAtraso: string;
+  textoEntregaFinal: string;
+};
+
 export type TipoEventoCalendario = "PRAZO_OS" | "VENCIMENTO" | "ENTREGA_PREVISTA" | "EVENTO_IMPORTANTE";
 
 export type EventoCalendario = {

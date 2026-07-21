@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { CentralPendencias, OrdemServico, PrioridadeOS, StatusOS } from "@/types";
+import type { AnaliseIA, CentralPendencias, OrdemServico, PrioridadeOS, StatusOS } from "@/types";
 import type { OrdemServicoAnaliseFormData } from "@/schemas/ordem-servico-analise-schema";
 import type { OrdemServicoFormData } from "@/schemas/ordem-servico-schema";
 
@@ -81,6 +81,10 @@ export const ordemServicoService = {
   async reabrir(id: string, motivo: string) {
     const { data } = await api.patch<OrdemServico>(`/ordens-servico/${id}/reabrir`, { motivo });
     return data;
+  },
+
+  async analisarComIA(id: string) {
+    return (await api.post<AnaliseIA>(`/ordens-servico/${id}/ia/analisar`)).data;
   },
 
   async listarPendencias() {

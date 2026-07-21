@@ -68,6 +68,8 @@ nexusos:
   github:
     encryption-key: ${GITHUB_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${GITHUB_API_URL:https://api.github.com}
+  ia:
+    encryption-key: ${IA_ENCRYPTION_KEY:${JWT_SECRET:}}
   whatsapp:
     encryption-key: ${WHATSAPP_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}
