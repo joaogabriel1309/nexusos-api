@@ -23,7 +23,7 @@ public class ConfiguracaoOSService {
         var c = buscarEntidade();
         var responsavel = r.responsavelPadraoId() == null ? null : usuarioService.buscarEntidade(r.responsavelPadraoId());
         if (responsavel != null && !responsavel.isAtivo()) throw new RegraNegocioException("O responsavel padrao deve estar ativo.");
-        if (responsavel == null && !r.permitirSemResponsavel()) throw new RegraNegocioException("Defina um responsavel padrao ou permito ticket sem respons?vel.");
+        if (responsavel == null && !r.permitirSemResponsavel()) throw new RegraNegocioException("Defina um responsável padrão ou permita tickets sem responsável.");
         c.setPrazoBaixaDias(r.prazoBaixaDias()); c.setPrazoMediaDias(r.prazoMediaDias());
         c.setPrazoAltaDias(r.prazoAltaDias()); c.setPrazoCriticaDias(r.prazoCriticaDias());
         c.setPrioridadePadrao(r.prioridadePadrao()); c.setResponsavelPadrao(responsavel);

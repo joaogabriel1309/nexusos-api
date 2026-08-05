@@ -60,7 +60,7 @@ export default function EditarOrdemServicoPage() {
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.atualizar(ordem.id, {

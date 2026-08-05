@@ -117,7 +117,7 @@ class OrdemServicoServiceTest {
         assertThat(ordem.getStatus()).isEqualTo(StatusOS.CANCELADA);
         assertThat(ordem.getSequenciaExecucao()).isNull();
         verify(auditoriaService).registrar(ordem, administrador, "CANCELAMENTO",
-                "OS cancelada. Motivo: Nao sera mais necessaria", StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA);
+                "Ticket cancelado. Motivo: Nao sera mais necessaria", StatusOS.EM_DESENVOLVIMENTO, StatusOS.CANCELADA);
         verify(notificacaoService).notificarStatus(ordem);
     }
 
@@ -128,7 +128,7 @@ class OrdemServicoServiceTest {
         when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
 
         assertThatThrownBy(() -> ordemServicoService.cancelar(id, new CancelamentoOrdemServicoRequest("Motivo")))
-                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizada");
+                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizado");
         verify(ordemServicoRepository, never()).save(ordem);
     }
 
@@ -151,7 +151,7 @@ class OrdemServicoServiceTest {
         assertThat(ordem.getFinalizadoEm()).isEqualTo(finalizadoEm);
         assertThat(ordem.getDescricaoFinalizacao()).isEqualTo("Entrega anterior");
         verify(auditoriaService).registrar(ordem, administrador, "REABERTURA",
-                "OS reaberta. Motivo: Correcao solicitada", StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
+                "Ticket reaberto. Motivo: Correcao solicitada", StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
         verify(notificacaoService).notificarReabertura(ordem, "Correcao solicitada");
     }
 
@@ -163,7 +163,7 @@ class OrdemServicoServiceTest {
         when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
 
         assertThatThrownBy(() -> ordemServicoService.reabrir(id, new ReaberturaOrdemServicoRequest("Motivo")))
-                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizada");
+                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizado");
         verify(ordemServicoRepository, never()).save(ordem);
     }
 
@@ -251,7 +251,10 @@ class OrdemServicoServiceTest {
                 .status(StatusOS.EM_ANALISE).prioridade(PrioridadeOS.MEDIA)
                 .entendimento("Texto existente").cobrar(Boolean.FALSE).valorTotalEstimado(BigDecimal.ZERO)
                 .build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setExigirAprovacaoAdminAntesCliente(true);
         when(ordemServicoRepository.findByIdAndResponsavelEmail(id, "dev@nexusos.com")).thenReturn(Optional.of(ordem));
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
         when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
 
         var resposta = ordemServicoService.atualizarAnalise(id,
@@ -260,8 +263,53 @@ class OrdemServicoServiceTest {
         assertThat(resposta.estimativaHoras()).isEqualByComparingTo("3.5");
         assertThat(resposta.entendimento()).isEqualTo("Texto existente");
         assertThat(resposta.cobrar()).isFalse();
+        assertThat(resposta.status()).isEqualTo(StatusOS.EM_ANALISE);
         verify(emailService, never()).enviarOrdemServicoAnalisada(ordem);
         verify(whatsappService, never()).enviarOrdemServicoAnalisada(ordem);
+    }
+
+    @Test
+    void concluirAnaliseDeTicketRecebidoEnviaAutomaticamenteParaAprovacao() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente")
+                .valorHora(new BigDecimal("100")).build();
+        var ordem = OrdemServico.builder()
+                .id(id).codigo(12L).titulo("Ticket").descricao("Descricao").cliente(cliente)
+                .status(StatusOS.RECEBIDA).prioridade(PrioridadeOS.MEDIA).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        var resposta = ordemServicoService.atualizarAnalise(id,
+                new AnaliseUpdateRequest("Analise concluida", null, null, new BigDecimal("2"), true));
+
+        assertThat(resposta.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+        assertThat(resposta.entendimento()).isEqualTo("Analise concluida");
+        verify(auditoriaService).registrar(ordem, null, "ALTERACAO_STATUS",
+                "Análise iniciada ao salvar as primeiras informações.", StatusOS.RECEBIDA, StatusOS.EM_ANALISE);
+        verify(auditoriaService).registrar(ordem, null, "ALTERACAO_STATUS",
+                "Análise concluída e enviada automaticamente para aprovação.",
+                StatusOS.EM_ANALISE, StatusOS.AGUARDANDO_APROVACAO);
+        verify(notificacaoService).notificarStatus(ordem);
+    }
+
+    @Test
+    void salvarAnaliseEnviaParaAprovacaoSemCamposRemovidosDaInterface() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder()
+                .id(id).codigo(13L).titulo("Ticket").descricao("Descricao").cliente(cliente)
+                .status(StatusOS.EM_ANALISE).prioridade(PrioridadeOS.MEDIA).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        var resposta = ordemServicoService.atualizarAnalise(id,
+                new AnaliseUpdateRequest("Analise concluida", null, null, new BigDecimal("1"), true));
+
+        assertThat(resposta.status()).isEqualTo(StatusOS.AGUARDANDO_APROVACAO);
+        verify(emailService).enviarOrdemServicoAnalisada(ordem);
+        verify(whatsappService).enviarOrdemServicoAnalisada(ordem);
     }
 
     @Test
@@ -336,7 +384,7 @@ class OrdemServicoServiceTest {
         assertThat(vinculada.getOrdensVinculadas()).containsExactly(principal);
         assertThat(resposta.ordensVinculadas()).extracting(item -> item.codigo()).containsExactly(2L);
         verify(auditoriaService).registrar(principal, null, "VINCULOS",
-                "Vinculos entre ordens de servico atualizados.", null, principal.getStatus());
+                "Vinculos entre tickets atualizados.", null, principal.getStatus());
     }
 
     @Test

@@ -171,7 +171,28 @@ export default function ClientesPage() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="grid gap-3 p-4 md:hidden">
+                {clientesPaginados.map((cliente) => (
+                  <article key={cliente.id} className="min-w-0 rounded-md border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0"><h2 className="break-words text-sm font-semibold [overflow-wrap:anywhere]">{cliente.nome}</h2><p className="mt-1 break-all text-xs text-muted-foreground">{cliente.email}</p></div>
+                      <Badge variant={cliente.ativo ? "default" : "secondary"}>{cliente.ativo ? "Ativo" : "Inativo"}</Badge>
+                    </div>
+                    <dl className="mt-4 grid gap-3 text-sm">
+                      <div><dt className="text-xs uppercase text-muted-foreground">Documento</dt><dd className="mt-1">{cliente.documento}</dd></div>
+                      <div><dt className="text-xs uppercase text-muted-foreground">Contato</dt><dd className="mt-1 break-words">{cliente.telefone || "Não informado"}</dd></div>
+                      <div><dt className="text-xs uppercase text-muted-foreground">Valor por hora</dt><dd className="mt-1 font-medium">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cliente.valorHora)}</dd></div>
+                    </dl>
+                    <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
+                      <Button variant="outline" size="icon" onClick={() => abrirEdicao(cliente)} aria-label="Editar cliente"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" disabled={gerarTokenMutation.isPending} onClick={() => copiarLinkCliente(cliente)} aria-label={cliente.tokenAcesso ? "Copiar link do cliente" : "Gerar link do cliente"}>{cliente.tokenAcesso ? <Copy className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}</Button>
+                      <Button variant="destructive" size="icon" disabled={!cliente.ativo || inativarClienteMutation.isPending} onClick={() => inativarCliente(cliente)} aria-label="Inativar cliente">{inativarClienteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -246,6 +267,7 @@ export default function ClientesPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
 
             {!clientesQuery.isLoading && !clientesQuery.isError && clientes.length > 0 ? (

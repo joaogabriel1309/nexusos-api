@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, CalendarClock, Columns3, Edit, Eye, FileSpreadsheet, FileText, List, MessageSquare, Plus, RefreshCcw, Search, UserRound } from "lucide-react";
+import { Archive, ArrowRight, CalendarClock, Columns3, Edit, Eye, FileSpreadsheet, FileText, Filter, List, MessageSquare, MoreHorizontal, Plus, RefreshCcw, Search, UserRound } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -179,7 +179,7 @@ function OrdensServicoPageContent() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [visao, setVisao] = useState<"lista" | "kanban">("lista");
   const [ordenacaoKanban, setOrdenacaoKanban] = useState<OrdenacaoKanban>("fila");
-  const [ordemArrastada, setOrdemArrastada] = useState<OrdemServico | null>(null);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
 
   const ordensQuery = useQuery({
     queryKey: ordensQueryKey,
@@ -409,27 +409,7 @@ function OrdensServicoPageContent() {
     onError: () => toast.error("Não foi possível assumir este ticket.")
   });
 
-  function podeMover(ordem: OrdemServico, destino: StatusOS) {
-    return ordem.transicoesStatus?.some((transicao) => transicao.status === destino && transicao.permitida) ?? false;
-  }
-
-  function motivoBloqueio(ordem: OrdemServico, destino: StatusOS) {
-    return ordem.transicoesStatus?.find((transicao) => transicao.status === destino)?.motivoBloqueio
-      ?? "Movimento não permitido para esta etapa.";
-  }
-
-  function soltarNoStatus(destino: StatusOS) {
-    if (!ordemArrastada) return;
-    moverOrdem(ordemArrastada, destino);
-    setOrdemArrastada(null);
-  }
-
   function moverOrdem(ordem: OrdemServico, destino: StatusOS) {
-    if (!podeMover(ordem, destino)) {
-      toast.error(motivoBloqueio(ordem, destino));
-      setOrdemArrastada(null);
-      return;
-    }
     if (destino === "FINALIZADA") {
       router.push(`/ordens-servico/${ordem.id}/finalizar`);
     } else {
@@ -558,17 +538,17 @@ function OrdensServicoPageContent() {
       <Card>
         <CardContent className="p-4 sm:p-5">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-md">
+            <div className="relative w-full lg:max-w-xl">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Buscar tickets"
                 className="pl-9"
-                placeholder="Buscar por ticket, titulo, cliente, responsavel..."
+                placeholder="Buscar por número, título, cliente ou responsável"
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="flex rounded-md border p-0.5" aria-label="Modo de visualização">
                 <Button variant={visao === "lista" ? "secondary" : "ghost"} size="sm" onClick={() => setVisao("lista")}>
                   <List className="h-4 w-4" /> Lista
@@ -577,22 +557,55 @@ function OrdensServicoPageContent() {
                   <Columns3 className="h-4 w-4" /> Kanban
                 </Button>
               </div>
-              <Button variant="outline" onClick={exportarPdf} disabled={isLoading || ordensFiltradas.length === 0}>
-                <FileText className="h-4 w-4" />
-                PDF
+              <Button
+                variant={filtrosAbertos ? "secondary" : "outline"}
+                onClick={() => setFiltrosAbertos((aberto) => !aberto)}
+                aria-expanded={filtrosAbertos}
+              >
+                <Filter className="h-4 w-4" />
+                Filtros
+                {filtrosAtivos.length > 0 ? <Badge className="ml-1">{filtrosAtivos.length}</Badge> : null}
               </Button>
-              <Button variant="outline" onClick={exportarExcel} disabled={isLoading || ordensFiltradas.length === 0}>
-                <FileSpreadsheet className="h-4 w-4" />
-                Excel
-              </Button>
-              <Button variant="outline" onClick={recarregar} disabled={isLoading}>
-                <RefreshCcw className="h-4 w-4" />
-                Atualizar
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="Mais ações"><MoreHorizontal className="h-5 w-5" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => router.push("/ordens-servico/finalizadas")}>
+                    <Archive className="mr-2 h-4 w-4" /> Tickets finalizados
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={recarregar} disabled={isLoading}>
+                    <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar dados
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportarPdf} disabled={isLoading || ordensFiltradas.length === 0}>
+                    <FileText className="mr-2 h-4 w-4" /> Exportar PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportarExcel} disabled={isLoading || ordensFiltradas.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Filtros rápidos">
+            <span className="mr-1 text-sm text-muted-foreground">Ver:</span>
+            <Button size="sm" variant={prazoFiltro === "vencidas" ? "secondary" : "outline"} onClick={() => setPrazoFiltro((atual) => atual === "vencidas" ? "" : "vencidas")}>
+              Vencidos
+            </Button>
+            <Button size="sm" variant={prazoFiltro === "hoje" ? "secondary" : "outline"} onClick={() => setPrazoFiltro((atual) => atual === "hoje" ? "" : "hoje")}>
+              Vencem hoje
+            </Button>
+            {!isDesenvolvedor ? (
+              <Button size="sm" variant={responsavelFiltro === semResponsavelOption ? "secondary" : "outline"} onClick={() => setResponsavelFiltro((atual) => atual === semResponsavelOption ? "" : semResponsavelOption)}>
+                Sem responsável
+              </Button>
+            ) : null}
+            {filtrosAtivos.length > 0 ? <Button size="sm" variant="ghost" onClick={limparFiltros}>Limpar filtros</Button> : null}
+          </div>
+
+          {filtrosAbertos ? <div className="mb-4 rounded-md border bg-secondary/20 p-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Select
               value={clienteFiltro || todosClientesOption}
               onValueChange={(value) => setClienteFiltro(value === todosClientesOption ? "" : value)}
@@ -685,14 +698,12 @@ function OrdensServicoPageContent() {
             </Select>
             <Input aria-label="Data inicial" type="date" value={dataInicio} onChange={(event) => setDataInicio(event.target.value)} />
             <Input aria-label="Data final" type="date" value={dataFim} onChange={(event) => setDataFim(event.target.value)} />
-            <Button variant="outline" onClick={limparFiltros} className="w-full sm:w-auto">
-              Limpar
-            </Button>
           </div>
+          </div> : null}
 
           {filtrosAtivos.length > 0 ? (
-            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>Filtros aplicados:</span>
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
+              <span className="text-muted-foreground">Filtros aplicados:</span>
               {filtrosAtivos.map((filtro) => (
                 <Badge key={filtro} variant="outline">
                   {filtro}
@@ -745,13 +756,10 @@ function OrdensServicoPageContent() {
                     });
                     const hoje = new Date().toISOString().slice(0, 10);
                     const vencidas = ordensDaColuna.filter((ordem) => ordem.prazo && ordem.prazo < hoje).length;
-                    const destinoValido = ordemArrastada ? podeMover(ordemArrastada, status) : false;
                     return (
                       <section
                         key={status}
-                        className={`w-72 shrink-0 rounded-lg border bg-muted/30 p-3 transition-colors ${destinoValido ? "border-primary bg-primary/5" : ""}`}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={() => soltarNoStatus(status)}
+                        className="w-72 shrink-0 rounded-lg border bg-muted/30 p-3"
                       >
                         <header className="sticky top-0 z-10 -mx-1 mb-3 flex items-center justify-between gap-2 rounded-md bg-muted p-2 shadow-sm">
                           <span className="text-sm font-semibold">{statusLabels[status]}</span>
@@ -760,14 +768,11 @@ function OrdensServicoPageContent() {
                         <div className="space-y-3">
                           {ordensDaColuna.length === 0 ? (
                             <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                              Nenhum ticket nesta etapa. Mova um card permitido para cá.
+                              Nenhum ticket nesta etapa.
                             </div>
                           ) : ordensDaColuna.map((ordem) => (
                             <article
                               key={ordem.id}
-                              draggable={!statusMutation.isPending && ordem.transicoesStatus?.some((transicao) => transicao.permitida)}
-                              onDragStart={() => setOrdemArrastada(ordem)}
-                              onDragEnd={() => setOrdemArrastada(null)}
                               onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
                               className="cursor-pointer rounded-md border bg-background p-3 shadow-sm transition-shadow hover:shadow-md"
                             >
@@ -788,10 +793,30 @@ function OrdensServicoPageContent() {
                                 {!ordem.responsavelId ? <Button variant="ghost" size="icon" title="Assumir ticket" disabled={assumirMutation.isPending} onClick={() => assumirMutation.mutate(ordem)}><UserRound className="h-4 w-4" /><span className="sr-only">Assumir ticket</span></Button> : null}
                                 {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Alterar responsável" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><UserRound className="h-4 w-4" /><span className="sr-only">Alterar responsável</span></Button> : null}
                                 {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Definir prazo" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><CalendarClock className="h-4 w-4" /><span className="sr-only">Definir prazo</span></Button> : null}
-                                <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-auto"><ArrowRight className="h-4 w-4" />Mover</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
-                                  {ordem.transicoesStatus?.filter((item) => item.permitida).map((item) => <DropdownMenuItem key={item.status} onSelect={() => moverOrdem(ordem, item.status)}>{statusLabels[item.status]}</DropdownMenuItem>)}
-                                  {!ordem.transicoesStatus?.some((item) => item.permitida) ? <DropdownMenuItem disabled>Nenhum movimento disponível</DropdownMenuItem> : null}
-                                </DropdownMenuContent></DropdownMenu>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" className="ml-auto"><ArrowRight className="h-4 w-4" />Ações</Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {ordem.status === "RECEBIDA" || ordem.status === "EM_ANALISE" ? (
+                                      <DropdownMenuItem onSelect={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
+                                        {ordem.status === "RECEBIDA" ? "Fazer análise" : "Revisar análise"}
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                    {ordem.transicoesStatus
+                                      ?.filter((item) => item.permitida
+                                        && !(ordem.status === "RECEBIDA" && item.status === "EM_ANALISE")
+                                        && !(ordem.status === "EM_ANALISE" && item.status === "AGUARDANDO_APROVACAO"))
+                                      .map((item) => (
+                                        <DropdownMenuItem key={item.status} onSelect={() => moverOrdem(ordem, item.status)}>
+                                          {statusLabels[item.status]}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    {!ordem.transicoesStatus?.some((item) => item.permitida) && ordem.status !== "EM_ANALISE" ? (
+                                      <DropdownMenuItem disabled>Nenhuma ação disponível</DropdownMenuItem>
+                                    ) : null}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </article>
                           ))}

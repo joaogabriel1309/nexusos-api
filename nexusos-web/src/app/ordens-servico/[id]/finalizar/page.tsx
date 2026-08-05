@@ -96,7 +96,7 @@ export default function FinalizarOrdemServicoPage() {
   const finalizarMutation = useMutation({
     mutationFn: (payload: OrdemServicoFinalizacaoPayload) => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.finalizar(ordem.id, payload);

@@ -65,6 +65,6 @@ class OrdemServicoPdfServiceTest {
         when(ordemServicoService.buscarEntidade(id)).thenReturn(OrdemServico.builder().status(StatusOS.EM_TESTE).build());
 
         assertThatThrownBy(() -> pdfService.gerarComprovanteFinalizacao(id))
-                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizada");
+                .isInstanceOf(RegraNegocioException.class).hasMessageContaining("finalizado");
     }
 }

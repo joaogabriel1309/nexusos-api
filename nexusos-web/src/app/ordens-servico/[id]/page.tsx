@@ -13,6 +13,7 @@ import {
   History,
   Loader2,
   MessageSquare,
+  MoreHorizontal,
   Download,
   RefreshCcw,
   Trash2,
@@ -34,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { prioridadeLabels, statusBadgeClasses, statusLabels } from "@/lib/os-labels";
 import { formatarDataPrazo, prazoClasses } from "@/lib/prazo";
@@ -51,14 +53,12 @@ function prioridadeVariant(prioridade: PrioridadeOS): BadgeProps["variant"] {
 }
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-type OrdemServicoTab = "status" | "informacoes" | "textos" | "valores" | "auditoria";
+type OrdemServicoTab = "resumo" | "trabalho" | "historico";
 
 const abas: { value: OrdemServicoTab; label: string }[] = [
-  { value: "status", label: "Status e ações" },
-  { value: "informacoes", label: "Informações" },
-  { value: "textos", label: "Textos" },
-  { value: "valores", label: "Valores" },
-  { value: "auditoria", label: "Auditoria" }
+  { value: "resumo", label: "Resumo" },
+  { value: "trabalho", label: "Trabalho" },
+  { value: "historico", label: "Histórico" }
 ];
 
 type WorkflowAction = {
@@ -72,16 +72,16 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
   RECEBIDA: [
     {
       status: "EM_ANALISE",
-      label: "Iniciar analise",
-      description: "O ticket entra na etapa de entendimento técnico.",
+      label: "Fazer análise",
+      description: "Abra a análise diretamente. O status só muda quando os dados forem salvos.",
       primary: true
     }
   ],
   EM_ANALISE: [
     {
       status: "AGUARDANDO_APROVACAO",
-      label: "Enviar para aprovação",
-      description: "Disponibiliza a análise para decisão do cliente.",
+      label: "Revisar análise",
+      description: "Revise os dados e conclua a análise. O envio para aprovação será automático.",
       primary: true
     }
   ],
@@ -342,7 +342,7 @@ export default function OrdemServicoDetalhePage() {
   const [motivoReabertura, setMotivoReabertura] = useState("");
   const [cancelamentoOpen, setCancelamentoOpen] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
-  const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("status");
+  const [abaAtiva, setAbaAtiva] = useState<OrdemServicoTab>("resumo");
 
   const detalheQueryKey = ["ordens-servico", id];
   const auditoriaQueryKey = ["auditoria", "ordens-servico", id];
@@ -387,7 +387,7 @@ export default function OrdemServicoDetalhePage() {
   const statusMutation = useMutation({
     mutationFn: ({ status, descricao }: { status: StatusOS; descricao?: string }) => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.atualizarStatus(ordem.id, status, descricao);
@@ -408,7 +408,7 @@ export default function OrdemServicoDetalhePage() {
   const pagamentoMutation = useMutation({
     mutationFn: (paga: boolean) => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.atualizarPagamento(ordem.id, paga);
@@ -426,7 +426,7 @@ export default function OrdemServicoDetalhePage() {
 
   const reaberturaMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("Ticket n?o carregado.");
+      if (!ordem) throw new Error("Ticket não carregado.");
       return ordemServicoService.reabrir(ordem.id, motivoReabertura.trim());
     },
     onSuccess: () => {
@@ -442,7 +442,7 @@ export default function OrdemServicoDetalhePage() {
 
   const cancelamentoMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("Ticket n?o carregado.");
+      if (!ordem) throw new Error("Ticket não carregado.");
       return ordemServicoService.cancelar(ordem.id, motivoCancelamento.trim());
     },
     onSuccess: () => {
@@ -459,7 +459,7 @@ export default function OrdemServicoDetalhePage() {
   const excluirMutation = useMutation({
     mutationFn: () => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.excluir(ordem.id);
@@ -479,7 +479,7 @@ export default function OrdemServicoDetalhePage() {
 
   const comprovanteMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("Ticket n?o carregado.");
+      if (!ordem) throw new Error("Ticket não carregado.");
       return ordemServicoService.baixarComprovanteFinalizacao(ordem.id, ordem.codigo);
     },
     onError: () => toast.error("Nao foi possivel baixar o comprovante de finalizacao.")
@@ -487,6 +487,12 @@ export default function OrdemServicoDetalhePage() {
 
   function executarAcaoWorkflow(action: WorkflowAction) {
     if (!ordem) {
+      return;
+    }
+
+    if ((ordem.status === "RECEBIDA" && action.status === "EM_ANALISE")
+        || (ordem.status === "EM_ANALISE" && action.status === "AGUARDANDO_APROVACAO")) {
+      router.push(`/ordens-servico/${ordem.id}/analise`);
       return;
     }
 
@@ -510,7 +516,23 @@ export default function OrdemServicoDetalhePage() {
       return;
     }
 
+    if (origem === "pendencias") {
+      router.push("/pendencias");
+      return;
+    }
+
     router.push(origem === "minhas-os" ? "/minhas-os" : "/ordens-servico");
+  }
+
+  function motivoBloqueioAcao(action: WorkflowAction) {
+    if (!ordem
+        || (ordem.status === "RECEBIDA" && action.status === "EM_ANALISE")
+        || (ordem.status === "EM_ANALISE" && action.status === "AGUARDANDO_APROVACAO")) {
+      return null;
+    }
+
+    const transicao = ordem.transicoesStatus?.find((item) => item.status === action.status);
+    return transicao?.permitida ? null : (transicao?.motivoBloqueio ?? "Conclua os dados obrigatórios antes de continuar.");
   }
 
   return (
@@ -544,8 +566,8 @@ export default function OrdemServicoDetalhePage() {
       ) : (
         <div className="space-y-5">
           <div className="space-y-4">
-            <div className="overflow-x-auto">
-              <div className="inline-flex h-10 w-max items-center justify-center rounded-md bg-muted p-1">
+            <div>
+              <div className="grid h-11 w-full grid-cols-3 items-center rounded-md bg-muted p-1 sm:inline-grid sm:w-auto" role="tablist" aria-label="Seções do ticket">
                 {abas.map((aba) => (
                   <button
                     key={aba.value}
@@ -564,7 +586,7 @@ export default function OrdemServicoDetalhePage() {
               </div>
             </div>
 
-            {abaAtiva === "status" ? (
+            {abaAtiva === "resumo" ? (
               <div className="space-y-4">
                 <Card>
                   <CardHeader className="pb-3">
@@ -593,15 +615,15 @@ export default function OrdemServicoDetalhePage() {
                         </div>
                         <Button
                           className="w-full lg:w-auto"
-                          disabled={osEmAcao || (isDesenvolvedor && ordem.status === "EM_ANALISE")}
+                          disabled={osEmAcao || Boolean(motivoBloqueioAcao(workflowActions[ordem.status][0]))}
                           onClick={() => executarAcaoWorkflow(workflowActions[ordem.status][0])}
                         >
                           {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                           {workflowActions[ordem.status][0].label}
                         </Button>
-                        {isDesenvolvedor && ordem.status === "EM_ANALISE" ? (
+                        {motivoBloqueioAcao(workflowActions[ordem.status][0]) ? (
                           <p className="text-sm text-muted-foreground lg:col-span-2">
-                            Aguarde um administrador aprovar a análise para avançar este ticket.
+                            {motivoBloqueioAcao(workflowActions[ordem.status][0])}
                           </p>
                         ) : null}
                       </div>
@@ -632,7 +654,8 @@ export default function OrdemServicoDetalhePage() {
                             <Button
                               key={action.status}
                               variant="outline"
-                              disabled={osEmAcao}
+                              disabled={osEmAcao || Boolean(motivoBloqueioAcao(action))}
+                              title={motivoBloqueioAcao(action) ?? undefined}
                               onClick={() => executarAcaoWorkflow(action)}
                             >
                               {action.label}
@@ -648,31 +671,31 @@ export default function OrdemServicoDetalhePage() {
                         <span className="font-medium text-foreground">{formatarDataHora(ordem.atualizadoEm)}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {ordem.status === "EM_ANALISE" || !isDesenvolvedor ? (
+                        {ordem.status === "RECEBIDA" || ordem.status === "EM_ANALISE" || !isDesenvolvedor ? (
                           <>
                             <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
                               <ClipboardCheck className="h-4 w-4" />
-                              {ordem.status === "EM_ANALISE" ? "Analisar ticket" : "Visualizar analise"}
+                              {ordem.status === "RECEBIDA" || ordem.status === "EM_ANALISE" ? "Fazer análise" : "Visualizar análise"}
                             </Button>
                             {!isDesenvolvedor ? (
-                              <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
-                                <Edit className="h-4 w-4" />
-                                Editar
-                              </Button>
-                            ) : null}
-                            {!isDesenvolvedor ? (
-                              ordem.status !== "FINALIZADA" && ordem.status !== "CANCELADA" ? (
-                                <Button variant="destructive" disabled={osEmAcao} onClick={() => setCancelamentoOpen(true)}>
-                                  <Ban className="h-4 w-4" />
-                                  Cancelar ticket
-                                </Button>
-                              ) : null
-                            ) : null}
-                            {!isDesenvolvedor ? (
-                              <Button variant="destructive" disabled={osEmAcao} onClick={excluirOrdem}>
-                                {osEmAcao ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                Excluir
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline"><MoreHorizontal className="h-4 w-4" />Administrar</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onSelect={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
+                                    <Edit className="mr-2 h-4 w-4" />Editar ticket
+                                  </DropdownMenuItem>
+                                  {ordem.status !== "FINALIZADA" && ordem.status !== "CANCELADA" ? (
+                                    <DropdownMenuItem onSelect={() => setCancelamentoOpen(true)}>
+                                      <Ban className="mr-2 h-4 w-4" />Cancelar ticket
+                                    </DropdownMenuItem>
+                                  ) : null}
+                                  <DropdownMenuItem className="text-destructive" onSelect={excluirOrdem}>
+                                    <Trash2 className="mr-2 h-4 w-4" />Excluir definitivamente
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             ) : null}
                           </>
                         ) : null}
@@ -680,35 +703,10 @@ export default function OrdemServicoDetalhePage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Historico de status</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {auditoriaQuery.isLoading ? (
-                      <div className="space-y-3">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                      </div>
-                    ) : auditoriaQuery.isError ? (
-                      <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                        <span>Não foi possível carregar o histórico de status deste ticket.</span>
-                        <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
-                          <RefreshCcw className="h-4 w-4" />
-                          Tentar novamente
-                        </Button>
-                      </div>
-                    ) : (
-                      <StatusTimeline ordem={ordem} eventos={auditoriaQuery.data ?? []} />
-                    )}
-                  </CardContent>
-                </Card>
               </div>
             ) : null}
 
-            {abaAtiva === "informacoes" ? (
+            {abaAtiva === "resumo" ? (
               <div className="space-y-4">
               <Card>
                 <CardHeader>
@@ -726,52 +724,10 @@ export default function OrdemServicoDetalhePage() {
                   <CampoDetalhe label="Finalizada em" value={formatarDataHora(ordem.finalizadoEm)} />
                 </CardContent>
               </Card>
-              <CentralAnexos ordemId={ordem.id} podeExcluir={!isDesenvolvedor} />
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> Tickets vinculados</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {ordem.ordensVinculadas.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Nenhum ticket vinculado.</div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {ordem.ordensVinculadas.map((vinculada) => (
-                        <Button key={vinculada.id} variant="outline" size="sm" onClick={() => router.push(`/ordens-servico/${vinculada.id}`)}>
-                          ticket {vinculada.codigo} - {vinculada.titulo} · {statusLabels[vinculada.status]}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                  {!isDesenvolvedor ? (
-                    <div className="space-y-2 border-t pt-4">
-                      <label className="text-sm font-medium" htmlFor="ordens-vinculadas">Gerenciar vínculos</label>
-                      <select
-                        id="ordens-vinculadas"
-                        multiple
-                        className="min-h-36 w-full rounded-md border bg-background p-2 text-sm"
-                        value={vinculosSelecionados}
-                        onChange={(event) => setVinculosSelecionados(Array.from(event.currentTarget.selectedOptions, (option) => option.value))}
-                      >
-                        {(todasOrdensQuery.data ?? []).filter((item) => item.id !== ordem.id).map((item) => (
-                          <option key={item.id} value={item.id}>Ticket {item.codigo} - {item.titulo} ({statusLabels[item.status]})</option>
-                        ))}
-                      </select>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">Use Ctrl/Cmd para selecionar mais de um ticket.</span>
-                        <Button size="sm" disabled={vinculosMutation.isPending || todasOrdensQuery.isLoading} onClick={() => vinculosMutation.mutate()}>
-                          {vinculosMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                          Salvar vínculos
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
               </div>
             ) : null}
 
-            {abaAtiva === "textos" ? (
+            {abaAtiva === "resumo" ? (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -810,24 +766,67 @@ export default function OrdemServicoDetalhePage() {
                     </CardContent>
                   </Card>
                 ) : null}
-
-                {!isDesenvolvedor ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Mensagem ao cliente</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <MensagemClienteComposer />
-                    </CardContent>
-                  </Card>
-                ) : null}
               </div>
             ) : null}
 
-            {abaAtiva === "valores" ? (
+            {abaAtiva === "trabalho" ? (
+              <div className="space-y-4">
+              <CentralAnexos ordemId={ordem.id} podeExcluir={!isDesenvolvedor} />
+
+              {!isDesenvolvedor ? (
+                <Card>
+                  <CardHeader><CardTitle>Mensagem ao cliente</CardTitle></CardHeader>
+                  <CardContent><MensagemClienteComposer /></CardContent>
+                </Card>
+              ) : null}
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Valores</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> Tickets relacionados</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {ordem.ordensVinculadas.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum ticket relacionado.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {ordem.ordensVinculadas.map((vinculada) => (
+                        <Button key={vinculada.id} variant="outline" size="sm" onClick={() => router.push(`/ordens-servico/${vinculada.id}`)}>
+                          {vinculada.codigo} - {vinculada.titulo}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {!isDesenvolvedor ? (
+                    <div className="space-y-3 border-t pt-4">
+                      <div><div className="text-sm font-medium">Gerenciar relações</div><p className="text-xs text-muted-foreground">Marque os tickets que têm dependência ou contexto em comum.</p></div>
+                      <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-2">
+                        {(todasOrdensQuery.data ?? []).filter((item) => item.id !== ordem.id).map((item) => (
+                          <label key={item.id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-secondary">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
+                              checked={vinculosSelecionados.includes(item.id)}
+                              onChange={(event) => setVinculosSelecionados((atuais) => event.target.checked
+                                ? [...atuais, item.id]
+                                : atuais.filter((idSelecionado) => idSelecionado !== item.id))}
+                            />
+                            <span className="min-w-0 text-sm"><span className="block break-words font-medium">{item.codigo} - {item.titulo}</span><span className="text-xs text-muted-foreground">{statusLabels[item.status]}</span></span>
+                          </label>
+                        ))}
+                        {!todasOrdensQuery.isLoading && (todasOrdensQuery.data ?? []).length <= 1 ? <p className="p-2 text-sm text-muted-foreground">Não há outros tickets disponíveis.</p> : null}
+                      </div>
+                      <Button className="w-full sm:w-auto" disabled={vinculosMutation.isPending || todasOrdensQuery.isLoading} onClick={() => vinculosMutation.mutate()}>
+                        {vinculosMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                        Salvar relações
+                      </Button>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Esforço e cobrança</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <CampoDetalhe
@@ -853,9 +852,21 @@ export default function OrdemServicoDetalhePage() {
                   </label>
                 </CardContent>
               </Card>
+              </div>
             ) : null}
 
-            {abaAtiva === "auditoria" ? (
+            {abaAtiva === "historico" ? (
+              <div className="space-y-4">
+              <Card>
+                <CardHeader><CardTitle>Etapas do ticket</CardTitle></CardHeader>
+                <CardContent>
+                  {auditoriaQuery.isLoading ? (
+                    <div className="space-y-3"><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div>
+                  ) : auditoriaQuery.isError ? (
+                    <p className="text-sm text-muted-foreground">Não foi possível carregar as etapas deste ticket.</p>
+                  ) : <StatusTimeline ordem={ordem} eventos={auditoriaQuery.data ?? []} />}
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Trilha de auditoria</CardTitle>
@@ -889,13 +900,14 @@ export default function OrdemServicoDetalhePage() {
                   )}
                 </CardContent>
               </Card>
+              </div>
             ) : null}
           </div>
         </div>
       )}
 
-      {ordem ? <AIAnalysisCard ordemId={ordem.id} /> : null}
-      {ordem ? <GithubDevelopmentCard ordem={ordem} /> : null}
+      {ordem && abaAtiva === "trabalho" ? <AIAnalysisCard ordemId={ordem.id} /> : null}
+      {ordem && abaAtiva === "trabalho" ? <GithubDevelopmentCard ordem={ordem} /> : null}
       <CriticalActionDialog
         open={confirmacaoExclusaoOpen}
         title="Excluir ticket?"

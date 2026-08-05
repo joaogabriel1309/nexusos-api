@@ -98,7 +98,7 @@ class PortalClienteServiceTest {
 
         assertThatThrownBy(() -> portalClienteService.validarAcesso("token-valido", ordemId))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
-                .hasMessage("OS nao encontrada para este cliente.");
+                .hasMessage("Ticket não encontrado para este cliente.");
     }
 
     @Test

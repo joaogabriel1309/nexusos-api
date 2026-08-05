@@ -70,10 +70,10 @@ function MetricaCard({
   tone?: "default" | "danger" | "warning" | "success";
 }) {
   const toneClasses = {
-    default: "border-slate-200 bg-white",
-    danger: "border-red-200 bg-red-50",
-    warning: "border-amber-200 bg-amber-50",
-    success: "border-emerald-200 bg-emerald-50"
+    default: "border-border bg-card",
+    danger: "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40",
+    warning: "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40",
+    success: "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
   };
 
   return (
@@ -220,11 +220,6 @@ export default function MinhasOsPage() {
   const aguardandoAcao = minhasOrdens.filter((ordem) => statusAcao.includes(ordem.status));
   const emDesenvolvimento = minhasOrdens.filter((ordem) => ordem.status === "EM_DESENVOLVIMENTO");
 
-  const porPrioridade = prioridades.map((prioridade) => ({
-    prioridade,
-    ordens: minhasOrdens.filter((ordem) => ordem.prioridade === prioridade)
-  }));
-
   function recarregar() {
     ordensQuery.refetch();
   }
@@ -232,8 +227,8 @@ export default function MinhasOsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Meus tickets"
-        description={`Fila técnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuário") : (usuario?.nome ?? "desenvolvedor")} na sequência definida para execução.`}
+        title={isAdmin ? "Filas da equipe" : "Meu trabalho"}
+        description={`Prioridades de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuário") : (usuario?.nome ?? "desenvolvedor")} em uma única fila.`}
         actions={
           <Button variant="outline" onClick={recarregar} disabled={ordensQuery.isLoading}>
             <RefreshCcw className="h-4 w-4" />
@@ -318,7 +313,7 @@ export default function MinhasOsPage() {
             </CardContent>
           </Card>
 
-          <section className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <section className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
             <Card>
               <CardHeader>
                 <CardTitle>Prioridade de execução</CardTitle>
@@ -354,60 +349,7 @@ export default function MinhasOsPage() {
                   {[...vencidas, ...hoje].length > 0 ? [...vencidas, ...hoje].slice(0, 6).map(renderOrdem) : <EmptyState />}
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumo por prioridade</CardTitle>
-                  <CardDescription>Distribuicao das seus tickets abertos.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {porPrioridade.map(({ prioridade, ordens }) => (
-                    <div key={prioridade} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{prioridadeLabels[prioridade]}</span>
-                        <span className="font-medium">{ordens.length}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-secondary">
-                        <div
-                          className={`h-2 rounded-full ${
-                            prioridade === "CRITICA"
-                              ? "bg-red-500"
-                              : prioridade === "ALTA"
-                                ? "bg-orange-500"
-                                : prioridade === "MEDIA"
-                                  ? "bg-sky-500"
-                                  : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${minhasOrdens.length ? Math.max((ordens.length / minhasOrdens.length) * 100, ordens.length > 0 ? 8 : 0) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
             </div>
-          </section>
-
-          <section className="mt-5 grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Aguardando ação</CardTitle>
-                <CardDescription>Tickets que precisam avançar de etapa ou receber alguma decisão.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {aguardandoAcao.length > 0 ? aguardandoAcao.slice(0, 6).map(renderOrdem) : <EmptyState />}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Em desenvolvimento</CardTitle>
-                <CardDescription>Tickets que já estão em trabalho técnico ativo.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {emDesenvolvimento.length > 0 ? emDesenvolvimento.slice(0, 6).map(renderOrdem) : <EmptyState />}
-              </CardContent>
-            </Card>
           </section>
         </>
       )}

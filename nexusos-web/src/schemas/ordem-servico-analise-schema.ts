@@ -6,4 +6,8 @@ export const ordemServicoAnaliseSchema = z.object({
   cobrar: z.boolean()
 });
 
+export const ordemServicoAnaliseConclusaoSchema = ordemServicoAnaliseSchema.extend({
+  textoAnalise: z.string().trim().min(1, "Descreva a análise e a solução proposta")
+});
+
 export type OrdemServicoAnaliseFormData = z.infer<typeof ordemServicoAnaliseSchema>;
