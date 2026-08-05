@@ -110,7 +110,7 @@ export default function NotificacoesPage() {
       <div className="space-y-6">
         <PageHeader
           title="Notificações"
-          description="Acompanhe atribuições, mudanças de status, prazos e eventos importantes das OS."
+          description="Acompanhe atribuições, mudanças de status, prazos e eventos importantes dos tickets."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" asChild>
@@ -245,7 +245,7 @@ export default function NotificacoesPage() {
                         {notificacao.ordemServicoId ? (
                           <Button size="sm" onClick={() => abrirNotificacao(notificacao.id, notificacao.ordemServicoId)}>
                             <ExternalLink className="h-4 w-4" />
-                            Abrir OS
+                            Abrir ticket
                           </Button>
                         ) : null}
                       </div>

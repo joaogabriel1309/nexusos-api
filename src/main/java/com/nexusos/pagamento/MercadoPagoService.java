@@ -64,11 +64,11 @@ public class MercadoPagoService {
             return new PagamentoCheckoutResponse(response.id(), response.checkoutUrl());
         } catch (RestClientResponseException ex) {
             var detalhe = extrairMensagemMercadoPago(ex);
-            log.warn("Mercado Pago recusou a criacao da preferencia da OS {}: {}", os.getId(), detalhe);
+            log.warn("Mercado Pago recusou a criacao da preferencia do ticket {}: {}", os.getId(), detalhe);
             notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
             throw new RegraNegocioException("Mercado Pago recusou o pagamento: " + detalhe);
         } catch (RestClientException ex) {
-            log.warn("Falha ao comunicar com Mercado Pago ao criar preferencia da OS {}: {}", os.getId(), ex.getMessage());
+            log.warn("Falha ao comunicar com Mercado Pago ao criar preferencia do ticket {}: {}", os.getId(), ex.getMessage());
             notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel iniciar o pagamento no Mercado Pago.");
         }
@@ -102,11 +102,11 @@ public class MercadoPagoService {
             );
         } catch (RestClientResponseException ex) {
             var detalhe = extrairMensagemMercadoPago(ex);
-            log.warn("Mercado Pago recusou a criacao do Pix da OS {}: {}", os.getId(), detalhe);
+            log.warn("Mercado Pago recusou a criacao do Pix do ticket {}: {}", os.getId(), detalhe);
             notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", detalhe);
             throw new RegraNegocioException("Mercado Pago recusou o Pix: " + detalhe);
         } catch (RestClientException ex) {
-            log.warn("Falha ao comunicar com Mercado Pago ao criar Pix da OS {}: {}", os.getId(), ex.getMessage());
+            log.warn("Falha ao comunicar com Mercado Pago ao criar Pix do ticket {}: {}", os.getId(), ex.getMessage());
             notificacaoService.notificarFalhaIntegracao(os, "Mercado Pago", ex.getMessage());
             throw new RegraNegocioException("Nao foi possivel gerar o Pix no Mercado Pago.");
         }
@@ -140,7 +140,7 @@ public class MercadoPagoService {
         }
 
         if (!os.getId().toString().equals(pagamento.externalReference())) {
-            throw new RegraNegocioException("Pagamento nao pertence a esta OS.");
+            throw new RegraNegocioException("Pagamento nao pertence a este ticket.");
         }
 
         if (!"approved".equalsIgnoreCase(pagamento.status())) {
@@ -148,7 +148,7 @@ public class MercadoPagoService {
         }
 
         if (!valorConfere(os, pagamento.transactionAmount())) {
-            throw new RegraNegocioException("Valor pago nao confere com o valor da OS.");
+            throw new RegraNegocioException("Valor pago nao confere com o valor do ticket.");
         }
 
         var jaEstavaPaga = Boolean.TRUE.equals(os.getPaga());
@@ -251,16 +251,16 @@ public class MercadoPagoService {
             throw new RegraNegocioException("Mercado Pago nao configurado.");
         }
         if (Boolean.TRUE.equals(os.getPaga())) {
-            throw new RegraNegocioException("OS ja esta marcada como paga.");
+            throw new RegraNegocioException("Ticket ja esta marcada como paga.");
         }
         if (!Boolean.TRUE.equals(os.getCobrar())) {
-            throw new RegraNegocioException("OS nao possui cobranca.");
+            throw new RegraNegocioException("Ticket nao possui cobranca.");
         }
         if (os.getValorTotalEstimado() == null || os.getValorTotalEstimado().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RegraNegocioException("OS ainda nao possui valor para pagamento.");
+            throw new RegraNegocioException("Ticket ainda nao possui valor para pagamento.");
         }
         if (os.getStatus() == StatusOS.RECEBIDA || os.getStatus() == StatusOS.EM_ANALISE) {
-            throw new RegraNegocioException("OS ainda nao foi analisada para pagamento.");
+            throw new RegraNegocioException("Ticket ainda nao foi analisada para pagamento.");
         }
     }
 
@@ -319,7 +319,7 @@ public class MercadoPagoService {
         var portalUrlComOs = portalUrl + "?os=" + os.getId();
         return new MercadoPagoPreferenceRequest(
                 List.of(new MercadoPagoItemRequest(
-                        "OS n. " + os.getCodigo() + " - " + os.getTitulo(),
+                        "Ticket n. " + os.getCodigo() + " - " + os.getTitulo(),
                         1,
                         "BRL",
                         os.getValorTotalEstimado()
@@ -340,7 +340,7 @@ public class MercadoPagoService {
     private MercadoPagoPixRequest criarPixRequest(OrdemServico os) {
         return new MercadoPagoPixRequest(
                 os.getValorTotalEstimado(),
-                "OS n. " + os.getCodigo() + " - " + os.getTitulo(),
+                "Ticket n. " + os.getCodigo() + " - " + os.getTitulo(),
                 "pix",
                 new MercadoPagoPixPayerRequest(os.getCliente().getEmail(), os.getCliente().getNome()),
                 apiBaseUrl + "/api/v1/pagamentos/mercado-pago/webhook",

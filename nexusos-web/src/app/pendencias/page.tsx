@@ -13,10 +13,10 @@ import { ordemServicoService } from "@/services/ordem-servico-service";
 import type { CentralPendencias, OrdemServico } from "@/types";
 
 const secoes: Array<{ chave: keyof CentralPendencias; titulo: string; descricao: string; icon: typeof AlertCircle }> = [
-  { chave: "vencidas", titulo: "OS vencidas", descricao: "Prazo ultrapassado", icon: AlertCircle },
+  { chave: "vencidas", titulo: "tickets vencidos", descricao: "Prazo ultrapassado", icon: AlertCircle },
   { chave: "vencemHoje", titulo: "Vencem hoje", descricao: "Precisam de atencao imediata", icon: CalendarClock },
   { chave: "semResponsavel", titulo: "Sem responsavel", descricao: "Atribua um responsavel", icon: UserRoundX },
-  { chave: "aguardandoAprovacaoAdmin", titulo: "Aguardando aprovacao do admin", descricao: "Novas OS para triagem", icon: ShieldCheck },
+  { chave: "aguardandoAprovacaoAdmin", titulo: "Aguardando aprovacao do admin", descricao: "Novos tickets para triagem", icon: ShieldCheck },
   { chave: "aguardandoCliente", titulo: "Aguardando cliente", descricao: "Analise enviada ao cliente", icon: UserCheck },
   { chave: "aguardandoPagamento", titulo: "Aguardando pagamento", descricao: "Pagamento ainda pendente", icon: CircleDollarSign },
   { chave: "reprovadasPeloCliente", titulo: "Reprovadas pelo cliente", descricao: "Requerem revisao da analise", icon: AlertCircle }
@@ -32,7 +32,7 @@ function Item({ ordem }: { ordem: OrdemServico }) {
     <Link href={`/ordens-servico/${ordem.id}`} className="block rounded-md border p-3 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">OS {ordem.codigo} - {ordem.titulo}</p>
+          <p className="truncate text-sm font-medium">Ticket {ordem.codigo} - {ordem.titulo}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">{ordem.clienteNome}{ordem.responsavelNome ? ` · ${ordem.responsavelNome}` : " · Sem responsavel"}</p>
         </div>
         <Badge variant="outline" className="shrink-0">{formatarPrazo(ordem.prazo)}</Badge>
@@ -65,7 +65,7 @@ export default function PendenciasPage() {
             return (
               <Card key={secao.chave}>
                 <CardHeader className="pb-3"><div className="flex items-start justify-between gap-3"><div><CardTitle className="flex items-center gap-2 text-base"><Icon className="h-4 w-4" />{secao.titulo}</CardTitle><p className="mt-1 text-xs text-muted-foreground">{secao.descricao}</p></div><Badge>{ordens.length}</Badge></div></CardHeader>
-                <CardContent className="space-y-2">{ordens.length ? ordens.map((ordem) => <Item key={ordem.id} ordem={ordem} />) : <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">Nenhuma OS nesta categoria.</p>}</CardContent>
+                <CardContent className="space-y-2">{ordens.length ? ordens.map((ordem) => <Item key={ordem.id} ordem={ordem} />) : <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">Nenhum ticket nesta categoria.</p>}</CardContent>
               </Card>
             );
           })}

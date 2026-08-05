@@ -99,7 +99,7 @@ function FinalizadasTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>OS</TableHead>
+            <TableHead>Ticket</TableHead>
             <TableHead>Cliente / Projeto</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead>Finalizada em</TableHead>
@@ -264,7 +264,7 @@ export default function OrdensServicoFinalizadasPage() {
 
   function exportarExcel() {
     const cabecalho = [
-      "OS",
+      "ticket",
       "Título",
       "Cliente",
       "Projeto",
@@ -329,7 +329,7 @@ export default function OrdensServicoFinalizadasPage() {
       <html lang="pt-BR">
         <head>
           <meta charset="utf-8" />
-          <title>OS Finalizadas</title>
+          <title>Tickets finalizados</title>
           <style>
             body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
             h1 { font-size: 22px; margin: 0 0 4px; }
@@ -340,12 +340,12 @@ export default function OrdensServicoFinalizadasPage() {
           </style>
         </head>
         <body>
-          <h1>OS Finalizadas</h1>
-          <p>${ordensFiltradas.length} OS exportada(s) em ${new Intl.DateTimeFormat("pt-BR").format(new Date())}</p>
+          <h1>Tickets finalizados</h1>
+          <p>${ordensFiltradas.length} ticket exportado(s) em ${new Intl.DateTimeFormat("pt-BR").format(new Date())}</p>
           <table>
             <thead>
               <tr>
-                <th>OS</th>
+                <th>Ticket</th>
                 <th>Título</th>
                 <th>Cliente</th>
                 <th>Projeto</th>
@@ -367,7 +367,7 @@ export default function OrdensServicoFinalizadasPage() {
   return (
     <AppShell>
       <PageHeader
-        title="OS Finalizadas"
+        title="Tickets finalizados"
         description="Consulte ordens encerradas, data de finalização e resumo do que foi feito."
       />
 
@@ -377,14 +377,14 @@ export default function OrdensServicoFinalizadasPage() {
             <FinalizadasTableSkeleton />
           ) : ordensQuery.isError || (!isDesenvolvedor && projetosQuery.isError) ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Não foi possível carregar as OS finalizadas.</span>
+              <span>Não foi possível carregar os tickets finalizados.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
               </Button>
             </div>
           ) : ordens.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhuma OS finalizada.</div>
+            <div className="text-sm text-muted-foreground">Nenhum ticket finalizado.</div>
           ) : (
             <div className="space-y-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -392,7 +392,7 @@ export default function OrdensServicoFinalizadasPage() {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    placeholder="Buscar por OS, cliente, responsável, finalização..."
+                    placeholder="Buscar por ticket, cliente, responsável, finalização..."
                     value={busca}
                     onChange={(event) => setBusca(event.target.value)}
                   />
@@ -455,7 +455,7 @@ export default function OrdensServicoFinalizadasPage() {
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-md border bg-secondary/40 p-4">
-                  <div className="text-sm text-muted-foreground">OS filtradas</div>
+                  <div className="text-sm text-muted-foreground">tickets filtrados</div>
                   <div className="mt-1 text-2xl font-semibold">{ordensFiltradas.length}</div>
                 </div>
                 <div className="rounded-md border bg-secondary/40 p-4">
@@ -474,7 +474,7 @@ export default function OrdensServicoFinalizadasPage() {
 
               {ordensFiltradas.length === 0 ? (
                 <div className="rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                  Nenhuma OS encontrada para os filtros informados.
+                  Nenhum ticket encontrado para os filtros informados.
                 </div>
               ) : (
                 <>
@@ -503,9 +503,9 @@ export default function OrdensServicoFinalizadasPage() {
                             </div>
                             {ordem.ordensVinculadas.length > 0 ? (
                               <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                                <div className="font-medium">OS vinculadas</div>
+                                <div className="font-medium">Tickets vinculados</div>
                                 {ordem.ordensVinculadas.map((item) => (
-                                  <div key={item.id}>OS {item.codigo} - {item.titulo} · {statusLabels[item.status]}</div>
+                                  <div key={item.id}>Ticket {item.codigo} - {item.titulo} · {statusLabels[item.status]}</div>
                                 ))}
                               </div>
                             ) : null}
@@ -565,7 +565,7 @@ export default function OrdensServicoFinalizadasPage() {
                     <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>OS</TableHead>
+                        <TableHead>Ticket</TableHead>
                         <TableHead>Cliente / Projeto</TableHead>
                         <TableHead className="w-[150px]">Prioridade</TableHead>
                         <TableHead className="w-[170px]">Finalizada em</TableHead>
@@ -598,7 +598,7 @@ export default function OrdensServicoFinalizadasPage() {
                               {ordem.ordensVinculadas.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-1">
                                   {ordem.ordensVinculadas.map((item) => (
-                                    <Badge key={item.id} variant="outline">OS {item.codigo} - {item.titulo} · {statusLabels[item.status]}</Badge>
+                                    <Badge key={item.id} variant="outline">Ticket {item.codigo} - {item.titulo} · {statusLabels[item.status]}</Badge>
                                   ))}
                                 </div>
                               ) : null}

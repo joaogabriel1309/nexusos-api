@@ -27,13 +27,13 @@ import org.springframework.web.util.UriUtils;
 public class AnexoController {
     private final AnexoService anexoService;
 
-    @Operation(summary = "Lista anexos da OS")
+    @Operation(summary = "Lista anexos do ticket")
     @GetMapping
     public ResponseEntity<List<AnexoResponse>> listar(@PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(anexoService.listar(ordemServicoId));
     }
 
-    @Operation(summary = "Salva anexo local da OS")
+    @Operation(summary = "Salva anexo local do ticket")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<AnexoResponse> salvar(@PathVariable UUID ordemServicoId,

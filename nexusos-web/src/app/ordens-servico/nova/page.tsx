@@ -55,11 +55,11 @@ export default function NovaOrdemServicoPage() {
     mutationFn: (data: OrdemServicoFormData) => ordemServicoService.criar(data),
     onSuccess: (ordem) => {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
-      toast.success("OS cadastrada com sucesso.");
+      toast.success("Ticket cadastrado com sucesso.");
       router.push(`/ordens-servico/${ordem.id}`);
     },
     onError: () => {
-      toast.error("Não foi possível salvar a OS.");
+      toast.error("Não foi possível salvar o ticket.");
     }
   });
 
@@ -73,7 +73,7 @@ export default function NovaOrdemServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Nova OS"
+        title="Novo ticket"
         description="Registre a demanda inicial para análise técnica."
         actions={
           <Button variant="outline" onClick={() => router.push("/ordens-servico")}>
@@ -86,7 +86,7 @@ export default function NovaOrdemServicoPage() {
       <Card>
         <CardContent className="p-4 sm:p-6">
           {isDesenvolvedor ? (
-          <div className="text-sm text-muted-foreground">Seu perfil não pode cadastrar OS.</div>
+          <div className="text-sm text-muted-foreground">Seu perfil não pode cadastrar ticket.</div>
           ) : isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />

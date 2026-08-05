@@ -50,7 +50,7 @@ export function CentralAnexos({ ordemId, token, podeExcluir = false }: Props) {
           {upload.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Enviar
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">PDF, imagens, texto e documentos Office. Até 10 MB por arquivo e 20 anexos por OS.</p>
+      <p className="text-xs text-muted-foreground">PDF, imagens, texto e documentos Office. Até 10 MB por arquivo e 20 anexos por ticket.</p>
       {query.isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : query.isError ? <p className="text-sm text-destructive">Não foi possível carregar os anexos.</p> : query.data?.length ? (
         <div className="divide-y rounded-md border">{query.data.map((item) => <div key={item.id} className="flex min-w-0 items-center gap-3 p-3">
           <File className="h-5 w-5 shrink-0 text-muted-foreground" /><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{item.nomeArquivo}</div><div className="text-xs text-muted-foreground">{item.descricao || (item.enviadoPeloCliente ? "Enviado pelo cliente" : "Enviado pela equipe")} · {(item.tamanho / 1024).toFixed(1)} KB</div></div>

@@ -48,7 +48,7 @@ const pesoPrioridade: Record<PrioridadeOS, number> = { CRITICA: 0, ALTA: 1, MEDI
 type PrazoFiltro = "" | "vencidas" | "hoje" | "proximas" | "sem-prazo";
 
 const prazoFiltroLabels: Record<Exclude<PrazoFiltro, "">, string> = {
-  vencidas: "OS vencidas",
+  vencidas: "tickets vencidos",
   hoje: "Vencem hoje",
   proximas: "Prazo próximo",
   "sem-prazo": "Sem prazo"
@@ -119,7 +119,7 @@ function OrdensTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>OS</TableHead>
+            <TableHead>Ticket</TableHead>
             <TableHead>Cliente / Projeto</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Pagamento</TableHead>
@@ -315,7 +315,7 @@ function OrdensServicoPageContent() {
           matchBusca
         );
       })
-      .sort((a, b) => b.codigo - a.codigo); // Ordena por código da OS do maior para o menor
+      .sort((a, b) => b.codigo - a.codigo); // Ordena por código do ticket do maior para o menor
   }, [
     busca,
     clienteFiltro,
@@ -395,18 +395,18 @@ function OrdensServicoPageContent() {
       ordemServicoService.atualizarStatus(ordem.id, status),
     onSuccess: (ordemAtualizada) => {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success(`OS ${ordemAtualizada.codigo} movida para ${statusLabels[ordemAtualizada.status]}.`);
+      toast.success(`Ticket ${ordemAtualizada.codigo} movido para ${statusLabels[ordemAtualizada.status]}.`);
     },
-    onError: () => toast.error("Não foi possível alterar o status da OS.")
+    onError: () => toast.error("Não foi possível alterar o status do ticket.")
   });
 
   const assumirMutation = useMutation({
     mutationFn: (ordem: OrdemServico) => ordemServicoService.assumir(ordem.id),
     onSuccess: (ordem) => {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success(`Você assumiu a OS ${ordem.codigo}.`);
+      toast.success(`Você assumiu o ticket ${ordem.codigo}.`);
     },
-    onError: () => toast.error("Não foi possível assumir esta OS.")
+    onError: () => toast.error("Não foi possível assumir este ticket.")
   });
 
   function podeMover(ordem: OrdemServico, destino: StatusOS) {
@@ -454,7 +454,7 @@ function OrdensServicoPageContent() {
   ].filter((filtro): filtro is string => Boolean(filtro));
 
   function exportarExcel() {
-    const cabecalho = ["OS", "Título", "Cliente", "Projeto", "Responsável", "Status", "Prioridade", "Prazo", "Pagamento"];
+    const cabecalho = ["ticket", "Título", "Cliente", "Projeto", "Responsável", "Status", "Prioridade", "Prazo", "Pagamento"];
     const linhas = ordensFiltradas.map((ordem) =>
       [
         ordem.codigo,
@@ -506,7 +506,7 @@ function OrdensServicoPageContent() {
       <html lang="pt-BR">
         <head>
           <meta charset="utf-8" />
-          <title>Ordens de Servico</title>
+          <title>Tickets</title>
           <style>
             body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
             h1 { font-size: 22px; margin: 0 0 4px; }
@@ -517,12 +517,12 @@ function OrdensServicoPageContent() {
           </style>
         </head>
         <body>
-          <h1>Ordens de Servico</h1>
-          <p>${ordensFiltradas.length} OS exportada(s) em ${new Intl.DateTimeFormat("pt-BR").format(new Date())}</p>
+          <h1>Tickets</h1>
+          <p>${ordensFiltradas.length} ticket exportado(s) em ${new Intl.DateTimeFormat("pt-BR").format(new Date())}</p>
           <table>
             <thead>
               <tr>
-                <th>OS</th>
+                <th>Ticket</th>
                 <th>Título</th>
                 <th>Cliente</th>
                 <th>Projeto</th>
@@ -543,13 +543,13 @@ function OrdensServicoPageContent() {
   return (
     <AppShell>
       <PageHeader
-        title="Ordens de Serviço"
+        title="Tickets"
         description="Acompanhe demandas técnicas por status, prioridade e responsável."
         actions={
           !isDesenvolvedor ? (
             <Button onClick={abrirCadastro} disabled={clientes.length === 0 || isLoading}>
               <Plus className="h-4 w-4" />
-              Nova OS
+              Novo ticket
             </Button>
           ) : null
         }
@@ -561,9 +561,9 @@ function OrdensServicoPageContent() {
             <div className="relative w-full lg:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                aria-label="Buscar ordens de serviço"
+                aria-label="Buscar tickets"
                 className="pl-9"
-                placeholder="Buscar por OS, titulo, cliente, responsavel..."
+                placeholder="Buscar por ticket, titulo, cliente, responsavel..."
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
               />
@@ -660,7 +660,7 @@ function OrdensServicoPageContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={todosOption}>Todos os prazos</SelectItem>
-                <SelectItem value="vencidas">OS vencidas</SelectItem>
+                <SelectItem value="vencidas">tickets vencidos</SelectItem>
                 <SelectItem value="hoje">Vencem hoje</SelectItem>
                 <SelectItem value="proximas">Prazo próximo</SelectItem>
                 <SelectItem value="sem-prazo">Sem prazo</SelectItem>
@@ -705,7 +705,7 @@ function OrdensServicoPageContent() {
             <OrdensTableSkeleton />
           ) : isError ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Não foi possível carregar as ordens de serviço.</span>
+              <span>Não foi possível carregar os tickets.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
@@ -713,11 +713,11 @@ function OrdensServicoPageContent() {
             </div>
           ) : ordensFiltradas.length === 0 ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Nenhuma OS encontrada.</span>
+              <span>Nenhum ticket encontrado.</span>
               {!isDesenvolvedor ? (
                 <Button variant="outline" size="sm" onClick={abrirCadastro} disabled={clientes.length === 0}>
                   <Plus className="h-4 w-4" />
-                  Cadastrar OS
+                  Cadastrar ticket
                 </Button>
               ) : null}
             </div>
@@ -736,7 +736,7 @@ function OrdensServicoPageContent() {
                   </Select>
                 </div>
               <div className="overflow-x-auto pb-3">
-                <div className="flex min-w-max gap-4" aria-label="Kanban de ordens de serviço">
+                <div className="flex min-w-max gap-4" aria-label="Kanban de tickets">
                   {kanbanStatuses.map((status) => {
                     const ordensDaColuna = ordensFiltradas.filter((ordem) => ordem.status === status).sort((a, b) => {
                       if (ordenacaoKanban === "prioridade") return pesoPrioridade[a.prioridade] - pesoPrioridade[b.prioridade];
@@ -760,7 +760,7 @@ function OrdensServicoPageContent() {
                         <div className="space-y-3">
                           {ordensDaColuna.length === 0 ? (
                             <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                              Nenhuma OS nesta etapa. Mova um card permitido para cá.
+                              Nenhum ticket nesta etapa. Mova um card permitido para cá.
                             </div>
                           ) : ordensDaColuna.map((ordem) => (
                             <article
@@ -771,7 +771,7 @@ function OrdensServicoPageContent() {
                               onClick={() => router.push(`/ordens-servico/${ordem.id}`)}
                               className="cursor-pointer rounded-md border bg-background p-3 shadow-sm transition-shadow hover:shadow-md"
                             >
-                              <div className="font-medium">OS {ordem.codigo}</div>
+                              <div className="font-medium">Ticket {ordem.codigo}</div>
                               <div className="mt-1 line-clamp-2 text-sm">{ordem.titulo}</div>
                               <div className="mt-3 space-y-1 text-xs text-muted-foreground"><div className="truncate">Cliente: {ordem.clienteNome}</div><div className="truncate">Responsável: {ordem.responsavelNome ?? "Sem responsável"}</div></div>
                               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -785,7 +785,7 @@ function OrdensServicoPageContent() {
                               <div className="mt-3 flex flex-wrap gap-1 border-t pt-2" onClick={(event) => event.stopPropagation()}>
                                 <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => router.push(`/ordens-servico/${ordem.id}`)}><Eye className="h-4 w-4" /><span className="sr-only">Ver detalhes</span></Button>
                                 <Button variant="ghost" size="icon" title="Comentar" onClick={() => router.push(`/ordens-servico/${ordem.id}#comentarios`)}><MessageSquare className="h-4 w-4" /><span className="sr-only">Comentar</span></Button>
-                                {!ordem.responsavelId ? <Button variant="ghost" size="icon" title="Assumir OS" disabled={assumirMutation.isPending} onClick={() => assumirMutation.mutate(ordem)}><UserRound className="h-4 w-4" /><span className="sr-only">Assumir OS</span></Button> : null}
+                                {!ordem.responsavelId ? <Button variant="ghost" size="icon" title="Assumir ticket" disabled={assumirMutation.isPending} onClick={() => assumirMutation.mutate(ordem)}><UserRound className="h-4 w-4" /><span className="sr-only">Assumir ticket</span></Button> : null}
                                 {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Alterar responsável" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><UserRound className="h-4 w-4" /><span className="sr-only">Alterar responsável</span></Button> : null}
                                 {!isDesenvolvedor ? <Button variant="ghost" size="icon" title="Definir prazo" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}><CalendarClock className="h-4 w-4" /><span className="sr-only">Definir prazo</span></Button> : null}
                                 <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-auto"><ArrowRight className="h-4 w-4" />Mover</Button></DropdownMenuTrigger><DropdownMenuContent align="end">
@@ -887,7 +887,7 @@ function OrdensServicoPageContent() {
                 <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-0">OS</TableHead>
+                    <TableHead className="min-w-0">ticket</TableHead>
                     <TableHead>Cliente / Projeto</TableHead>
                     <TableHead className="w-[190px]">Status</TableHead>
                     <TableHead className="w-[140px]">Pagamento</TableHead>
@@ -953,14 +953,14 @@ function OrdensServicoPageContent() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Editar OS"
+                              title="Editar ticket"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 router.push(`/ordens-servico/${ordem.id}/editar`);
                               }}
                             >
                               <Edit className="h-4 w-4" />
-                              <span className="sr-only">Editar OS</span>
+                              <span className="sr-only">Editar ticket</span>
                             </Button>
                           ) : null}
                         </div>
@@ -993,7 +993,7 @@ export default function OrdensServicoPage() {
       fallback={
         <AppShell>
           <PageHeader
-            title="Ordens de Serviço"
+            title="Tickets"
             description="Acompanhe demandas técnicas por status, prioridade e responsável."
           />
           <Card>

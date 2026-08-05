@@ -23,13 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ComentarioController {
     private final ComentarioService comentarioService;
 
-    @Operation(summary = "Lista comentarios da OS")
+    @Operation(summary = "Lista comentarios do ticket")
     @GetMapping
     public ResponseEntity<List<ComentarioResponse>> listar(@PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(comentarioService.listar(ordemServicoId));
     }
 
-    @Operation(summary = "Cria comentario na OS")
+    @Operation(summary = "Cria comentario no ticket")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ComentarioResponse> criar(@PathVariable UUID ordemServicoId,

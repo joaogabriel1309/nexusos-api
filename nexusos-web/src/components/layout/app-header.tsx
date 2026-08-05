@@ -94,7 +94,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   }
 
   const gruposBusca = [
-    { titulo: "Ordens de serviço", itens: buscaGlobalQuery.data?.ordensServico ?? [], icon: ClipboardList },
+    { titulo: "Tickets", itens: buscaGlobalQuery.data?.ordensServico ?? [], icon: ClipboardList },
     { titulo: "Clientes", itens: buscaGlobalQuery.data?.clientes ?? [], icon: Building2 },
     { titulo: "Projetos", itens: buscaGlobalQuery.data?.projetos ?? [], icon: FolderKanban },
     { titulo: "Usuários", itens: buscaGlobalQuery.data?.usuarios ?? [], icon: Users }
@@ -111,7 +111,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
-            placeholder="Buscar OS, cliente ou responsável"
+            placeholder="Buscar ticket, cliente ou responsável"
           value={buscaGlobal}
           onFocus={() => setBuscaAberta(true)}
           onBlur={() => window.setTimeout(() => setBuscaAberta(false), 150)}

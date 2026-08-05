@@ -4,9 +4,9 @@ import type { PerfilUsuario } from "@/types";
 export const navigationItems = [
   { title: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { title: "Central de Pendencias", href: "/pendencias", icon: AlertTriangle, roles: ["ADMIN"] },
-  { title: "Minhas OS", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
-  { title: "Ordens de Serviço", href: "/ordens-servico", icon: ClipboardList },
-  { title: "OS Finalizadas", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },
+  { title: "Meus tickets", href: "/minhas-os", icon: Code2, roles: ["ADMIN", "DESENVOLVEDOR"] },
+  { title: "Tickets", href: "/ordens-servico", icon: ClipboardList },
+  { title: "Tickets finalizados", href: "/ordens-servico/finalizadas", icon: ClipboardCheck },
   { title: "Calendário", href: "/calendario", icon: CalendarDays, roles: ["ADMIN", "DESENVOLVEDOR"] },
   { title: "Notificações", href: "/notificacoes", icon: Bell },
   { title: "Projetos", href: "/projetos", icon: FolderKanban },

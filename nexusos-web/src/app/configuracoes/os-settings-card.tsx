@@ -23,15 +23,15 @@ export function OSSettingsCard() {
   useEffect(() => { if (query.data) setForm(query.data); }, [query.data]);
   const mutation = useMutation({
     mutationFn: configuracaoOSService.atualizar,
-    onSuccess: (data) => { client.setQueryData(configuracaoOSQueryKey, data); setForm(data); toast.success("Configurações de OS salvas."); },
-    onError: () => toast.error("Não foi possível salvar as configurações de OS.")
+    onSuccess: (data) => { client.setQueryData(configuracaoOSQueryKey, data); setForm(data); toast.success("Configurações de ticket salvas."); },
+    onError: () => toast.error("Não foi possível salvar as configurações de ticket.")
   });
-  if (query.isLoading || !form) return <Card><CardContent className="p-6 text-sm text-muted-foreground">Carregando configurações de OS...</CardContent></Card>;
-  if (query.isError) return <Card><CardContent className="p-6 text-sm text-destructive">Não foi possível carregar as configurações de OS.</CardContent></Card>;
+  if (query.isLoading || !form) return <Card><CardContent className="p-6 text-sm text-muted-foreground">Carregando configurações de ticket...</CardContent></Card>;
+  if (query.isError) return <Card><CardContent className="p-6 text-sm text-destructive">Não foi possível carregar as configurações de ticket.</CardContent></Card>;
   const alterar = <K extends keyof ConfiguracaoOSPayload>(campo: K, valor: ConfiguracaoOSPayload[K]) => setForm((atual) => atual ? { ...atual, [campo]: valor } : atual);
   function salvar(e: FormEvent) { e.preventDefault(); mutation.mutate(form!); }
   const ativos = (usuarios.data ?? []).filter((u) => u.ativo);
-  return <Card><CardHeader><CardTitle>Ordens de serviço</CardTitle></CardHeader><CardContent>
+  return <Card><CardHeader><CardTitle>Tickets</CardTitle></CardHeader><CardContent>
     <form onSubmit={salvar} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(["Baixa", "Média", "Alta", "Crítica"] as const).map((label, i) => { const campo = (["prazoBaixaDias", "prazoMediaDias", "prazoAltaDias", "prazoCriticaDias"] as const)[i]; return <label key={campo} className="space-y-2"><span className="text-sm font-medium">Prazo {label} (dias)</span><Input aria-label={`Prazo ${label} em dias`} type="number" min={0} max={3650} value={form[campo]} onChange={(e) => alterar(campo, Number(e.target.value))} required /></label>; })}
@@ -42,11 +42,11 @@ export function OSSettingsCard() {
         <label className="space-y-2"><span className="text-sm font-medium">Status inicial</span><Select value={form.statusInicial} onValueChange={(v) => alterar("statusInicial", v as ConfiguracaoOSPayload["statusInicial"])}><SelectTrigger aria-label="Status inicial"><SelectValue /></SelectTrigger><SelectContent>{["RECEBIDA", "EM_ANALISE", "AGUARDANDO_APROVACAO", "APROVADA", "EM_DESENVOLVIMENTO", "EM_TESTE", "AGUARDANDO_PAGAMENTO"].map((v) => <SelectItem key={v} value={v}>{v.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></label>
       </div>
       <div className="grid gap-3">
-        <Opcao label="Permitir OS sem responsável" checked={form.permitirSemResponsavel} onChange={(v) => alterar("permitirSemResponsavel", v)} />
+        <Opcao label="Permitir ticket sem responsável" checked={form.permitirSemResponsavel} onChange={(v) => alterar("permitirSemResponsavel", v)} />
         <Opcao label="Exigir análise antes de enviar ao cliente" checked={form.exigirAnaliseAntesCliente} onChange={(v) => alterar("exigirAnaliseAntesCliente", v)} />
         <Opcao label="Exigir aprovação admin antes do cliente" checked={form.exigirAprovacaoAdminAntesCliente} onChange={(v) => alterar("exigirAprovacaoAdminAntesCliente", v)} />
       </div>
-      <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvar configurações de OS</Button>
+      <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvar configurações de ticket</Button>
     </form>
   </CardContent></Card>;
 }

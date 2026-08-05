@@ -53,7 +53,7 @@ export default function CalendarioPage() {
   }, [mes]);
 
   return <AppShell>
-    <PageHeader title="Calendário" description="Prazos, vencimentos, entregas previstas e eventos importantes das ordens de serviço." />
+    <PageHeader title="Calendário" description="Prazos, vencimentos, entregas previstas e eventos importantes dos tickets." />
     <Card><CardContent className="p-4 sm:p-5">
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center justify-between gap-2 sm:justify-start">

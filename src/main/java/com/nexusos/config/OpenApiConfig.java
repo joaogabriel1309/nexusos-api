@@ -17,7 +17,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("NexusOS API")
                         .version("1.0.0")
-                        .description("API para gerenciamento de Ordens de Servico, workflow tecnico e produtividade."))
+                        .description("API para gerenciamento de Tickets, workflow tecnico e produtividade."))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme()

@@ -73,7 +73,7 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_ANALISE",
       label: "Iniciar analise",
-      description: "A OS entra na etapa de entendimento técnico.",
+      description: "O ticket entra na etapa de entendimento técnico.",
       primary: true
     }
   ],
@@ -102,7 +102,7 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_DESENVOLVIMENTO",
       label: "Iniciar desenvolvimento",
-      description: "Move a OS para execução técnica.",
+      description: "Move o ticket para execução técnica.",
       primary: true
     }
   ],
@@ -124,13 +124,13 @@ const workflowActions: Record<StatusOS, WorkflowAction[]> = {
     {
       status: "EM_DESENVOLVIMENTO",
       label: "Voltar para desenvolvimento",
-      description: "Retorna a OS para ajustes técnicos."
+      description: "Retorna o ticket para ajustes técnicos."
     }
   ],
   AGUARDANDO_PAGAMENTO: [
     {
       status: "FINALIZADA",
-      label: "Finalizar OS",
+      label: "Finalizar ticket",
       description: "Abre a tela para documentar entrega, branch, commits e arquivos.",
       primary: true
     },
@@ -277,7 +277,7 @@ function StatusTimeline({ ordem, eventos }: { ordem: OrdemServico; eventos: Audi
         <div>
           <div className="text-sm font-medium">Linha do tempo do status</div>
           <p className="text-sm text-muted-foreground">
-            Veja por quais etapas a OS ja passou e quais ainda faltam no fluxo padrao.
+            Veja por quais etapas o ticket ja passou e quais ainda faltam no fluxo padrao.
           </p>
         </div>
         <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
@@ -387,7 +387,7 @@ export default function OrdemServicoDetalhePage() {
   const statusMutation = useMutation({
     mutationFn: ({ status, descricao }: { status: StatusOS; descricao?: string }) => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.atualizarStatus(ordem.id, status, descricao);
@@ -397,7 +397,7 @@ export default function OrdemServicoDetalhePage() {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
       queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success("Status da OS atualizado.");
+      toast.success("Status do ticket atualizado.");
     },
     onError: () => {
       toast.error("Transição de status inválida ou não permitida.");
@@ -408,7 +408,7 @@ export default function OrdemServicoDetalhePage() {
   const pagamentoMutation = useMutation({
     mutationFn: (paga: boolean) => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.atualizarPagamento(ordem.id, paga);
@@ -417,16 +417,16 @@ export default function OrdemServicoDetalhePage() {
       queryClient.invalidateQueries({ queryKey: detalheQueryKey });
       queryClient.invalidateQueries({ queryKey: auditoriaQueryKey });
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
-      toast.success("Pagamento da OS atualizado.");
+      toast.success("Pagamento do ticket atualizado.");
     },
     onError: () => {
-      toast.error("Não foi possível atualizar o pagamento da OS.");
+      toast.error("Não foi possível atualizar o pagamento do ticket.");
     }
   });
 
   const reaberturaMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("OS nao carregada.");
+      if (!ordem) throw new Error("Ticket n?o carregado.");
       return ordemServicoService.reabrir(ordem.id, motivoReabertura.trim());
     },
     onSuccess: () => {
@@ -435,14 +435,14 @@ export default function OrdemServicoDetalhePage() {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       setReaberturaOpen(false);
       setMotivoReabertura("");
-      toast.success("OS reaberta com sucesso.");
+      toast.success("Ticket reaberto com sucesso.");
     },
-    onError: () => toast.error("Nao foi possivel reabrir a OS.")
+    onError: () => toast.error("Nao foi possivel reabrir o ticket.")
   });
 
   const cancelamentoMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("OS nao carregada.");
+      if (!ordem) throw new Error("Ticket n?o carregado.");
       return ordemServicoService.cancelar(ordem.id, motivoCancelamento.trim());
     },
     onSuccess: () => {
@@ -451,15 +451,15 @@ export default function OrdemServicoDetalhePage() {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       setCancelamentoOpen(false);
       setMotivoCancelamento("");
-      toast.success("OS cancelada com sucesso.");
+      toast.success("Ticket cancelado com sucesso.");
     },
-    onError: () => toast.error("Nao foi possivel cancelar a OS.")
+    onError: () => toast.error("Nao foi possivel cancelar o ticket.")
   });
 
   const excluirMutation = useMutation({
     mutationFn: () => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.excluir(ordem.id);
@@ -468,18 +468,18 @@ export default function OrdemServicoDetalhePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ordensQueryKey });
       setConfirmacaoExclusaoOpen(false);
-      toast.success("OS excluida com sucesso.");
+      toast.success("Ticket excluído com sucesso.");
       router.push("/ordens-servico");
     },
     onError: () => {
-      toast.error("Não foi possível excluir a OS.");
+      toast.error("Não foi possível excluir o ticket.");
     },
     onSettled: () => setOsEmAcao(false)
   });
 
   const comprovanteMutation = useMutation({
     mutationFn: () => {
-      if (!ordem) throw new Error("OS nao carregada.");
+      if (!ordem) throw new Error("Ticket n?o carregado.");
       return ordemServicoService.baixarComprovanteFinalizacao(ordem.id, ordem.codigo);
     },
     onError: () => toast.error("Nao foi possivel baixar o comprovante de finalizacao.")
@@ -516,8 +516,8 @@ export default function OrdemServicoDetalhePage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `${ordem.codigo} - ${ordem.titulo}` : "Detalhes da OS"}
-        description="Visualize os dados completos da ordem de serviço e acompanhe sua evolução."
+        title={ordem ? `${ordem.codigo} - ${ordem.titulo}` : "Detalhes do ticket"}
+        description="Visualize os dados completos do ticket e acompanhe sua evolução."
         actions={
           <Button variant="outline" onClick={voltarParaListagem}>
             <ArrowLeft className="h-4 w-4" />
@@ -534,7 +534,7 @@ export default function OrdemServicoDetalhePage() {
       ) : ordemQuery.isError || !ordem ? (
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Não foi possível carregar os detalhes da OS.</span>
+            <span>Não foi possível carregar os detalhes do ticket.</span>
             <Button variant="outline" size="sm" onClick={() => ordemQuery.refetch()}>
               <RefreshCcw className="h-4 w-4" />
               Tentar novamente
@@ -572,7 +572,7 @@ export default function OrdemServicoDetalhePage() {
                       <div className="min-w-0">
                         <CardTitle>Status e ações</CardTitle>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Avance a OS pelo fluxo permitido e acompanhe as etapas ja percorridas.
+                          Avance o ticket pelo fluxo permitido e acompanhe as etapas ja percorridas.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -601,13 +601,13 @@ export default function OrdemServicoDetalhePage() {
                         </Button>
                         {isDesenvolvedor && ordem.status === "EM_ANALISE" ? (
                           <p className="text-sm text-muted-foreground lg:col-span-2">
-                            Aguarde um administrador aprovar a análise para avançar esta OS.
+                            Aguarde um administrador aprovar a análise para avançar este ticket.
                           </p>
                         ) : null}
                       </div>
                     ) : (
               <div className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm text-foreground">
-                        <p>Esta OS está {ordem.status === "CANCELADA" ? "cancelada" : "finalizada"}. Não existem próximas etapas operacionais disponíveis.</p>
+                        <p>Este ticket está {ordem.status === "CANCELADA" ? "cancelada" : "finalizada"}. Não existem próximas etapas operacionais disponíveis.</p>
                         {ordem.status === "FINALIZADA" ? (
                           <div className="flex flex-wrap gap-2">
                             <Button onClick={() => comprovanteMutation.mutate()} disabled={comprovanteMutation.isPending}>
@@ -616,7 +616,7 @@ export default function OrdemServicoDetalhePage() {
                             </Button>
                             {!isDesenvolvedor ? (
                               <Button variant="outline" onClick={() => setReaberturaOpen(true)}>
-                                <RefreshCcw className="h-4 w-4" /> Reabrir OS
+                                <RefreshCcw className="h-4 w-4" /> Reabrir ticket
                               </Button>
                             ) : null}
                           </div>
@@ -652,7 +652,7 @@ export default function OrdemServicoDetalhePage() {
                           <>
                             <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/analise`)}>
                               <ClipboardCheck className="h-4 w-4" />
-                              {ordem.status === "EM_ANALISE" ? "Analisar OS" : "Visualizar analise"}
+                              {ordem.status === "EM_ANALISE" ? "Analisar ticket" : "Visualizar analise"}
                             </Button>
                             {!isDesenvolvedor ? (
                               <Button variant="outline" onClick={() => router.push(`/ordens-servico/${ordem.id}/editar`)}>
@@ -664,7 +664,7 @@ export default function OrdemServicoDetalhePage() {
                               ordem.status !== "FINALIZADA" && ordem.status !== "CANCELADA" ? (
                                 <Button variant="destructive" disabled={osEmAcao} onClick={() => setCancelamentoOpen(true)}>
                                   <Ban className="h-4 w-4" />
-                                  Cancelar OS
+                                  Cancelar ticket
                                 </Button>
                               ) : null
                             ) : null}
@@ -694,7 +694,7 @@ export default function OrdemServicoDetalhePage() {
                       </div>
                     ) : auditoriaQuery.isError ? (
                       <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                        <span>Não foi possível carregar o histórico de status desta OS.</span>
+                        <span>Não foi possível carregar o histórico de status deste ticket.</span>
                         <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
                           <RefreshCcw className="h-4 w-4" />
                           Tentar novamente
@@ -712,10 +712,10 @@ export default function OrdemServicoDetalhePage() {
               <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Informações da OS</CardTitle>
+                  <CardTitle>Informações do ticket</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
-                  <CampoDetalhe label="Numero da OS" value={ordem.codigo} />
+                  <CampoDetalhe label="Numero do ticket" value={ordem.codigo} />
                   <CampoDetalhe label="Título" value={ordem.titulo} />
                   <CampoDetalhe label="Cliente" value={ordem.clienteNome} />
                   <CampoDetalhe label="Projeto" value={ordem.projetoNome || "Sem projeto"} />
@@ -729,16 +729,16 @@ export default function OrdemServicoDetalhePage() {
               <CentralAnexos ordemId={ordem.id} podeExcluir={!isDesenvolvedor} />
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> OS vinculadas</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" /> Tickets vinculados</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {ordem.ordensVinculadas.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Nenhuma OS vinculada.</div>
+                    <div className="text-sm text-muted-foreground">Nenhum ticket vinculado.</div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {ordem.ordensVinculadas.map((vinculada) => (
                         <Button key={vinculada.id} variant="outline" size="sm" onClick={() => router.push(`/ordens-servico/${vinculada.id}`)}>
-                          OS {vinculada.codigo} - {vinculada.titulo} · {statusLabels[vinculada.status]}
+                          ticket {vinculada.codigo} - {vinculada.titulo} · {statusLabels[vinculada.status]}
                         </Button>
                       ))}
                     </div>
@@ -754,11 +754,11 @@ export default function OrdemServicoDetalhePage() {
                         onChange={(event) => setVinculosSelecionados(Array.from(event.currentTarget.selectedOptions, (option) => option.value))}
                       >
                         {(todasOrdensQuery.data ?? []).filter((item) => item.id !== ordem.id).map((item) => (
-                          <option key={item.id} value={item.id}>OS {item.codigo} - {item.titulo} ({statusLabels[item.status]})</option>
+                          <option key={item.id} value={item.id}>Ticket {item.codigo} - {item.titulo} ({statusLabels[item.status]})</option>
                         ))}
                       </select>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">Use Ctrl/Cmd para selecionar mais de uma OS.</span>
+                        <span className="text-xs text-muted-foreground">Use Ctrl/Cmd para selecionar mais de um ticket.</span>
                         <Button size="sm" disabled={vinculosMutation.isPending || todasOrdensQuery.isLoading} onClick={() => vinculosMutation.mutate()}>
                           {vinculosMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
                           Salvar vínculos
@@ -845,9 +845,9 @@ export default function OrdemServicoDetalhePage() {
                       onChange={(event) => pagamentoMutation.mutate(event.target.checked)}
                     />
                     <span>
-                      <span className="block text-sm font-medium">OS paga</span>
+                      <span className="block text-sm font-medium">Ticket pago</span>
                       <span className="block text-sm text-muted-foreground">
-                        Marque quando o pagamento desta ordem de serviço já tiver sido recebido.
+                        Marque quando o pagamento deste ticket já tiver sido recebido.
                       </span>
                     </span>
                   </label>
@@ -870,7 +870,7 @@ export default function OrdemServicoDetalhePage() {
                     </div>
                   ) : auditoriaQuery.isError ? (
                     <div className="flex flex-col gap-3 rounded-md border bg-secondary/30 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                      <span>Não foi possível carregar a auditoria desta OS.</span>
+                      <span>Não foi possível carregar a auditoria deste ticket.</span>
                       <Button variant="outline" size="sm" onClick={() => auditoriaQuery.refetch()}>
                         <RefreshCcw className="h-4 w-4" />
                         Tentar novamente
@@ -898,10 +898,10 @@ export default function OrdemServicoDetalhePage() {
       {ordem ? <GithubDevelopmentCard ordem={ordem} /> : null}
       <CriticalActionDialog
         open={confirmacaoExclusaoOpen}
-        title="Excluir ordem de servico?"
+        title="Excluir ticket?"
         description="Esta exclusao e definitiva. Revise os impactos antes de continuar."
         itemName={ordem ? `${ordem.codigo} - ${ordem.titulo}` : ""}
-        impacts={["A ordem de servico deixara de estar disponivel nas listagens e consultas.", "Os dados associados a esta OS nao poderao ser recuperados pela aplicacao."]}
+        impacts={["O ticket deixara de estar disponivel nas listagens e consultas.", "Os dados associados a este ticket nao poderao ser recuperados pela aplicacao."]}
         confirmLabel="Excluir definitivamente"
         isPending={excluirMutation.isPending}
         onConfirm={() => ordem && excluirMutation.mutate()}
@@ -910,16 +910,16 @@ export default function OrdemServicoDetalhePage() {
       <Dialog open={reaberturaOpen} onOpenChange={setReaberturaOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reabrir ordem de serviço</DialogTitle>
+            <DialogTitle>Reabrir ticket</DialogTitle>
             <DialogDescription>
-              A OS voltará para desenvolvimento. A finalização anterior permanecerá no histórico.
+              O ticket voltará para desenvolvimento. A finalização anterior permanecerá no histórico.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <label htmlFor="motivo-reabertura" className="text-sm font-medium">Motivo da reabertura</label>
             <Textarea id="motivo-reabertura" maxLength={1000} value={motivoReabertura}
               onChange={(event) => setMotivoReabertura(event.target.value)}
-              placeholder="Descreva por que a OS precisa ser reaberta" />
+              placeholder="Descreva por que o ticket precisa ser reaberto" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReaberturaOpen(false)}>Cancelar</Button>
@@ -934,16 +934,16 @@ export default function OrdemServicoDetalhePage() {
       <Dialog open={cancelamentoOpen} onOpenChange={setCancelamentoOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar ordem de serviço</DialogTitle>
+            <DialogTitle>Cancelar ticket</DialogTitle>
             <DialogDescription>
-              A OS sairá do fluxo operacional, mas seus dados e histórico serão preservados.
+              O ticket sairá do fluxo operacional, mas seus dados e histórico serão preservados.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <label htmlFor="motivo-cancelamento" className="text-sm font-medium">Motivo do cancelamento</label>
             <Textarea id="motivo-cancelamento" maxLength={1000} value={motivoCancelamento}
               onChange={(event) => setMotivoCancelamento(event.target.value)}
-              placeholder="Descreva por que a OS não deve continuar" />
+              placeholder="Descreva por que o ticket não deve continuar" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelamentoOpen(false)}>Voltar</Button>

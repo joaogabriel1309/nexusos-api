@@ -180,8 +180,8 @@ export default function ClientesPage() {
                       <TableHead>E-mail</TableHead>
                       <TableHead>Telefone</TableHead>
                       <TableHead>Valor/hora</TableHead>
-                      <TableHead>E-mail OS</TableHead>
-                      <TableHead>WhatsApp OS</TableHead>
+                      <TableHead>E-mail ticket</TableHead>
+                      <TableHead>WhatsApp ticket</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-[190px] text-right">Ações</TableHead>
                     </TableRow>

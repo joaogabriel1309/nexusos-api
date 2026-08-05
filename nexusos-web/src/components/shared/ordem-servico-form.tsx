@@ -84,7 +84,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
               <FormItem className="md:col-span-2">
                 <FormLabel>Título</FormLabel>
                 <FormControl>
-                  <Input aria-label="Titulo da OS" placeholder="Resumo objetivo da demanda" {...field} />
+                  <Input aria-label="Titulo do ticket" placeholder="Resumo objetivo da demanda" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -218,7 +218,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
                   onApply={(conteudo) => form.setValue("descricao", combinarComTextoAtual(field.value, conteudo), { shouldDirty: true, shouldValidate: true })}
                 />
                 <FormControl>
-                  <Textarea aria-label="Descricao da OS" placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
+                  <Textarea aria-label="Descricao do ticket" placeholder="Contexto, problema, expectativa e qualquer detalhe relevante" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -228,7 +228,7 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ordem, isSu
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={isSubmitting}>
             <Save className="h-4 w-4" />
-            Salvar OS
+            Salvar ticket
           </Button>
         </div>
       </form>

@@ -115,7 +115,7 @@ export default function ProjetosPage() {
     <AppShell>
       <PageHeader
         title="Projetos"
-        description="Cadastre projetos e vincule-os opcionalmente às ordens de serviço."
+        description="Cadastre projetos e vincule-os opcionalmente às tickets."
         actions={
           <Button onClick={abrirCadastro} disabled={clientes.length === 0 || clientesQuery.isLoading}>
             <Plus className="h-4 w-4" />
@@ -247,7 +247,7 @@ export default function ProjetosPage() {
         title="Inativar projeto?"
         description="Confirme a inativacao deste projeto antes de continuar."
         itemName={projetoParaInativar?.nome ?? ""}
-        impacts={["O projeto deixara de estar disponivel para novas ordens de servico.", "As ordens e o historico ja registrados serao preservados."]}
+        impacts={["O projeto deixara de estar disponivel para novos tickets.", "As ordens e o historico ja registrados serao preservados."]}
         confirmLabel="Inativar projeto"
         isPending={inativarProjetoMutation.isPending}
         onConfirm={() => projetoParaInativar && inativarProjetoMutation.mutate(projetoParaInativar.id)}

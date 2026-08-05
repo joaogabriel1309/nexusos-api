@@ -68,26 +68,26 @@ public class OrdemServicoController {
 
     // Acoes criticas usam DTOs com motivo, descricao ou justificativa e sao auditadas no service.
 
-    @Operation(summary = "Lista ordens de servico")
+    @Operation(summary = "Listo tickets")
     @GetMapping
     public ResponseEntity<List<OrdemServicoResponse>> listar() {
         return ResponseEntity.ok(ordemServicoService.listar());
     }
 
-    @Operation(summary = "Consolida ordens de servico que precisam de acao")
+    @Operation(summary = "Consolida tickets que precisam de acao")
     @GetMapping("/pendencias")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CentralPendenciasResponse> listarPendencias() {
         return ResponseEntity.ok(ordemServicoService.listarPendencias());
     }
 
-    @Operation(summary = "Busca ordem de servico por ID")
+    @Operation(summary = "Busco ticket por ID")
     @GetMapping("/{id}")
     public ResponseEntity<OrdemServicoResponse> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(ordemServicoService.buscarPorId(id));
     }
 
-    @Operation(summary = "Cria ordem de servico")
+    @Operation(summary = "Crio ticket")
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> criar(@Valid @RequestBody OrdemServicoRequest request) {
@@ -95,7 +95,7 @@ public class OrdemServicoController {
         return ResponseEntity.created(URI.create("/api/v1/ordens-servico/" + response.id())).body(response);
     }
 
-    @Operation(summary = "Atualiza ordem de servico")
+    @Operation(summary = "Atualizo ticket")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> atualizar(@PathVariable UUID id,
@@ -103,7 +103,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizar(id, request));
     }
 
-    @Operation(summary = "Exclui ordem de servico")
+    @Operation(summary = "Exclui ticket")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> excluir(@PathVariable UUID id) {
@@ -111,7 +111,7 @@ public class OrdemServicoController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Atualiza status da ordem de servico")
+    @Operation(summary = "Atualiza status do ticket")
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<OrdemServicoResponse> atualizarStatus(@PathVariable UUID id,
@@ -119,7 +119,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarStatus(id, request));
     }
 
-    @Operation(summary = "Reabre uma ordem de servico finalizada")
+    @Operation(summary = "Reabre um ticket finalizado")
     @PatchMapping("/{id}/reabrir")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> reabrir(@PathVariable UUID id,
@@ -127,7 +127,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.reabrir(id, request));
     }
 
-    @Operation(summary = "Baixa o comprovante PDF de finalizacao da ordem de servico")
+    @Operation(summary = "Baixa o comprovante PDF de finalizacao do ticket")
     @GetMapping(value = "/{id}/comprovante-finalizacao", produces = MediaType.APPLICATION_PDF_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<byte[]> baixarComprovanteFinalizacao(@PathVariable UUID id) {
@@ -140,7 +140,7 @@ public class OrdemServicoController {
                 .body(arquivo);
     }
 
-    @Operation(summary = "Cancela uma ordem de servico preservando seu historico")
+    @Operation(summary = "Cancela um ticket preservando seu historico")
     @PatchMapping("/{id}/cancelar")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> cancelar(@PathVariable UUID id,
@@ -148,7 +148,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.cancelar(id, request));
     }
 
-    @Operation(summary = "Atualiza analise tecnica da ordem de servico")
+    @Operation(summary = "Atualiza analise tecnica do ticket")
     @PatchMapping("/{id}/analise")
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<OrdemServicoResponse> atualizarAnalise(@PathVariable UUID id,
@@ -156,7 +156,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarAnalise(id, request));
     }
 
-    @Operation(summary = "Atualiza responsavel da ordem de servico")
+    @Operation(summary = "Atualiza responsavel do ticket")
     @PatchMapping("/{id}/responsavel")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> atualizarResponsavel(@PathVariable UUID id,
@@ -164,14 +164,14 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarResponsavel(id, request));
     }
 
-    @Operation(summary = "Atribui a ordem de servico ao usuario autenticado")
+    @Operation(summary = "Atribui o ticket ao usuario autenticado")
     @PatchMapping("/{id}/assumir")
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<OrdemServicoResponse> assumir(@PathVariable UUID id) {
         return ResponseEntity.ok(ordemServicoService.assumir(id));
     }
 
-    @Operation(summary = "Atualiza prioridade da ordem de servico")
+    @Operation(summary = "Atualiza prioridade do ticket")
     @PatchMapping("/{id}/prioridade")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> atualizarPrioridade(@PathVariable UUID id,
@@ -187,7 +187,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarSequencia(id, request));
     }
 
-    @Operation(summary = "Atualiza pagamento da ordem de servico")
+    @Operation(summary = "Atualiza pagamento do ticket")
     @PatchMapping("/{id}/pagamento")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> atualizarPagamento(@PathVariable UUID id,
@@ -195,7 +195,7 @@ public class OrdemServicoController {
         return ResponseEntity.ok(ordemServicoService.atualizarPagamento(id, request.paga()));
     }
 
-    @Operation(summary = "Substitui os vinculos da ordem de servico")
+    @Operation(summary = "Substitui os vinculos do ticket")
     @PutMapping("/{id}/vinculos")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrdemServicoResponse> atualizarVinculos(@PathVariable UUID id,

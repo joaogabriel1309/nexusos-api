@@ -34,9 +34,9 @@ public class WhatsappService {
                 """
                         Ola, %s.
 
-                        Sua OS foi analisada no NexusOS.
+                        Suo ticket foi analisada no NexusOS.
 
-                        OS n. %d - %s
+                        Ticket n. %d - %s
                         Horas estimadas: %s
                         Valor estimado: %s
 
@@ -65,9 +65,9 @@ public class WhatsappService {
                 """
                         Ola, %s.
 
-                        Sua OS foi finalizada no NexusOS.
+                        Suo ticket foi finalizada no NexusOS.
 
-                        OS n. %d - %s
+                        Ticket n. %d - %s
                         Valor: %s
 
                         O que foi feito:

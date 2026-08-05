@@ -37,7 +37,7 @@ public class BuscaGlobalService {
         var ordens = ordemServicoRepository.buscarGlobalmente(termo, codigo, emailResponsavel, pageable).stream()
                 .map(os -> new BuscaGlobalItemResponse(
                         os.getId(),
-                        "OS #" + os.getCodigo() + " - " + os.getTitulo(),
+                        "Ticket #" + os.getCodigo() + " - " + os.getTitulo(),
                         os.getCliente().getNome(),
                         "/ordens-servico/" + os.getId()))
                 .toList();
@@ -71,7 +71,7 @@ public class BuscaGlobalService {
     }
 
     private Long parseCodigo(String termo) {
-        var codigo = termo.replaceFirst("(?i)^OS\\s*#?\\s*", "");
+        var codigo = termo.replaceFirst("(?i)^ticket\\s*#?\\s*", "");
         try {
             return Long.valueOf(codigo);
         } catch (NumberFormatException ignored) {

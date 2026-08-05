@@ -27,7 +27,7 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.resumo());
     }
 
-    @Operation(summary = "Retorna quantidade de OS por status")
+    @Operation(summary = "Retorna quantidade de ticket por status")
     @GetMapping("/os-por-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Long>> osPorStatus() {
@@ -41,7 +41,7 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.produtividade());
     }
 
-    @Operation(summary = "Retorna OS finalizadas por mes")
+    @Operation(summary = "Retorno tickets finalizados por mes")
     @GetMapping("/finalizadas-por-mes")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<FinalizadasPorMesResponse>> finalizadasPorMes() {

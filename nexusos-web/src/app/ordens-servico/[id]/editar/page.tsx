@@ -60,7 +60,7 @@ export default function EditarOrdemServicoPage() {
   const salvarMutation = useMutation({
     mutationFn: (data: OrdemServicoFormData) => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.atualizar(ordem.id, {
@@ -74,11 +74,11 @@ export default function EditarOrdemServicoPage() {
     onSuccess: (ordemAtualizada) => {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
       queryClient.invalidateQueries({ queryKey: ["ordens-servico", id] });
-      toast.success("OS atualizada com sucesso.");
+      toast.success("Ticket atualizado com sucesso.");
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
-      toast.error("Não foi possível salvar a OS.");
+      toast.error("Não foi possível salvar o ticket.");
     }
   });
 
@@ -92,8 +92,8 @@ export default function EditarOrdemServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `Editar OS ${ordem.codigo}` : "Editar OS"}
-        description="Atualize os dados principais da ordem de serviço."
+        title={ordem ? `Editar ticket ${ordem.codigo}` : "Editar ticket"}
+        description="Atualize os dados principais do ticket."
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
@@ -105,7 +105,7 @@ export default function EditarOrdemServicoPage() {
       <Card>
         <CardContent className="p-4 sm:p-6">
           {isDesenvolvedor ? (
-            <div className="text-sm text-muted-foreground">Seu perfil não pode editar OS.</div>
+            <div className="text-sm text-muted-foreground">Seu perfil não pode editar ticket.</div>
           ) : isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />
@@ -114,7 +114,7 @@ export default function EditarOrdemServicoPage() {
             </div>
           ) : isError || !ordem ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Não foi possível carregar os dados da OS.</span>
+              <span>Não foi possível carregar os dados do ticket.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente

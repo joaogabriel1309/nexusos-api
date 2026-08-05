@@ -126,7 +126,7 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
             {ordem.clienteNome} {ordem.projetoNome ? `- ${ordem.projetoNome}` : ""}
           </div>
         </button>
-        <button type="button" aria-label={`Abrir OS ${ordem.codigo}`} onClick={abrirOrdem}>
+        <button type="button" aria-label={`Abrir ticket ${ordem.codigo}`} onClick={abrirOrdem}>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       </div>
@@ -143,10 +143,10 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
       </div>
       {reordenavel ? (
         <div className="mt-3 flex gap-2">
-          <Button type="button" variant="outline" size="sm" disabled={!podeSubir || atualizando} onClick={() => onMover?.(-1)} aria-label={`Mover OS ${ordem.codigo} para cima`}>
+          <Button type="button" variant="outline" size="sm" disabled={!podeSubir || atualizando} onClick={() => onMover?.(-1)} aria-label={`Mover ticket ${ordem.codigo} para cima`}>
             <ArrowUp className="h-4 w-4" />
           </Button>
-          <Button type="button" variant="outline" size="sm" disabled={!podeDescer || atualizando} onClick={() => onMover?.(1)} aria-label={`Mover OS ${ordem.codigo} para baixo`}>
+          <Button type="button" variant="outline" size="sm" disabled={!podeDescer || atualizando} onClick={() => onMover?.(1)} aria-label={`Mover ticket ${ordem.codigo} para baixo`}>
             <ArrowDown className="h-4 w-4" />
           </Button>
         </div>
@@ -158,7 +158,7 @@ function OrdemCard({ ordem, reordenavel = false, atualizando = false, podeSubir 
 function EmptyState() {
   return (
     <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-      Nenhuma OS encontrada para os filtros selecionados.
+      Nenhum ticket encontrado para os filtros selecionados.
     </div>
   );
 }
@@ -232,7 +232,7 @@ export default function MinhasOsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Minhas OS"
+        title="Meus tickets"
         description={`Fila técnica de ${isAdmin ? (responsavelSelecionado?.nome ?? "usuário") : (usuario?.nome ?? "desenvolvedor")} na sequência definida para execução.`}
         actions={
           <Button variant="outline" onClick={recarregar} disabled={ordensQuery.isLoading}>
@@ -251,7 +251,7 @@ export default function MinhasOsPage() {
       ) : ordensQuery.isError ? (
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Não foi possível carregar suas ordens de serviço.</span>
+            <span>Não foi possível carregar seus tickets.</span>
             <Button variant="outline" size="sm" onClick={recarregar}>
               <RefreshCcw className="h-4 w-4" />
               Tentar novamente
@@ -322,7 +322,7 @@ export default function MinhasOsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Prioridade de execução</CardTitle>
-                <CardDescription>{podeReordenar ? "Arraste as OS ou use as setas para definir a sequência do desenvolvedor." : "Remova os filtros de status e prioridade para reordenar a fila."}</CardDescription>
+                <CardDescription>{podeReordenar ? "Arraste os tickets ou use as setas para definir a sequência do desenvolvedor." : "Remova os filtros de status e prioridade para reordenar a fila."}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {minhasOrdens.length > 0 ? minhasOrdens.map((ordem, index) => (
@@ -358,7 +358,7 @@ export default function MinhasOsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Resumo por prioridade</CardTitle>
-                  <CardDescription>Distribuicao das suas OS abertas.</CardDescription>
+                  <CardDescription>Distribuicao das seus tickets abertos.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {porPrioridade.map(({ prioridade, ordens }) => (
@@ -392,7 +392,7 @@ export default function MinhasOsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Aguardando ação</CardTitle>
-                <CardDescription>OS que precisam avançar de etapa ou receber alguma decisão.</CardDescription>
+                <CardDescription>Tickets que precisam avançar de etapa ou receber alguma decisão.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {aguardandoAcao.length > 0 ? aguardandoAcao.slice(0, 6).map(renderOrdem) : <EmptyState />}
@@ -402,7 +402,7 @@ export default function MinhasOsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Em desenvolvimento</CardTitle>
-                <CardDescription>OS que já estão em trabalho técnico ativo.</CardDescription>
+                <CardDescription>Tickets que já estão em trabalho técnico ativo.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {emDesenvolvimento.length > 0 ? emDesenvolvimento.slice(0, 6).map(renderOrdem) : <EmptyState />}

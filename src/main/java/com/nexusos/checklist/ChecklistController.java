@@ -22,13 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChecklistController {
     private final ChecklistService checklistService;
 
-    @Operation(summary = "Lista checklist da OS")
+    @Operation(summary = "Lista checklist do ticket")
     @GetMapping("/api/v1/ordens-servico/{ordemServicoId}/checklist")
     public ResponseEntity<List<ChecklistResponse>> listar(@PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(checklistService.listar(ordemServicoId));
     }
 
-    @Operation(summary = "Cria item de checklist da OS")
+    @Operation(summary = "Cria item de checklist do ticket")
     @PostMapping("/api/v1/ordens-servico/{ordemServicoId}/checklist")
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ChecklistResponse> criar(@PathVariable UUID ordemServicoId,

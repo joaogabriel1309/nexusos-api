@@ -23,7 +23,7 @@ public class CalendarioController {
 
     private final CalendarioService calendarioService;
 
-    @Operation(summary = "Lista eventos de ordens de servico no calendario")
+    @Operation(summary = "Lista eventos de tickets no calendario")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<List<EventoCalendarioResponse>> listar(

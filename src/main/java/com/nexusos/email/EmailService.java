@@ -32,13 +32,13 @@ public class EmailService {
 
         enviar(os,
                 os.getCliente().getEmail(),
-                "OS analisada - NexusOS",
+                "Ticket analisado - NexusOS",
                 """
                         Ola, %s.
 
-                        A sua Ordem de Servico foi analisada no NexusOS.
+                        A sua Ticket foi analisada no NexusOS.
 
-                        OS n. %d - %s
+                        Ticket n. %d - %s
                         Status: %s
                         Horas estimadas: %s
                         Valor estimado: %s
@@ -67,13 +67,13 @@ public class EmailService {
 
         enviar(os,
                 os.getCliente().getEmail(),
-                "OS finalizada - NexusOS",
+                "Ticket finalizado - NexusOS",
                 """
                         Ola, %s.
 
-                        A sua Ordem de Servico foi finalizada.
+                        A sua Ticket foi finalizada.
 
-                        OS n. %d - %s
+                        Ticket n. %d - %s
                         Valor: %s
 
                         O que foi feito:

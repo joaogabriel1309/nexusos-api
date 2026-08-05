@@ -14,12 +14,12 @@ import { notificacaoService } from "@/services/notificacao-service";
 import type { PreferenciaNotificacao, TipoPreferenciaNotificacao } from "@/types";
 
 const detalhes: Record<TipoPreferenciaNotificacao, { titulo: string; descricao: string }> = {
-  OS_ATRIBUIDA: { titulo: "OS atribuída", descricao: "Quando uma ordem de serviço for atribuída a você ou à equipe." },
-  PRAZO_VENCIDO: { titulo: "Prazo vencido", descricao: "Quando uma ordem de serviço ultrapassar o prazo definido." },
-  APROVACAO_CLIENTE: { titulo: "Aprovação do cliente", descricao: "Quando o cliente aprovar ou solicitar ajustes em uma OS." },
-  PAGAMENTO: { titulo: "Pagamento", descricao: "Quando o pagamento de uma ordem de serviço for alterado." },
-  COMENTARIO: { titulo: "Comentários", descricao: "Quando um novo comentário for adicionado a uma OS." },
-  ALTERACAO_STATUS: { titulo: "Alterações de status", descricao: "Quando uma ordem de serviço mudar de etapa." }
+  OS_ATRIBUIDA: { titulo: "Ticket atribuída", descricao: "Quando um ticket for atribuída a você ou à equipe." },
+  PRAZO_VENCIDO: { titulo: "Prazo vencido", descricao: "Quando um ticket ultrapassar o prazo definido." },
+  APROVACAO_CLIENTE: { titulo: "Aprovação do cliente", descricao: "Quando o cliente aprovar ou solicitar ajustes em um ticket." },
+  PAGAMENTO: { titulo: "Pagamento", descricao: "Quando o pagamento de um ticket for alterado." },
+  COMENTARIO: { titulo: "Comentários", descricao: "Quando um novo comentário for adicionado a um ticket." },
+  ALTERACAO_STATUS: { titulo: "Alterações de status", descricao: "Quando um ticket mudar de etapa." }
 };
 
 export default function PreferenciasNotificacaoPage() {

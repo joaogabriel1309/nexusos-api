@@ -7,10 +7,10 @@ const notificacaoTipoLabels: Record<string, string> = {
   PRAZO_VENCIDO: "Prazo vencido",
   APROVACAO_CLIENTE: "Aprovacao do cliente",
   PAGAMENTO: "Pagamento",
-  OS_SEM_RESPONSAVEL: "OS sem responsável",
-  OS_SEM_PRAZO: "OS sem prazo",
-  OS_CRITICA: "OS critica",
-  OS_PARADA: "OS parada",
+  OS_SEM_RESPONSAVEL: "Ticket sem responsável",
+  OS_SEM_PRAZO: "Ticket sem prazo",
+  OS_CRITICA: "Ticket cr?tico",
+  OS_PARADA: "Ticket parado",
   RESPONSAVEL_ALTERADO: "Responsável alterado",
   COMENTARIO: "Comentario",
   CHECKLIST: "Checklist",
@@ -53,6 +53,6 @@ export function getNotificacaoTipoVariant(tipo: string): "default" | "warning" |
 }
 
 export function getResumoNotificacao(notificacao: Notificacao) {
-  const osPrefixo = notificacao.ordemServicoCodigo ? `OS ${notificacao.ordemServicoCodigo} • ` : "";
+  const osPrefixo = notificacao.ordemServicoCodigo ? `Ticket ${notificacao.ordemServicoCodigo} • ` : "";
   return `${osPrefixo}${getNotificacaoTipoLabel(notificacao.tipo)}`;
 }

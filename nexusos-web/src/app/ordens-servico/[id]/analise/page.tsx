@@ -49,7 +49,7 @@ export default function AnaliseOrdemServicoPage() {
   const analiseMutation = useMutation({
     mutationFn: (data: OrdemServicoAnaliseFormData) => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.atualizarAnalise(ordem.id, data);
@@ -58,11 +58,11 @@ export default function AnaliseOrdemServicoPage() {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
       queryClient.invalidateQueries({ queryKey: ["ordens-servico", id] });
       queryClient.invalidateQueries({ queryKey: ["auditoria", "ordens-servico", id] });
-      toast.success("Análise da OS salva com sucesso.");
+      toast.success("Análise do ticket salva com sucesso.");
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
-      toast.error("Não foi possível salvar a análise da OS.");
+      toast.error("Não foi possível salvar a análise do ticket.");
     }
   });
 
@@ -76,8 +76,8 @@ export default function AnaliseOrdemServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `${ordem.status === "EM_ANALISE" ? "Analisar" : "Visualizar análise"} OS ${ordem.codigo}` : "Análise da OS"}
-        description="Informe ou consulte a estimativa e o texto técnico da ordem de serviço."
+        title={ordem ? `${ordem.status === "EM_ANALISE" ? "Analisar" : "Visualizar análise"} ticket ${ordem.codigo}` : "Análise do ticket"}
+        description="Informe ou consulte a estimativa e o texto técnico do ticket."
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
@@ -96,7 +96,7 @@ export default function AnaliseOrdemServicoPage() {
             </div>
           ) : isError || !ordem ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Não foi possível carregar a análise da OS.</span>
+              <span>Não foi possível carregar a análise do ticket.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente

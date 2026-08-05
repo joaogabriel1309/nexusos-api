@@ -108,7 +108,7 @@ public class OrdemServicoService {
         var responsavel = request.responsavelId() != null
                 ? usuarioService.buscarEntidade(request.responsavelId()) : configuracao.getResponsavelPadrao();
         if (responsavel == null && !Boolean.TRUE.equals(configuracao.getPermitirSemResponsavel())) {
-            throw new RegraNegocioException("Informe um responsavel para a OS.");
+            throw new RegraNegocioException("Informe um responsavel para o ticket.");
         }
         var prioridade = request.prioridade() != null ? request.prioridade() : configuracao.getPrioridadePadrao();
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
@@ -129,11 +129,11 @@ public class OrdemServicoService {
                 .build();
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
-        auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ordem de servico criada.", null, salva.getStatus());
+        auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ticket criada.", null, salva.getStatus());
         notificacaoService.notificarOsCriada(salva);
         notificacaoService.notificarAtribuicao(
                 salva,
-                "Uma nova OS foi atribuida a voce: " + salva.getCodigo() + " - " + salva.getTitulo() + "."
+                "Uma novo ticket foi atribuida a voce: " + salva.getCodigo() + " - " + salva.getTitulo() + "."
         );
         return OrdemServicoResponse.from(salva);
     }
@@ -176,7 +176,7 @@ public class OrdemServicoService {
             if (salva.getResponsavel() != null) {
                 notificacaoService.notificarAtribuicao(
                         salva,
-                        "A OS " + salva.getCodigo() + " foi direcionada para voce."
+                        "O ticket " + salva.getCodigo() + " foi direcionada para voce."
                 );
             }
         }
@@ -209,7 +209,7 @@ public class OrdemServicoService {
         }
         if (request.status() == StatusOS.AGUARDANDO_APROVACAO
                 && Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente()) && ehDesenvolvedor()) {
-            throw new RegraNegocioException("A analise deve ser aprovada por um administrador antes de avancar a OS.");
+            throw new RegraNegocioException("A analise deve ser aprovada por um administrador antes de avancar o ticket.");
         }
         if (request.status() == StatusOS.AGUARDANDO_APROVACAO
                 && Boolean.TRUE.equals(configuracao.getExigirAnaliseAntesCliente())) {
@@ -219,7 +219,7 @@ public class OrdemServicoService {
         os.setStatus(statusDestino);
         if (statusDestino == StatusOS.FINALIZADA) {
             if (request.descricao() == null || request.descricao().isBlank()) {
-                throw new RegraNegocioException("Informe o que foi feito antes de finalizar a OS.");
+                throw new RegraNegocioException("Informe o que foi feito antes de finalizar o ticket.");
             }
             os.setFinalizadoEm(OffsetDateTime.now());
             os.setDescricaoFinalizacao(request.descricao().trim());
@@ -237,7 +237,7 @@ public class OrdemServicoService {
         var usuario = request.usuarioId() != null ? usuarioService.buscarEntidade(request.usuarioId()) : null;
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, usuario, "ALTERACAO_STATUS",
-                request.descricao() != null ? request.descricao() : "Status da OS alterado.",
+                request.descricao() != null ? request.descricao() : "Status do ticket alterado.",
                 statusAnterior, statusDestino);
         notificacaoService.notificarStatus(salva);
         if (statusDestino == StatusOS.FINALIZADA) {
@@ -251,7 +251,7 @@ public class OrdemServicoService {
     public OrdemServicoResponse reabrir(UUID id, ReaberturaOrdemServicoRequest request) {
         var os = buscarEntidade(id);
         if (os.getStatus() != StatusOS.FINALIZADA) {
-            throw new RegraNegocioException("Somente uma OS finalizada pode ser reaberta.");
+            throw new RegraNegocioException("Somente um ticket finalizado pode ser reaberto.");
         }
 
         var motivo = request.motivo().trim();
@@ -259,7 +259,7 @@ public class OrdemServicoService {
         os.setStatus(StatusOS.EM_DESENVOLVIMENTO);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, administrador, "REABERTURA",
-                "OS reaberta. Motivo: " + motivo, StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
+                "Ticket reaberto. Motivo: " + motivo, StatusOS.FINALIZADA, StatusOS.EM_DESENVOLVIMENTO);
         notificacaoService.notificarReabertura(salva, motivo);
         return OrdemServicoResponse.from(salva);
     }
@@ -300,10 +300,10 @@ public class OrdemServicoService {
     public OrdemServicoResponse cancelar(UUID id, CancelamentoOrdemServicoRequest request) {
         var os = buscarEntidade(id);
         if (os.getStatus() == StatusOS.FINALIZADA) {
-            throw new RegraNegocioException("Uma OS finalizada nao pode ser cancelada.");
+            throw new RegraNegocioException("Um ticket finalizado nao pode ser cancelada.");
         }
         if (os.getStatus() == StatusOS.CANCELADA) {
-            throw new RegraNegocioException("A OS ja esta cancelada.");
+            throw new RegraNegocioException("O ticket ja esta cancelada.");
         }
 
         var statusAnterior = os.getStatus();
@@ -313,7 +313,7 @@ public class OrdemServicoService {
         os.setSequenciaExecucao(null);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, administrador, "CANCELAMENTO",
-                "OS cancelada. Motivo: " + motivo, statusAnterior, StatusOS.CANCELADA);
+                "Ticket cancelado. Motivo: " + motivo, statusAnterior, StatusOS.CANCELADA);
         notificacaoService.notificarStatus(salva);
         return OrdemServicoResponse.from(salva);
     }
@@ -322,7 +322,7 @@ public class OrdemServicoService {
     public OrdemServicoResponse atualizarAnalise(UUID id, AnaliseUpdateRequest request) {
         var os = buscarEntidade(id);
         if (os.getStatus() != StatusOS.EM_ANALISE) {
-            throw new RegraNegocioException("A analise so pode ser alterada enquanto a OS esta em analise.");
+            throw new RegraNegocioException("A analise so pode ser alterada enquanto o ticket esta em analise.");
         }
         var desenvolvedor = ehDesenvolvedor();
         if (!desenvolvedor) {
@@ -332,7 +332,7 @@ public class OrdemServicoService {
             os.setCobrar(request.cobrar() == null ? Boolean.TRUE : request.cobrar());
             if (!Boolean.TRUE.equals(os.getCobrar())
                     && !Boolean.TRUE.equals(configuracaoPagamentoService.buscarEntidade().getPermitirOsSemCobranca())) {
-                throw new RegraNegocioException("A configuracao atual nao permite OS sem cobranca.");
+                throw new RegraNegocioException("A configuracao atual nao permite ticket sem cobranca.");
             }
         }
         os.setEstimativaHoras(request.estimativaHoras());
@@ -365,7 +365,7 @@ public class OrdemServicoService {
     public OrdemServicoResponse registrarAprovacaoCliente(UUID id, boolean aprovado, String observacao) {
         var os = buscarEntidade(id);
         if (os.getStatus() != StatusOS.AGUARDANDO_APROVACAO) {
-            throw new RegraNegocioException("OS nao esta aguardando aprovacao do cliente.");
+            throw new RegraNegocioException("Ticket nao esta aguardando aprovacao do cliente.");
         }
 
         os.setAprovadaPeloCliente(aprovado);
@@ -373,7 +373,7 @@ public class OrdemServicoService {
         os.setObservacaoAprovacaoCliente(observacao);
         os.setStatus(aprovado ? StatusOS.APROVADA : StatusOS.EM_ANALISE);
         auditoriaService.registrar(os, os.getResponsavel(), aprovado ? "APROVACAO_CLIENTE" : "REPROVACAO_CLIENTE",
-                aprovado ? "OS aprovada pelo cliente." : "OS reprovada pelo cliente.", StatusOS.AGUARDANDO_APROVACAO, os.getStatus());
+                aprovado ? "Ticket aprovado pelo cliente." : "Ticket reprovado pelo cliente.", StatusOS.AGUARDANDO_APROVACAO, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarAprovacaoCliente(salva, aprovado);
         return OrdemServicoResponse.from(salva);
@@ -386,12 +386,12 @@ public class OrdemServicoService {
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
         os.setSequenciaExecucao(null);
-        auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsavel da OS atualizado.", null, os.getStatus());
+        auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Respons?vel do ticket atualizado.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
         notificacaoService.notificarAtribuicao(
                 salva,
-                "A OS " + salva.getCodigo() + " foi direcionada para voce."
+                "O ticket " + salva.getCodigo() + " foi direcionada para voce."
         );
         return OrdemServicoResponse.from(salva);
     }
@@ -415,13 +415,13 @@ public class OrdemServicoService {
     public List<OrdemServicoResponse> atualizarSequencia(UUID id, SequenciaUpdateRequest request) {
         var os = buscarEntidade(id);
         if (os.getResponsavel() == null || os.getStatus() == StatusOS.FINALIZADA) {
-            throw new RegraNegocioException("Somente OS abertas e atribuidas podem ser reordenadas.");
+            throw new RegraNegocioException("Somente tickets abertos e atribuidas podem ser reordenadas.");
         }
 
         var fila = ordemServicoRepository.findFilaByResponsavelId(os.getResponsavel().getId(), StatusOS.FINALIZADA);
         var indiceAtual = fila.indexOf(os);
         if (indiceAtual < 0) {
-            throw new RegraNegocioException("A OS nao pertence a fila informada.");
+            throw new RegraNegocioException("O ticket nao pertence a fila informada.");
         }
         if (request.posicao() > fila.size()) {
             throw new RegraNegocioException("A posicao deve estar entre 1 e " + fila.size() + ".");
@@ -441,7 +441,7 @@ public class OrdemServicoService {
         var os = buscarEntidade(id);
         os.setPaga(paga);
         auditoriaService.registrar(os, os.getResponsavel(), "PAGAMENTO",
-                paga ? "OS marcada como paga." : "OS marcada como nao paga.", null, os.getStatus());
+                paga ? "Ticket marcada como paga." : "Ticket marcada como nao paga.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarPagamento(salva, paga);
         return OrdemServicoResponse.from(salva);
@@ -451,12 +451,12 @@ public class OrdemServicoService {
     public OrdemServicoResponse atualizarVinculos(UUID id, VinculosUpdateRequest request) {
         var os = buscarEntidade(id);
         if (request.ordemServicoIds().contains(id)) {
-            throw new RegraNegocioException("Uma OS nao pode ser vinculada a ela mesma.");
+            throw new RegraNegocioException("Umo ticket nao pode ser vinculada a ela mesma.");
         }
 
         var novasVinculadas = new LinkedHashSet<>(ordemServicoRepository.findAllById(request.ordemServicoIds()));
         if (novasVinculadas.size() != request.ordemServicoIds().size()) {
-            throw new RecursoNaoEncontradoException("Uma ou mais ordens de servico vinculadas nao foram encontradas.");
+            throw new RecursoNaoEncontradoException("Uma ou mais tickets vinculados nao foram encontradas.");
         }
 
         var anteriores = new LinkedHashSet<>(os.getOrdensVinculadas());
@@ -472,7 +472,7 @@ public class OrdemServicoService {
         os.getOrdensVinculadas().addAll(novasVinculadas);
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, salva.getResponsavel(), "VINCULOS",
-                "Vinculos entre ordens de servico atualizados.", null, salva.getStatus());
+                "Vinculos entre tickets atualizados.", null, salva.getStatus());
         return OrdemServicoResponse.from(salva);
     }
 
@@ -487,7 +487,7 @@ public class OrdemServicoService {
                 ? ordemServicoRepository.findByIdAndResponsavelEmail(id, email)
                 : ordemServicoRepository.findById(id);
 
-        return ordem.orElseThrow(() -> new RecursoNaoEncontradoException("Ordem de servico nao encontrada."));
+        return ordem.orElseThrow(() -> new RecursoNaoEncontradoException("Ticket nao encontrada."));
     }
 
     private void validarTransicao(StatusOS atual, StatusOS novo) {
@@ -528,14 +528,14 @@ public class OrdemServicoService {
         var os = buscarEntidade(id);
         var usuario = usuarioService.buscarAutenticado();
         if (os.getResponsavel() != null) {
-            throw new RegraNegocioException("Esta OS ja possui responsavel.");
+            throw new RegraNegocioException("Este ticket ja possui responsavel.");
         }
         os.setResponsavel(usuario);
         os.setSequenciaExecucao(null);
-        auditoriaService.registrar(os, usuario, "RESPONSAVEL", "OS assumida pelo usuario autenticado.",
+        auditoriaService.registrar(os, usuario, "RESPONSAVEL", "Ticket assumida pelo usuario autenticado.",
                 null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
-        notificacaoService.notificarAtribuicao(salva, "Voce assumiu a OS.");
+        notificacaoService.notificarAtribuicao(salva, "Voce assumiu o ticket.");
         return OrdemServicoResponse.from(salva);
     }
 
@@ -555,7 +555,7 @@ public class OrdemServicoService {
             boolean exigirAprovacaoAdmin) {
         if (!destinosBase.contains(destino)) {
             var motivo = os.getStatus() == StatusOS.RECEBIDA
-                    ? "Esta OS precisa passar por analise antes."
+                    ? "Este ticket precisa passar por analise antes."
                     : "Esta etapa nao permite mover diretamente para o status selecionado.";
             return new TransicaoStatusResponse(destino, false, motivo);
         }
@@ -567,14 +567,14 @@ public class OrdemServicoService {
                 && (textoVazio(os.getEntendimento()) || textoVazio(os.getImpacto())
                 || textoVazio(os.getRiscos()) || os.getEstimativaHoras() == null)) {
             return new TransicaoStatusResponse(destino, false,
-                    "Esta OS precisa ter a analise preenchida antes.");
+                    "Este ticket precisa ter a analise preenchida antes.");
         }
         return new TransicaoStatusResponse(destino, true, null);
     }
 
     private void validarResponsavelObrigatorio(Usuario responsavel) {
         if (responsavel == null && !Boolean.TRUE.equals(configuracaoOSService.buscarEntidade().getPermitirSemResponsavel())) {
-            throw new RegraNegocioException("A configuracao atual nao permite OS sem responsavel.");
+            throw new RegraNegocioException("A configuracao atual nao permite ticket sem respons?vel.");
         }
     }
 

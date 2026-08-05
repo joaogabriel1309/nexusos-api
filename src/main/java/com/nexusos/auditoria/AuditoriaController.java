@@ -18,7 +18,7 @@ public class AuditoriaController {
 
     private final AuditoriaService auditoriaService;
 
-    @Operation(summary = "Lista auditoria de uma ordem de servico")
+    @Operation(summary = "Lista auditoria de um ticket")
     @GetMapping("/ordens-servico/{id}")
     public ResponseEntity<List<AuditoriaOSResponse>> listarPorOrdemServico(@PathVariable UUID id) {
         return ResponseEntity.ok(auditoriaService.listarPorOrdemServico(id));

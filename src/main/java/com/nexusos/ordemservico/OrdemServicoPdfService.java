@@ -40,21 +40,21 @@ public class OrdemServicoPdfService {
     public byte[] gerarComprovanteFinalizacao(java.util.UUID id) {
         var os = ordemServicoService.buscarEntidade(id);
         if (os.getStatus() != StatusOS.FINALIZADA) {
-            throw new RegraNegocioException("O comprovante somente pode ser gerado para uma OS finalizada.");
+            throw new RegraNegocioException("O comprovante somente pode ser gerado para um ticket finalizado.");
         }
 
         var saida = new ByteArrayOutputStream();
         var documento = new Document(PageSize.A4, 42, 42, 48, 48);
         PdfWriter.getInstance(documento, saida);
-        documento.addTitle("Comprovante de finalizacao - OS " + os.getCodigo());
-        documento.addSubject("Evidencia formal da execucao da ordem de servico");
+        documento.addTitle("Comprovante de finalizacao - ticket " + os.getCodigo());
+        documento.addSubject("Evidencia formal da execucao do ticket");
         documento.addCreator("NexusOS");
         documento.open();
 
         var titulo = new Paragraph("COMPROVANTE DE FINALIZACAO", fonte(18, Font.BOLD, AZUL));
         titulo.setAlignment(Element.ALIGN_CENTER);
         documento.add(titulo);
-        var subtitulo = new Paragraph("Ordem de servico " + os.getCodigo(), fonte(11, Font.NORMAL, CINZA));
+        var subtitulo = new Paragraph("Ticket " + os.getCodigo(), fonte(11, Font.NORMAL, CINZA));
         subtitulo.setAlignment(Element.ALIGN_CENTER);
         subtitulo.setSpacingAfter(18);
         documento.add(subtitulo);
@@ -94,7 +94,7 @@ public class OrdemServicoPdfService {
         adicionarHistorico(documento, auditoriaService.listarEntidadesPorOrdemServico(id));
 
         var rodape = new Paragraph("Documento emitido pelo NexusOS em " + data(OffsetDateTime.now())
-                + ". A autenticidade deve ser conferida com os registros da OS " + os.getCodigo() + ".",
+                + ". A autenticidade deve ser conferida com os registros do ticket " + os.getCodigo() + ".",
                 fonte(8, Font.ITALIC, CINZA));
         rodape.setSpacingBefore(18);
         documento.add(rodape);

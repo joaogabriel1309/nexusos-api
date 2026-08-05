@@ -65,7 +65,7 @@ public class AnexoService {
         }
         validarArquivo(arquivo);
         if (anexoRepository.countByOrdemServicoId(ordemServicoId) >= QUANTIDADE_MAXIMA) {
-            throw new RegraNegocioException("A OS atingiu o limite de 20 anexos.");
+            throw new RegraNegocioException("O ticket atingiu o limite de 20 anexos.");
         }
         try {
             var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);

@@ -7,14 +7,14 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "NexusOS | Gestão inteligente de Ordens de Serviço",
+    default: "NexusOS | Gestão inteligente de Tickets",
     template: "%s | NexusOS"
   },
-  description: "Plataforma para gestão de ordens de serviço, atendimento técnico, prazos, cobranças e portal do cliente.",
+  description: "Plataforma para gestão de tickets, atendimento técnico, prazos, cobranças e portal do cliente.",
   applicationName: "NexusOS",
   authors: [{ name: "NexusOS" }],
   keywords: [
-    "ordens de serviço",
+    "tickets",
     "gestão técnica",
     "SLA",
     "portal do cliente",

@@ -91,15 +91,15 @@ public class PortalClienteService {
 
     /**
      * Regra de permissao do portal publico:
-     * o cliente so pode executar acoes ou acessar anexos de OS vinculadas ao proprio token.
+     * o cliente so pode executar acoes ou acessar anexos de Tickets vinculados ao proprio token.
      *
-     * Autoriza a acao publica somente quando o token pertence ao cliente da OS.
-     * A resposta indistinguivel de recurso inexistente evita revelar OS de outro cliente.
+     * Autoriza a acao publica somente quando o token pertence ao cliente do ticket.
+     * A resposta indistinguivel de recurso inexistente evita revelar ticket de outro cliente.
      */
     private OrdemServico buscarOrdemAutorizadaPeloToken(String token, UUID ordemServicoId) {
         var cliente = clienteService.buscarPorTokenAcesso(token);
         return ordemServicoRepository.findById(ordemServicoId)
                 .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("OS nao encontrada para este cliente."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ticket nao encontrada para este cliente."));
     }
 }

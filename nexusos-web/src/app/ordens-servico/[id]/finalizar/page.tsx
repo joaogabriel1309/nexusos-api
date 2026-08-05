@@ -96,7 +96,7 @@ export default function FinalizarOrdemServicoPage() {
   const finalizarMutation = useMutation({
     mutationFn: (payload: OrdemServicoFinalizacaoPayload) => {
       if (!ordem) {
-        throw new Error("OS não carregada.");
+        throw new Error("Ticket n?o carregado.");
       }
 
       return ordemServicoService.finalizar(ordem.id, payload);
@@ -105,11 +105,11 @@ export default function FinalizarOrdemServicoPage() {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
       queryClient.invalidateQueries({ queryKey: ["ordens-servico", id] });
       queryClient.invalidateQueries({ queryKey: ["auditoria", "ordens-servico", id] });
-      toast.success("OS finalizada com sucesso.");
+      toast.success("Ticket finalizado com sucesso.");
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
-      toast.error("Não foi possível finalizar a OS.");
+      toast.error("Não foi possível finalizar o ticket.");
     }
   });
 
@@ -142,8 +142,8 @@ export default function FinalizarOrdemServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `Finalizar OS ${ordem.codigo}` : "Finalizar OS"}
-        description="Registre o que foi entregue e os detalhes técnicos usados na conclusão da ordem de serviço."
+        title={ordem ? `Finalizar ticket ${ordem.codigo}` : "Finalizar ticket"}
+        description="Registre o que foi entregue e os detalhes técnicos usados na conclusão do ticket."
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
@@ -165,7 +165,7 @@ export default function FinalizarOrdemServicoPage() {
             </div>
           ) : ordemQuery.isError || !ordem ? (
             <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span>Não foi possível carregar a OS para finalização.</span>
+              <span>Não foi possível carregar o ticket para finalização.</span>
               <Button variant="outline" size="sm" onClick={recarregar}>
                 <RefreshCcw className="h-4 w-4" />
                 Tentar novamente
@@ -192,7 +192,7 @@ export default function FinalizarOrdemServicoPage() {
                   id="descricao-finalizacao"
                   value={descricao}
                   onChange={(event) => setDescricao(event.target.value)}
-                  placeholder="Descreva o que foi entregue, corrigido ou configurado nesta OS."
+                  placeholder="Descreva o que foi entregue, corrigido ou configurado neste ticket."
                   className="min-h-36 resize-y"
                   required
                 />
@@ -248,7 +248,7 @@ export default function FinalizarOrdemServicoPage() {
                   ) : (
                     <CheckCircle2 className="h-4 w-4" />
                   )}
-                  Finalizar OS
+                  Finalizar ticket
                 </Button>
               </div>
             </form>

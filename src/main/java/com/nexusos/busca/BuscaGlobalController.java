@@ -20,7 +20,7 @@ public class BuscaGlobalController {
 
     private final BuscaGlobalService buscaGlobalService;
 
-    @Operation(summary = "Busca ordens de servico, clientes, projetos e usuarios")
+    @Operation(summary = "Busco tickets, clientes, projetos e usuarios")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public BuscaGlobalResponse buscar(

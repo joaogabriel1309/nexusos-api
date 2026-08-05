@@ -77,7 +77,7 @@ export function OrdemServicoAnaliseForm({
               </div>
               <div className="mt-1 text-2xl font-semibold">{moeda.format(valorTotal)}</div>
               <div className="text-xs text-muted-foreground">
-                {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Esta OS não será cobrada"}
+                {cobrar ? `Base: ${moeda.format(valorHora)} por hora` : "Este ticket não será cobrada"}
               </div>
             </div>
           ) : null}
@@ -96,9 +96,9 @@ export function OrdemServicoAnaliseForm({
                       onChange={(event) => field.onChange(event.target.checked)}
                     />
                     <span>
-                      <span className="block text-sm font-medium">Cobrar esta OS</span>
+                      <span className="block text-sm font-medium">Cobrar este ticket</span>
                       <span className="block text-sm text-muted-foreground">
-                        Desmarque quando a ordem de serviço não deve gerar valor para o cliente.
+                        Desmarque quando o ticket não deve gerar valor para o cliente.
                       </span>
                     </span>
                   </label>
@@ -122,7 +122,7 @@ export function OrdemServicoAnaliseForm({
                   <FormControl>
                     <Textarea
                       className="min-h-40"
-                      placeholder="Descreva a análise técnica da OS"
+                      placeholder="Descreva a análise técnica do ticket"
                       disabled={readOnly}
                       {...field}
                     />

@@ -23,13 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApontamentoTempoController {
     private final ApontamentoTempoService apontamentoTempoService;
 
-    @Operation(summary = "Lista apontamentos de tempo da OS")
+    @Operation(summary = "Lista apontamentos de tempo do ticket")
     @GetMapping
     public ResponseEntity<List<ApontamentoTempoResponse>> listar(@PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(apontamentoTempoService.listar(ordemServicoId));
     }
 
-    @Operation(summary = "Cria apontamento de tempo da OS")
+    @Operation(summary = "Cria apontamento de tempo do ticket")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<ApontamentoTempoResponse> criar(@PathVariable UUID ordemServicoId,

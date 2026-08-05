@@ -35,7 +35,7 @@ export function PaymentSettingsCard() {
   if (query.isError) return <Card><CardContent className="p-6 text-sm text-destructive">Não foi possível carregar as configurações de pagamento.</CardContent></Card>;
   const alterar = <K extends keyof ConfiguracaoPagamentoPayload>(campo: K, valor: ConfiguracaoPagamentoPayload[K]) => setForm((atual) => atual ? { ...atual, [campo]: valor } : atual);
   function salvar(e: FormEvent) { e.preventDefault(); mutation.mutate(form!); }
-  return <Card><CardHeader className="flex-row items-center justify-between gap-4"><div><CardTitle>Pagamento</CardTitle><p className="mt-1 text-sm text-muted-foreground">Configure o Mercado Pago e as regras de cobrança das ordens de serviço.</p></div><Badge variant={tokenConfigurado ? "success" : "warning"}>{tokenConfigurado ? "Token configurado" : "Token pendente"}</Badge></CardHeader><CardContent>
+  return <Card><CardHeader className="flex-row items-center justify-between gap-4"><div><CardTitle>Pagamento</CardTitle><p className="mt-1 text-sm text-muted-foreground">Configure o Mercado Pago e as regras de cobrança dos tickets.</p></div><Badge variant={tokenConfigurado ? "success" : "warning"}>{tokenConfigurado ? "Token configurado" : "Token pendente"}</Badge></CardHeader><CardContent>
     <form onSubmit={salvar} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo label={tokenConfigurado ? "Novo access token (opcional)" : "Access token"}><Input type="password" autoComplete="new-password" maxLength={2000} value={form.mercadoPagoToken ?? ""} placeholder={tokenConfigurado ? "Deixe vazio para manter o atual" : "APP_USR-..."} onChange={(e) => alterar("mercadoPagoToken", e.target.value)} required={!tokenConfigurado} /></Campo>
@@ -43,8 +43,8 @@ export function PaymentSettingsCard() {
         <Campo label="Expiração do link (minutos)"><Input type="number" min={5} max={10080} value={form.expiracaoLinkMinutos} onChange={(e) => alterar("expiracaoLinkMinutos", Number(e.target.value))} required /></Campo>
       </div>
       <div className="grid gap-3">
-        <Opcao label="Cobrar automaticamente ao finalizar a OS" descricao="OS cobradas e não pagas seguem para aguardando pagamento antes da finalização." checked={form.cobrarAutomaticamenteOsFinalizada} onChange={(v) => alterar("cobrarAutomaticamenteOsFinalizada", v)} />
-        <Opcao label="Permitir OS sem cobrança" descricao="Permite desmarcar a cobrança durante a análise administrativa." checked={form.permitirOsSemCobranca} onChange={(v) => alterar("permitirOsSemCobranca", v)} />
+        <Opcao label="Cobrar automaticamente ao finalizar o ticket" descricao="tickets cobrados e não pagas seguem para aguardando pagamento antes da finalização." checked={form.cobrarAutomaticamenteOsFinalizada} onChange={(v) => alterar("cobrarAutomaticamenteOsFinalizada", v)} />
+        <Opcao label="Permitir ticket sem cobrança" descricao="Permite desmarcar a cobrança durante a análise administrativa." checked={form.permitirOsSemCobranca} onChange={(v) => alterar("permitirOsSemCobranca", v)} />
       </div>
       <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Salvar configurações de pagamento</Button>
     </form>

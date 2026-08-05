@@ -33,19 +33,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/portal/clientes/{token}")
 @RequiredArgsConstructor
-@PreAuthorize("permitAll()") // A autorizacao do portal e feita pelo token do cliente e pelo vinculo da OS.
+@PreAuthorize("permitAll()") // A autorizacao do portal e feita pelo token do cliente e pelo vinculo do ticket.
 public class PortalClienteController {
 
     private final PortalClienteService portalClienteService;
     private final AnexoService anexoService;
 
-    @Operation(summary = "Lista OS do cliente pelo token publico")
+    @Operation(summary = "Listo ticket do cliente pelo token publico")
     @GetMapping("/ordens-servico")
     public ResponseEntity<PortalClienteResponse> listarOrdens(@PathVariable String token) {
         return ResponseEntity.ok(portalClienteService.listarOrdens(token));
     }
 
-    @Operation(summary = "Aprova OS pelo portal do cliente")
+    @Operation(summary = "Aprovo ticket pelo portal do cliente")
     @PatchMapping("/ordens-servico/{ordemServicoId}/aprovar")
     public ResponseEntity<PortalOrdemServicoResponse> aprovar(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
@@ -54,7 +54,7 @@ public class PortalClienteController {
                 request != null ? request.observacao() : null));
     }
 
-    @Operation(summary = "Reprova OS pelo portal do cliente")
+    @Operation(summary = "Reprovo ticket pelo portal do cliente")
     @PatchMapping("/ordens-servico/{ordemServicoId}/reprovar")
     public ResponseEntity<PortalOrdemServicoResponse> reprovar(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
@@ -62,21 +62,21 @@ public class PortalClienteController {
         return ResponseEntity.ok(portalClienteService.reprovar(token, ordemServicoId, request.observacao()));
     }
 
-    @Operation(summary = "Inicia pagamento da OS no Mercado Pago")
+    @Operation(summary = "Inicia pagamento do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento")
     public ResponseEntity<PagamentoCheckoutResponse> iniciarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(portalClienteService.iniciarPagamento(token, ordemServicoId));
     }
 
-    @Operation(summary = "Gera pagamento Pix da OS no Mercado Pago")
+    @Operation(summary = "Gera pagamento Pix do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/pix")
     public ResponseEntity<PagamentoPixResponse> gerarPix(@PathVariable String token,
             @PathVariable UUID ordemServicoId) {
         return ResponseEntity.ok(portalClienteService.gerarPix(token, ordemServicoId));
     }
 
-    @Operation(summary = "Confirma pagamento da OS pelo retorno do Mercado Pago")
+    @Operation(summary = "Confirma pagamento do ticket pelo retorno do Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/confirmar")
     public ResponseEntity<PortalOrdemServicoResponse> confirmarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
@@ -84,7 +84,7 @@ public class PortalClienteController {
         return ResponseEntity.ok(portalClienteService.confirmarPagamento(token, ordemServicoId, request.paymentId()));
     }
 
-    @Operation(summary = "Verifica pagamento aprovado da OS no Mercado Pago")
+    @Operation(summary = "Verifica pagamento aprovado do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/verificar")
     public ResponseEntity<PortalOrdemServicoResponse> verificarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId) {

@@ -188,8 +188,8 @@ public class NotificacaoService {
         notificarAdmins(
                 ordemServico,
                 TIPO_ATRIBUICAO,
-                "OS atribuida",
-                "A OS " + ordemServico.getCodigo() + " foi atribuida para "
+                "Ticket atribu?do",
+                "O ticket " + ordemServico.getCodigo() + " foi atribuida para "
                         + (responsavel != null ? responsavel.getNome() : "um responsavel") + "."
         );
 
@@ -198,7 +198,7 @@ public class NotificacaoService {
                     responsavel,
                     ordemServico,
                     TIPO_ATRIBUICAO,
-                    "OS atribuida a voce",
+                    "Ticket atribu?do a voce",
                     mensagem,
                     null
             );
@@ -211,8 +211,8 @@ public class NotificacaoService {
             notificarAdmins(
                     ordemServico,
                     TIPO_OS_SEM_RESPONSAVEL,
-                    "OS criada sem responsavel",
-                    "A OS " + ordemServico.getCodigo() + " foi criada sem responsavel."
+                    "Ticket criado sem responsavel",
+                    "O ticket " + ordemServico.getCodigo() + " foi criada sem responsavel."
             );
         }
 
@@ -220,12 +220,12 @@ public class NotificacaoService {
             notificarAdmins(
                     ordemServico,
                     TIPO_OS_SEM_PRAZO,
-                    "OS criada sem prazo",
-                    "A OS " + ordemServico.getCodigo() + " foi criada sem prazo definido."
+                    "Ticket criado sem prazo",
+                    "O ticket " + ordemServico.getCodigo() + " foi criada sem prazo definido."
             );
         }
 
-        notificarSeCritica(ordemServico, "OS critica criada");
+        notificarSeCritica(ordemServico, "Ticket cr?tico criada");
     }
 
     @Transactional
@@ -233,8 +233,8 @@ public class NotificacaoService {
         notificarAdmins(
                 ordemServico,
                 TIPO_STATUS,
-                "Status da OS atualizado",
-                "A OS " + ordemServico.getCodigo() + " agora esta em " + ordemServico.getStatus() + "."
+                "Status do ticket atualizado",
+                "O ticket " + ordemServico.getCodigo() + " agora esta em " + ordemServico.getStatus() + "."
         );
     }
 
@@ -243,18 +243,18 @@ public class NotificacaoService {
         notificarAdmins(
                 ordemServico,
                 TIPO_REABERTURA,
-                "OS reaberta",
-                "A OS " + ordemServico.getCodigo() + " foi reaberta. Motivo: " + motivo
+                "Ticket reaberto",
+                "O ticket " + ordemServico.getCodigo() + " foi reaberto. Motivo: " + motivo
         );
     }
 
     @Transactional
     public void notificarAprovacaoCliente(OrdemServico ordemServico, boolean aprovado) {
         var responsavel = ordemServico.getResponsavel();
-        var titulo = aprovado ? "OS aprovada pelo cliente" : "OS reprovada pelo cliente";
+        var titulo = aprovado ? "Ticket aprovado pelo cliente" : "Ticket reprovado pelo cliente";
         var mensagem = aprovado
-                ? "O cliente aprovou a OS " + ordemServico.getCodigo() + "."
-                : "O cliente reprovou a OS " + ordemServico.getCodigo() + " e ela voltou para analise.";
+                ? "O cliente aprovou o ticket " + ordemServico.getCodigo() + "."
+                : "O cliente reprovou o ticket " + ordemServico.getCodigo() + " e ela voltou para analise.";
 
         notificarAdmins(ordemServico, TIPO_APROVACAO_CLIENTE, titulo, mensagem);
 
@@ -276,15 +276,15 @@ public class NotificacaoService {
                 TIPO_PAGAMENTO,
                 paga ? "Pagamento confirmado" : "Pagamento removido",
                 paga
-                        ? "A OS " + ordemServico.getCodigo() + " foi marcada como paga."
-                        : "A OS " + ordemServico.getCodigo() + " voltou a constar como pendente."
+                        ? "O ticket " + ordemServico.getCodigo() + " foi marcada como paga."
+                        : "O ticket " + ordemServico.getCodigo() + " voltou a constar como pendente."
         );
     }
 
     @Transactional
     public void notificarComentario(OrdemServico ordemServico, Usuario autor) {
-        var titulo = "Novo comentario na OS";
-        var mensagem = "A OS " + ordemServico.getCodigo() + " recebeu um novo comentario"
+        var titulo = "Novo coment?rio no ticket";
+        var mensagem = "O ticket " + ordemServico.getCodigo() + " recebeu um novo comentario"
                 + (autor != null ? " de " + autor.getNome() : "") + ".";
 
         notificarAdmins(ordemServico, TIPO_COMENTARIO, titulo, mensagem);
@@ -293,39 +293,39 @@ public class NotificacaoService {
     @Transactional
     public void notificarChecklist(OrdemServico ordemServico, String descricaoEvento) {
         var titulo = "Checklist atualizado";
-        var mensagem = "O checklist da OS " + ordemServico.getCodigo() + " foi atualizado: " + descricaoEvento + ".";
+        var mensagem = "O checklist do ticket " + ordemServico.getCodigo() + " foi atualizado: " + descricaoEvento + ".";
 
         notificarAdmins(ordemServico, TIPO_CHECKLIST, titulo, mensagem);
     }
 
     @Transactional
     public void notificarAnexo(OrdemServico ordemServico, String nomeArquivo) {
-        var titulo = "Novo anexo na OS";
-        var mensagem = "A OS " + ordemServico.getCodigo() + " recebeu o anexo " + nomeArquivo + ".";
+        var titulo = "Novo anexo no ticket";
+        var mensagem = "O ticket " + ordemServico.getCodigo() + " recebeu o anexo " + nomeArquivo + ".";
 
         notificarAdmins(ordemServico, TIPO_ANEXO, titulo, mensagem);
     }
 
     @Transactional
     public void notificarPrioridadeAlterada(OrdemServico ordemServico) {
-        var titulo = "Prioridade da OS alterada";
-        var mensagem = "A OS " + ordemServico.getCodigo() + " agora esta com prioridade " + ordemServico.getPrioridade() + ".";
+        var titulo = "Prioridade do ticket alterada";
+        var mensagem = "O ticket " + ordemServico.getCodigo() + " agora esta com prioridade " + ordemServico.getPrioridade() + ".";
 
         notificarAdmins(ordemServico, TIPO_PRIORIDADE, titulo, mensagem);
-        notificarSeCritica(ordemServico, "OS critica");
+        notificarSeCritica(ordemServico, "Ticket cr?tico");
     }
 
     @Transactional
     public void notificarPrazoAlterado(OrdemServico ordemServico) {
-        var titulo = "Prazo da OS alterado";
+        var titulo = "Prazo do ticket alterado";
         var mensagem = ordemServico.getPrazo() != null
-                ? "A OS " + ordemServico.getCodigo() + " agora tem prazo em " + ordemServico.getPrazo() + "."
-                : "A OS " + ordemServico.getCodigo() + " ficou sem prazo definido.";
+                ? "O ticket " + ordemServico.getCodigo() + " agora tem prazo em " + ordemServico.getPrazo() + "."
+                : "O ticket " + ordemServico.getCodigo() + " ficou sem prazo definido.";
 
         notificarAdmins(ordemServico, TIPO_PRAZO_ALTERADO, titulo, mensagem);
 
         if (ordemServico.getPrazo() == null) {
-            notificarAdmins(ordemServico, TIPO_OS_SEM_PRAZO, "OS sem prazo", mensagem);
+            notificarAdmins(ordemServico, TIPO_OS_SEM_PRAZO, "Ticket sem prazo", mensagem);
         }
     }
 
@@ -338,8 +338,8 @@ public class NotificacaoService {
         notificarAdmins(
                 ordemServico,
                 TIPO_RESPONSAVEL_ALTERADO,
-                "Responsavel da OS alterado",
-                "A OS " + ordemServico.getCodigo() + " mudou de " + anterior + " para " + atual + "."
+                "Respons?vel do ticket alterado",
+                "O ticket " + ordemServico.getCodigo() + " mudou de " + anterior + " para " + atual + "."
         );
     }
 
@@ -349,7 +349,7 @@ public class NotificacaoService {
                 ordemServico,
                 TIPO_APONTAMENTO,
                 "Apontamento de tempo atualizado",
-                "A OS " + ordemServico.getCodigo() + " teve apontamento de tempo atualizado"
+                "O ticket " + ordemServico.getCodigo() + " teve apontamento de tempo atualizado"
                         + (usuario != null ? " por " + usuario.getNome() : "") + ": " + descricaoEvento + "."
         );
     }
@@ -360,7 +360,7 @@ public class NotificacaoService {
                 ordemServico,
                 TIPO_INTEGRACAO_FALHA,
                 "Falha em " + canal,
-                "Falha em " + canal + " na OS " + ordemServico.getCodigo() + ": " + detalhe
+                "Falha em " + canal + " no ticket " + ordemServico.getCodigo() + ": " + detalhe
         );
     }
 
@@ -395,8 +395,8 @@ public class NotificacaoService {
     public void notificarProjetoSemOs(String nomeProjeto) {
         notificarAdminsSistema(
                 TIPO_PROJETO,
-                "Projeto criado sem OS",
-                "O projeto " + nomeProjeto + " foi criado e ainda nao possui OS vinculada."
+                "Projeto criado sem ticket",
+                "O projeto " + nomeProjeto + " foi criado e ainda nao possui ticket vinculado."
         );
     }
 
@@ -415,8 +415,8 @@ public class NotificacaoService {
             var dias = ChronoUnit.DAYS.between(hoje, ordem.getPrazo());
 
             if (dias < 0) {
-                var titulo = "Prazo da OS vencido";
-                var mensagem = "A OS " + ordem.getCodigo() + " venceu em " + ordem.getPrazo() + ".";
+                var titulo = "Prazo do ticket vencido";
+                var mensagem = "O ticket " + ordem.getCodigo() + " venceu em " + ordem.getPrazo() + ".";
                 criarSeNaoExistir(
                         adminsAtivos(),
                         ordem,
@@ -432,8 +432,8 @@ public class NotificacaoService {
 
             if (dias <= 2) {
                 var descricaoPrazo = dias == 0 ? "vence hoje" : dias == 1 ? "vence amanha" : "vence em 2 dias";
-                var titulo = "Prazo da OS proximo";
-                var mensagem = "A OS " + ordem.getCodigo() + " " + descricaoPrazo + ".";
+                var titulo = "Prazo do ticket proximo";
+                var mensagem = "O ticket " + ordem.getCodigo() + " " + descricaoPrazo + ".";
                 criarSeNaoExistir(
                         adminsAtivos(),
                         ordem,
@@ -489,7 +489,7 @@ public class NotificacaoService {
                 ordemServico,
                 TIPO_OS_CRITICA,
                 titulo,
-                "A OS " + ordemServico.getCodigo() + " esta com prioridade critica."
+                "O ticket " + ordemServico.getCodigo() + " esta com prioridade critica."
         );
     }
 
@@ -507,8 +507,8 @@ public class NotificacaoService {
                 adminsAtivos(),
                 ordemServico,
                 TIPO_OS_PARADA,
-                "OS parada ha " + diasSemAtualizacao + " dias",
-                "A OS " + ordemServico.getCodigo() + " esta sem atualizacao ha " + diasSemAtualizacao + " dias.",
+                "Ticket parado ha " + diasSemAtualizacao + " dias",
+                "O ticket " + ordemServico.getCodigo() + " esta sem atualizacao ha " + diasSemAtualizacao + " dias.",
                 hoje
         );
     }

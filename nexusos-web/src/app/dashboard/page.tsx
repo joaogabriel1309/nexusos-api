@@ -83,7 +83,7 @@ function RingChart({ value, label }: { value: number; label: string }) {
       </svg>
       <div>
         <div className="text-sm font-medium">{label}</div>
-        <p className="mt-1 text-sm text-muted-foreground">Percentual de OS finalizadas em relacao ao total cadastrado.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Percentual de tickets finalizados em relacao ao total cadastrado.</p>
       </div>
     </div>
   );
@@ -102,7 +102,7 @@ function MonthlyBarChart({ data }: { data: Array<{ mes: string; rotulo: string; 
               <div
                 className="w-full rounded-t-md bg-primary shadow-sm transition-all"
                 style={{ height: `${height}%` }}
-                title={`${item.total} OS finalizadas`}
+                title={`${item.total} tickets finalizados`}
               />
             </div>
             <div className="text-sm font-semibold">{item.total}</div>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
     hint: string;
     href?: string;
   }> = [
-    { title: "OS abertas", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} OS no total`, href: "/ordens-servico" },
+    { title: "Tickets abertos", value: resumo?.osAbertas ?? 0, icon: ClipboardList, hint: `${resumo?.totalOs ?? 0} tickets no total`, href: "/ordens-servico" },
     { title: "Em desenvolvimento", value: emDesenvolvimento, icon: Code2, hint: "status atual", href: ordensHref({ status: "EM_DESENVOLVIMENTO" }) },
     {
       title: "Finalizadas",
@@ -164,7 +164,7 @@ export default function DashboardPage() {
       href: "/ordens-servico/finalizadas"
     },
     { title: "Tempo médio", value: formatarHoras(resumo?.tempoMedioFinalizacaoHoras), icon: Clock, hint: "até finalização" },
-    { title: "OS vencidas", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado", href: ordensHref({ prazo: "vencidas" }) },
+    { title: "Tickets vencidos", value: resumo?.osVencidas ?? 0, icon: AlertTriangle, hint: "prazo expirado", href: ordensHref({ prazo: "vencidas" }) },
     { title: "Vencem hoje", value: resumo?.osVencemHoje ?? 0, icon: CalendarClock, hint: "atenção no dia", href: ordensHref({ prazo: "hoje" }) },
     {
       title: "Sem responsável",
@@ -184,7 +184,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Dashboard" description="Visão executiva das ordens de serviço e produtividade técnica." />
+      <PageHeader title="Dashboard" description="Visão executiva dos tickets e produtividade técnica." />
 
       {isLoading ? (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -248,7 +248,7 @@ export default function DashboardPage() {
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Fluxo operacional por status</CardTitle>
-                <CardDescription>Distribuicao atual das OS em cada etapa do workflow.</CardDescription>
+                <CardDescription>Distribuicao atual dos tickets em cada etapa do workflow.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {statusFluxo.map((status, index) => {
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                 <CardDescription>Conclusão geral das ordens cadastradas.</CardDescription>
               </CardHeader>
               <CardContent>
-                <RingChart value={produtividade?.percentualFinalizacao ?? 0} label={`${resumo?.osFinalizadas ?? 0} OS finalizadas`} />
+                <RingChart value={produtividade?.percentualFinalizacao ?? 0} label={`${resumo?.osFinalizadas ?? 0} tickets finalizados`} />
               </CardContent>
             </Card>
           </section>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           <section className="mt-4 grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>OS finalizadas por mes</CardTitle>
+                <CardTitle>Tickets finalizados por mes</CardTitle>
                 <CardDescription>Volume de conclusoes nos ultimos 6 meses.</CardDescription>
               </CardHeader>
               <CardContent>
