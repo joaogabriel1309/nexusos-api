@@ -208,7 +208,6 @@ export default function MinhasOsPage() {
       .sort(ordenarFila);
   }, [ordensQuery.data, prioridadeFiltro, responsavelSelecionadoId, statusFiltro]);
 
-  const renderOrdem = (ordem: OrdemServico) => <OrdemCard key={ordem.id} ordem={ordem} />;
   const podeReordenar = isAdmin && !statusFiltro && !prioridadeFiltro;
 
   function moverOrdem(id: string, posicao: number) {
@@ -313,7 +312,7 @@ export default function MinhasOsPage() {
             </CardContent>
           </Card>
 
-          <section className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <section className="mt-5">
             <Card>
               <CardHeader>
                 <CardTitle>Prioridade de execução</CardTitle>
@@ -338,18 +337,6 @@ export default function MinhasOsPage() {
                 )) : <EmptyState />}
               </CardContent>
             </Card>
-
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>O que fazer hoje</CardTitle>
-                  <CardDescription>Vencidas e com prazo para o dia atual.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {[...vencidas, ...hoje].length > 0 ? [...vencidas, ...hoje].slice(0, 6).map(renderOrdem) : <EmptyState />}
-                </CardContent>
-              </Card>
-            </div>
           </section>
         </>
       )}
