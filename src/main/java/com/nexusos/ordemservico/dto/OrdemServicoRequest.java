@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 public record OrdemServicoRequest(
@@ -17,6 +18,7 @@ public record OrdemServicoRequest(
         UUID projetoId,
         PrioridadeOS prioridade,
         LocalDate prazo,
-        @PositiveOrZero BigDecimal estimativaHoras
+        @PositiveOrZero BigDecimal estimativaHoras,
+        Set<UUID> ordemServicoIds
 ) {
 }

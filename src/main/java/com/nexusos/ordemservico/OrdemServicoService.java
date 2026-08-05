@@ -113,6 +113,11 @@ public class OrdemServicoService {
         var prioridade = request.prioridade() != null ? request.prioridade() : configuracao.getPrioridadePadrao();
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         validarProjetoDoCliente(projeto, cliente.getId());
+        var idsVinculados = request.ordemServicoIds() == null ? Set.<UUID>of() : new LinkedHashSet<>(request.ordemServicoIds());
+        var ordensVinculadas = ordemServicoRepository.findAllById(idsVinculados);
+        if (ordensVinculadas.size() != idsVinculados.size()) {
+            throw new RecursoNaoEncontradoException("Um ou mais tickets relacionados não foram encontrados.");
+        }
         var os = OrdemServico.builder()
                 .codigo(ordemServicoRepository.proximoCodigo())
                 .titulo(request.titulo())
@@ -127,9 +132,18 @@ public class OrdemServicoService {
                 .cobrar(Boolean.TRUE)
                 .paga(Boolean.FALSE)
                 .build();
+        os.getOrdensVinculadas().addAll(ordensVinculadas);
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
+        ordensVinculadas.forEach(vinculada -> {
+            vinculada.getOrdensVinculadas().add(salva);
+            ordemServicoRepository.save(vinculada);
+        });
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ticket criada.", null, salva.getStatus());
+        if (!ordensVinculadas.isEmpty()) {
+            auditoriaService.registrar(salva, responsavel, "VINCULOS",
+                    "Tickets relacionados adicionados durante o cadastro.", null, salva.getStatus());
+        }
         notificacaoService.notificarOsCriada(salva);
         notificacaoService.notificarAtribuicao(
                 salva,
@@ -300,10 +314,10 @@ public class OrdemServicoService {
     public OrdemServicoResponse cancelar(UUID id, CancelamentoOrdemServicoRequest request) {
         var os = buscarEntidade(id);
         if (os.getStatus() == StatusOS.FINALIZADA) {
-            throw new RegraNegocioException("Um ticket finalizado nao pode ser cancelada.");
+            throw new RegraNegocioException("Um ticket finalizado não pode ser cancelado.");
         }
         if (os.getStatus() == StatusOS.CANCELADA) {
-            throw new RegraNegocioException("O ticket ja esta cancelada.");
+            throw new RegraNegocioException("O ticket já está cancelado.");
         }
 
         var statusAnterior = os.getStatus();
@@ -321,8 +335,10 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponse atualizarAnalise(UUID id, AnaliseUpdateRequest request) {
         var os = buscarEntidade(id);
-        if (os.getStatus() != StatusOS.EM_ANALISE) {
-            throw new RegraNegocioException("A analise so pode ser alterada enquanto o ticket esta em analise.");
+        var statusAnterior = os.getStatus();
+        var iniciandoAnalise = statusAnterior == StatusOS.RECEBIDA;
+        if (!iniciandoAnalise && statusAnterior != StatusOS.EM_ANALISE) {
+            throw new RegraNegocioException("A analise so pode ser alterada em tickets recebidos ou em analise.");
         }
         var desenvolvedor = ehDesenvolvedor();
         if (!desenvolvedor) {
@@ -336,14 +352,40 @@ public class OrdemServicoService {
             }
         }
         os.setEstimativaHoras(request.estimativaHoras());
+
+        var exigeAprovacaoAdmin = false;
+        if (desenvolvedor) {
+            var configuracao = configuracaoOSService.buscarEntidade();
+            exigeAprovacaoAdmin = configuracao == null
+                    || Boolean.TRUE.equals(configuracao.getExigirAprovacaoAdminAntesCliente());
+        }
+        var analiseCompleta = !textoVazio(os.getEntendimento()) && os.getEstimativaHoras() != null;
+        var enviarParaAprovacao = !desenvolvedor || (!exigeAprovacaoAdmin && analiseCompleta);
+
+        if (enviarParaAprovacao) {
+            validarAnalisePreenchida(os);
+            os.setStatus(StatusOS.AGUARDANDO_APROVACAO);
+        } else {
+            os.setStatus(StatusOS.EM_ANALISE);
+        }
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
+        if (iniciandoAnalise) {
+            auditoriaService.registrar(salva, salva.getResponsavel(), "ALTERACAO_STATUS",
+                    "Análise iniciada ao salvar as primeiras informações.", StatusOS.RECEBIDA, StatusOS.EM_ANALISE);
+        }
         auditoriaService.registrar(salva, salva.getResponsavel(), "ANALISE",
-                desenvolvedor ? "Estimativa de horas informada pelo desenvolvedor." : "Analise tecnica atualizada.",
+                desenvolvedor ? "Estimativa de horas informada pelo desenvolvedor." : "Análise técnica concluída.",
                 null, salva.getStatus());
-        if (!desenvolvedor) {
+        if (enviarParaAprovacao) {
+            auditoriaService.registrar(salva, salva.getResponsavel(), "ALTERACAO_STATUS",
+                    "Análise concluída e enviada automaticamente para aprovação.",
+                    StatusOS.EM_ANALISE, StatusOS.AGUARDANDO_APROVACAO);
+            notificacaoService.notificarStatus(salva);
             emailService.enviarOrdemServicoAnalisada(salva);
             whatsappService.enviarOrdemServicoAnalisada(salva);
+        } else if (iniciandoAnalise) {
+            notificacaoService.notificarStatus(salva);
         }
         return OrdemServicoResponse.from(salva);
     }
@@ -386,7 +428,7 @@ public class OrdemServicoService {
         Usuario responsavel = usuarioService.buscarEntidade(request.responsavelId());
         os.setResponsavel(responsavel);
         os.setSequenciaExecucao(null);
-        auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Respons?vel do ticket atualizado.", null, os.getStatus());
+        auditoriaService.registrar(os, responsavel, "RESPONSAVEL", "Responsável do ticket atualizado.", null, os.getStatus());
         var salva = ordemServicoRepository.save(os);
         notificacaoService.notificarResponsavelAlterado(salva, responsavelAnterior);
         notificacaoService.notificarAtribuicao(
@@ -564,8 +606,7 @@ public class OrdemServicoService {
                     "Aguardando aprovacao do administrador.");
         }
         if (destino == StatusOS.AGUARDANDO_APROVACAO && exigirAnalise
-                && (textoVazio(os.getEntendimento()) || textoVazio(os.getImpacto())
-                || textoVazio(os.getRiscos()) || os.getEstimativaHoras() == null)) {
+                && (textoVazio(os.getEntendimento()) || os.getEstimativaHoras() == null)) {
             return new TransicaoStatusResponse(destino, false,
                     "Este ticket precisa ter a analise preenchida antes.");
         }
@@ -574,14 +615,13 @@ public class OrdemServicoService {
 
     private void validarResponsavelObrigatorio(Usuario responsavel) {
         if (responsavel == null && !Boolean.TRUE.equals(configuracaoOSService.buscarEntidade().getPermitirSemResponsavel())) {
-            throw new RegraNegocioException("A configuracao atual nao permite ticket sem respons?vel.");
+            throw new RegraNegocioException("A configuração atual não permite ticket sem responsável.");
         }
     }
 
     private void validarAnalisePreenchida(OrdemServico os) {
-        if (textoVazio(os.getEntendimento()) || textoVazio(os.getImpacto()) || textoVazio(os.getRiscos())
-                || os.getEstimativaHoras() == null) {
-            throw new RegraNegocioException("Preencha entendimento, impacto, riscos e estimativa antes de enviar ao cliente.");
+        if (textoVazio(os.getEntendimento()) || os.getEstimativaHoras() == null) {
+            throw new RegraNegocioException("Preencha o texto da análise e a estimativa antes de enviar ao cliente.");
         }
     }
 

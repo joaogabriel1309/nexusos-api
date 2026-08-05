@@ -58,7 +58,7 @@ class ConfiguracaoOSServiceTest {
 
         assertThatThrownBy(() -> service.atualizar(request))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessageContaining("responsavel padrao");
+                .hasMessageContaining("responsável padrão");
     }
 
     @Test

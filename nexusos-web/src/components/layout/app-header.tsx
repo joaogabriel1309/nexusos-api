@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Building2, ClipboardList, FolderKanban, Laptop, Loader2, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, Users } from "lucide-react";
+import { Bell, Building2, ClipboardCheck, ClipboardList, FolderKanban, Laptop, Loader2, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { getResumoNotificacao } from "@/lib/notificacao-labels";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useAuth } from "@/providers/auth-provider";
 import { notificacaoService } from "@/services/notificacao-service";
 import { buscaGlobalService } from "@/services/busca-global-service";
@@ -30,6 +31,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   const [buscaGlobal, setBuscaGlobal] = useState("");
   const [termoBusca, setTermoBusca] = useState("");
   const [buscaAberta, setBuscaAberta] = useState(false);
+  const [buscaMobileAberta, setBuscaMobileAberta] = useState(false);
   const SidebarIcon = sidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
   const notificacoesQuery = useQuery({
     queryKey: ["notificacoes"],
@@ -82,6 +84,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
 
   function abrirResultado(item: BuscaGlobalItem) {
     setBuscaAberta(false);
+    setBuscaMobileAberta(false);
     setBuscaGlobal("");
     router.push(item.href);
   }
@@ -101,8 +104,18 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   ].filter((grupo) => grupo.itens.length > 0);
 
   return (
+    <>
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur lg:px-6">
-      <MobileNav />
+      <Link
+        href={usuario?.perfil === "DESENVOLVEDOR" ? "/minhas-os" : "/dashboard"}
+        className="flex min-w-0 items-center gap-2 lg:hidden"
+        aria-label="Ir para o início"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <ClipboardCheck className="h-5 w-5" />
+        </span>
+        <span className="hidden text-sm font-semibold sm:inline">NexusOS</span>
+      </Link>
       <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={onToggleSidebar}>
         <SidebarIcon className="h-5 w-5" />
         <span className="sr-only">{sidebarCollapsed ? "Abrir menu lateral" : "Esconder menu lateral"}</span>
@@ -140,10 +153,14 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
           </div>
         ) : null}
       </form>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setBuscaMobileAberta(true)}>
+          <Search className="h-5 w-5" />
+          <span className="sr-only">Abrir busca</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hidden sm:inline-flex">
               {resolvedTheme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               <span className="sr-only">Alterar tema</span>
             </Button>
@@ -237,5 +254,42 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         </DropdownMenu>
       </div>
     </header>
+    <Sheet open={buscaMobileAberta} onOpenChange={setBuscaMobileAberta}>
+      <SheetContent side="top" className="overflow-y-auto pt-14">
+        <form onSubmit={buscarGlobalmente} role="search" className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            autoFocus
+            className="pl-9"
+            placeholder="Buscar ticket, cliente ou responsável"
+            value={buscaGlobal}
+            onChange={(event) => setBuscaGlobal(event.target.value)}
+            aria-label="Busca global"
+          />
+        </form>
+        <div className="mt-3 rounded-md border bg-popover p-2">
+          {termoBusca.length < 2 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground">Digite pelo menos dois caracteres.</div>
+          ) : buscaGlobalQuery.isFetching ? (
+            <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Buscando...</div>
+          ) : buscaGlobalQuery.isError ? (
+            <div className="px-3 py-4 text-sm text-destructive">Não foi possível realizar a busca.</div>
+          ) : gruposBusca.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground">Nenhum resultado encontrado.</div>
+          ) : gruposBusca.map(({ titulo, itens, icon: Icon }) => (
+            <div key={titulo} className="py-1">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase text-muted-foreground"><Icon className="h-3.5 w-3.5" /> {titulo}</div>
+              {itens.map((item) => (
+                <button key={item.id} type="button" onClick={() => abrirResultado(item)} className="min-h-11 w-full rounded-sm px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none">
+                  <span className="block truncate text-sm font-medium">{item.titulo}</span>
+                  {item.subtitulo ? <span className="block truncate text-xs text-muted-foreground">{item.subtitulo}</span> : null}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }

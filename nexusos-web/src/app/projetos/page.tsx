@@ -156,7 +156,23 @@ export default function ProjetosPage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="grid gap-3 p-4 md:hidden">
+              {projetosPaginados.map((projeto) => (
+                <article key={projeto.id} className="min-w-0 rounded-md border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><h2 className="break-words text-sm font-semibold [overflow-wrap:anywhere]">{projeto.nome}</h2><p className="mt-1 text-xs text-muted-foreground">{projeto.clienteNome || "Sem cliente"}</p></div>
+                    <Badge variant={projeto.ativo ? "default" : "secondary"}>{projeto.ativo ? "Ativo" : "Inativo"}</Badge>
+                  </div>
+                  <p className="mt-4 line-clamp-3 whitespace-pre-wrap break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">{projeto.descricao || "Sem descrição"}</p>
+                  <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+                    <Button variant="outline" size="icon" onClick={() => abrirEdicao(projeto)} aria-label="Editar projeto"><Edit className="h-4 w-4" /></Button>
+                    <Button variant="destructive" size="icon" disabled={!projeto.ativo || projetoInativandoId === projeto.id} onClick={() => inativarProjeto(projeto)} aria-label="Inativar projeto">{projetoInativandoId === projeto.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -205,6 +221,7 @@ export default function ProjetosPage() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
 
           {!projetosQuery.isLoading && !projetosQuery.isError && projetos.length > 0 ? (

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
-import { OrdemServicoForm } from "@/components/shared/ordem-servico-form";
+import { OrdemServicoForm, type OrdemServicoFormComplementos } from "@/components/shared/ordem-servico-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +41,11 @@ export default function NovaOrdemServicoPage() {
     enabled: !isDesenvolvedor
   });
   const configuracaoQuery = useQuery({ queryKey: ["configuracoes", "os"], queryFn: configuracaoOSService.buscar, enabled: !isDesenvolvedor });
+  const ticketsQuery = useQuery({
+    queryKey: ["ordens-servico"],
+    queryFn: ordemServicoService.listar,
+    enabled: !isDesenvolvedor
+  });
 
   const clientes = useMemo(() => (clientesQuery.data ?? []).filter((cliente) => cliente.ativo), [clientesQuery.data]);
   const projetos = useMemo(() => (projetosQuery.data ?? []).filter((projeto) => projeto.ativo), [projetosQuery.data]);
@@ -48,14 +53,30 @@ export default function NovaOrdemServicoPage() {
     () => (usuariosQuery.data ?? []).filter((usuario) => usuario.ativo),
     [usuariosQuery.data]
   );
-  const isLoading = clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading || configuracaoQuery.isLoading;
-  const isError = clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError || configuracaoQuery.isError;
+  const isLoading = clientesQuery.isLoading || projetosQuery.isLoading || usuariosQuery.isLoading || configuracaoQuery.isLoading || ticketsQuery.isLoading;
+  const isError = clientesQuery.isError || projetosQuery.isError || usuariosQuery.isError || configuracaoQuery.isError || ticketsQuery.isError;
 
   const salvarMutation = useMutation({
-    mutationFn: (data: OrdemServicoFormData) => ordemServicoService.criar(data),
-    onSuccess: (ordem) => {
+    mutationFn: async ({ data, complementos }: { data: OrdemServicoFormData; complementos: OrdemServicoFormComplementos }) => {
+      const ordem = await ordemServicoService.criar(data, complementos.ordemServicoIds);
+      const anexosComFalha: string[] = [];
+
+      for (const arquivo of complementos.anexos) {
+        try {
+          await ordemServicoService.enviarAnexo(ordem.id, arquivo);
+        } catch {
+          anexosComFalha.push(arquivo.name);
+        }
+      }
+
+      return { ordem, anexosComFalha };
+    },
+    onSuccess: ({ ordem, anexosComFalha }) => {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
       toast.success("Ticket cadastrado com sucesso.");
+      if (anexosComFalha.length > 0) {
+        toast.warning(`${anexosComFalha.length} anexo(s) não foram enviados. Você poderá reenviá-los na aba Trabalho.`);
+      }
       router.push(`/ordens-servico/${ordem.id}`);
     },
     onError: () => {
@@ -68,6 +89,7 @@ export default function NovaOrdemServicoPage() {
     projetosQuery.refetch();
     usuariosQuery.refetch();
     configuracaoQuery.refetch();
+    ticketsQuery.refetch();
   }
 
   return (
@@ -106,11 +128,13 @@ export default function NovaOrdemServicoPage() {
               clientes={clientes}
               responsaveis={responsaveis}
               projetos={projetos}
+              ticketsRelacionaveis={ticketsQuery.data ?? []}
+              mostrarComplementos
               isSubmitting={salvarMutation.isPending}
               prioridadePadrao={configuracaoQuery.data?.prioridadePadrao}
               responsavelPadraoId={configuracaoQuery.data?.responsavelPadraoId}
               permitirSemResponsavel={configuracaoQuery.data?.permitirSemResponsavel}
-              onSubmit={(data) => salvarMutation.mutate(data)}
+              onSubmit={(data, complementos) => salvarMutation.mutate({ data, complementos })}
             />
           )}
         </CardContent>

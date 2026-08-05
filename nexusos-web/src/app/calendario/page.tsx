@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, RefreshCcw } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ export default function CalendarioPage() {
   const [projetoId, setProjetoId] = useState("");
   const [prioridade, setPrioridade] = useState<PrioridadeOS | "">("");
   const [status, setStatus] = useState<StatusOS | "">("");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const inicio = iso(new Date(mes.getFullYear(), mes.getMonth(), 1));
   const fim = iso(new Date(mes.getFullYear(), mes.getMonth() + 1, 0));
   const filtros = { inicio, fim, responsavelId: responsavelId || undefined, clienteId: clienteId || undefined, projetoId: projetoId || undefined, prioridade: prioridade || undefined, status: status || undefined };
@@ -61,7 +62,8 @@ export default function CalendarioPage() {
           <h2 className="min-w-44 text-center font-semibold capitalize">{mes.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</h2>
           <Button variant="outline" size="icon" aria-label="Próximo mês" onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <Button variant={filtrosAbertos ? "secondary" : "outline"} className="xl:hidden" onClick={() => setFiltrosAbertos((aberto) => !aberto)} aria-expanded={filtrosAbertos}><Filter className="h-4 w-4" />Filtros</Button>
+        <div className={`${filtrosAbertos ? "grid" : "hidden"} gap-2 sm:grid-cols-2 lg:grid-cols-5 xl:grid`}>
           <Filtro value={responsavelId} nome="Responsável" options={opcoes(eventos, "responsavelId", "responsavelNome")} onChange={setResponsavelId} />
           <Filtro value={clienteId} nome="Cliente" options={opcoes(eventos, "clienteId", "clienteNome")} onChange={setClienteId} />
           <Filtro value={projetoId} nome="Projeto" options={opcoes(eventos, "projetoId", "projetoNome")} onChange={setProjetoId} />
@@ -70,10 +72,24 @@ export default function CalendarioPage() {
         </div>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">{Object.entries(tipoLabels).map(([tipo, label]) => <Badge key={tipo} variant="outline" className={tipoClasses[tipo as TipoEventoCalendario]}>{label}</Badge>)}</div>
-      {isError ? <div className="flex items-center justify-between py-8 text-sm text-muted-foreground"><span>Não foi possível carregar o calendário.</span><Button variant="outline" onClick={() => refetch()}><RefreshCcw className="h-4 w-4" />Tentar novamente</Button></div> : <div className="overflow-x-auto"><div className="min-w-[760px]">
+      {isError ? <div className="flex items-center justify-between py-8 text-sm text-muted-foreground"><span>Não foi possível carregar o calendário.</span><Button variant="outline" onClick={() => refetch()}><RefreshCcw className="h-4 w-4" />Tentar novamente</Button></div> : <>
+      <div className="space-y-4 md:hidden">
+        {Object.entries(eventosPorData).sort(([a], [b]) => a.localeCompare(b)).map(([data, itens]) => (
+          <section key={data}>
+            <h3 className="mb-2 text-sm font-semibold capitalize">{new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</h3>
+            <div className="space-y-2">{itens.map((evento) => (
+              <Link key={evento.id} href={`/ordens-servico/${evento.ordemServicoId}`} className="block rounded-md border p-3 transition-colors hover:bg-secondary/40">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="break-words text-sm font-medium">{evento.ordemServicoCodigo} - {evento.titulo}</div><div className="mt-1 truncate text-xs text-muted-foreground">{evento.clienteNome}</div></div><Badge variant="outline" className={tipoClasses[evento.tipo]}>{tipoLabels[evento.tipo]}</Badge></div>
+              </Link>
+            ))}</div>
+          </section>
+        ))}
+        {!isLoading && eventos.length === 0 ? <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">Nenhum compromisso neste mês.</p> : null}
+      </div>
+      <div className="hidden overflow-x-auto md:block"><div className="min-w-[760px]">
         <div className="grid grid-cols-7 border-l border-t">{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dia) => <div key={dia} className="border-b border-r bg-secondary/40 p-2 text-center text-xs font-medium text-muted-foreground">{dia}</div>)}</div>
         <div className="grid grid-cols-7 border-l">{dias.map((dia, i) => dia ? <Dia key={iso(dia)} data={dia} eventos={eventosPorData[iso(dia)] ?? []} /> : <div key={`vazio-${i}`} className="min-h-32 border-b border-r bg-muted/20" />)}</div>
-      </div>{isLoading ? <p className="py-3 text-sm text-muted-foreground">Carregando eventos...</p> : null}</div>}
+      </div></div>{isLoading ? <p className="py-3 text-sm text-muted-foreground">Carregando eventos...</p> : null}</>}
     </CardContent></Card>
   </AppShell>;
 }

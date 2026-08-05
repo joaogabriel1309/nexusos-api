@@ -49,7 +49,7 @@ export default function AnaliseOrdemServicoPage() {
   const analiseMutation = useMutation({
     mutationFn: (data: OrdemServicoAnaliseFormData) => {
       if (!ordem) {
-        throw new Error("Ticket n?o carregado.");
+        throw new Error("Ticket não carregado.");
       }
 
       return ordemServicoService.atualizarAnalise(ordem.id, data);
@@ -58,7 +58,9 @@ export default function AnaliseOrdemServicoPage() {
       queryClient.invalidateQueries({ queryKey: ["ordens-servico"] });
       queryClient.invalidateQueries({ queryKey: ["ordens-servico", id] });
       queryClient.invalidateQueries({ queryKey: ["auditoria", "ordens-servico", id] });
-      toast.success("Análise do ticket salva com sucesso.");
+      toast.success(isDesenvolvedor
+        ? "Estimativa salva para revisão do administrador."
+        : "Análise concluída e enviada para aprovação.");
       router.push(`/ordens-servico/${ordemAtualizada.id}`);
     },
     onError: () => {
@@ -76,12 +78,14 @@ export default function AnaliseOrdemServicoPage() {
   return (
     <AppShell>
       <PageHeader
-        title={ordem ? `${ordem.status === "EM_ANALISE" ? "Analisar" : "Visualizar análise"} ticket ${ordem.codigo}` : "Análise do ticket"}
-        description="Informe ou consulte a estimativa e o texto técnico do ticket."
+        title={ordem ? `${ordem.status === "RECEBIDA" || ordem.status === "EM_ANALISE" ? "Analisar" : "Consultar análise do"} ticket ${ordem.codigo}` : "Análise do ticket"}
+        description={isDesenvolvedor
+          ? "Informe a estimativa para o administrador revisar a análise."
+          : "Conclua a análise; o ticket seguirá automaticamente para aprovação."}
         actions={
           <Button variant="outline" onClick={() => router.push(`/ordens-servico/${id}`)}>
             <ArrowLeft className="h-4 w-4" />
-            Voltar
+            Voltar ao ticket
           </Button>
         }
       />
@@ -107,7 +111,7 @@ export default function AnaliseOrdemServicoPage() {
               ordem={ordem}
               valorHora={valorHora}
               isSubmitting={analiseMutation.isPending}
-              readOnly={ordem.status !== "EM_ANALISE"}
+              readOnly={ordem.status !== "RECEBIDA" && ordem.status !== "EM_ANALISE"}
               developerMode={isDesenvolvedor}
               onSubmit={(data) => analiseMutation.mutate(data)}
             />

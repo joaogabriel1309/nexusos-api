@@ -161,7 +161,23 @@ export default function UsuariosPage() {
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="grid gap-3 p-4 md:hidden">
+                {usuariosPaginados.map((usuario) => (
+                  <article key={usuario.id} className="min-w-0 rounded-md border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0"><h2 className="break-words text-sm font-semibold [overflow-wrap:anywhere]">{usuario.nome}</h2><p className="mt-1 break-all text-xs text-muted-foreground">{usuario.email}</p></div>
+                      <Badge variant={usuario.ativo ? "default" : "secondary"}>{usuario.ativo ? "Ativo" : "Inativo"}</Badge>
+                    </div>
+                    <div className="mt-4"><span className="text-xs uppercase text-muted-foreground">Perfil</span><div className="mt-1"><Badge variant="outline">{perfilLabels[usuario.perfil]}</Badge></div></div>
+                    <div className="mt-4 flex justify-end gap-2 border-t pt-3">
+                      <Button variant="outline" size="icon" onClick={() => abrirEdicao(usuario)} aria-label="Editar usuário"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" disabled={!usuario.ativo || usuarioInativandoId === usuario.id} onClick={() => inativarUsuario(usuario)} aria-label="Inativar usuário">{usuarioInativandoId === usuario.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -210,6 +226,7 @@ export default function UsuariosPage() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
 
             {!usuariosQuery.isLoading && !usuariosQuery.isError && usuarios.length > 0 ? (

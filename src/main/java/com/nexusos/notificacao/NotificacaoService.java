@@ -338,7 +338,7 @@ public class NotificacaoService {
         notificarAdmins(
                 ordemServico,
                 TIPO_RESPONSAVEL_ALTERADO,
-                "Respons?vel do ticket alterado",
+                "Responsável do ticket alterado",
                 "O ticket " + ordemServico.getCodigo() + " mudou de " + anterior + " para " + atual + "."
         );
     }

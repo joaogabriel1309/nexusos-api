@@ -100,6 +100,6 @@ public class PortalClienteService {
         var cliente = clienteService.buscarPorTokenAcesso(token);
         return ordemServicoRepository.findById(ordemServicoId)
                 .filter(ordem -> ordem.getCliente().getId().equals(cliente.getId()))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ticket nao encontrada para este cliente."));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Ticket não encontrado para este cliente."));
     }
 }

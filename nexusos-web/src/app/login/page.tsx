@@ -26,9 +26,9 @@ export default function LoginPage() {
 
   async function onSubmit(values: LoginFormData) {
     try {
-      await login(values.email, values.senha);
+      const usuario = await login(values.email, values.senha);
       toast.success("Login realizado com sucesso");
-      router.push("/dashboard");
+      router.push(usuario.perfil === "DESENVOLVEDOR" ? "/minhas-os" : "/dashboard");
     } catch {
       toast.error("Não foi possível entrar com essas credenciais");
     }

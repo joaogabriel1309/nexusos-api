@@ -19,9 +19,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!isLoading && isAuthenticated && !possuiAcesso) {
-      router.replace("/ordens-servico");
+      router.replace(usuario?.perfil === "DESENVOLVEDOR" ? "/minhas-os" : "/dashboard");
     }
-  }, [isAuthenticated, isLoading, possuiAcesso, router]);
+  }, [isAuthenticated, isLoading, possuiAcesso, router, usuario?.perfil]);
 
   if (isLoading || !isAuthenticated || !possuiAcesso) {
     return (
