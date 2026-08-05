@@ -113,6 +113,11 @@ public class OrdemServicoService {
         var prioridade = request.prioridade() != null ? request.prioridade() : configuracao.getPrioridadePadrao();
         var projeto = request.projetoId() != null ? projetoService.buscarEntidade(request.projetoId()) : null;
         validarProjetoDoCliente(projeto, cliente.getId());
+        var idsVinculados = request.ordemServicoIds() == null ? Set.<UUID>of() : new LinkedHashSet<>(request.ordemServicoIds());
+        var ordensVinculadas = ordemServicoRepository.findAllById(idsVinculados);
+        if (ordensVinculadas.size() != idsVinculados.size()) {
+            throw new RecursoNaoEncontradoException("Um ou mais tickets relacionados não foram encontrados.");
+        }
         var os = OrdemServico.builder()
                 .codigo(ordemServicoRepository.proximoCodigo())
                 .titulo(request.titulo())
@@ -127,9 +132,18 @@ public class OrdemServicoService {
                 .cobrar(Boolean.TRUE)
                 .paga(Boolean.FALSE)
                 .build();
+        os.getOrdensVinculadas().addAll(ordensVinculadas);
         recalcularValorTotalEstimado(os);
         var salva = ordemServicoRepository.save(os);
+        ordensVinculadas.forEach(vinculada -> {
+            vinculada.getOrdensVinculadas().add(salva);
+            ordemServicoRepository.save(vinculada);
+        });
         auditoriaService.registrar(salva, responsavel, "CRIACAO", "Ticket criada.", null, salva.getStatus());
+        if (!ordensVinculadas.isEmpty()) {
+            auditoriaService.registrar(salva, responsavel, "VINCULOS",
+                    "Tickets relacionados adicionados durante o cadastro.", null, salva.getStatus());
+        }
         notificacaoService.notificarOsCriada(salva);
         notificacaoService.notificarAtribuicao(
                 salva,

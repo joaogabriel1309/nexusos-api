@@ -28,7 +28,6 @@ import { GithubDevelopmentCard } from "./github-development-card";
 import { AIAnalysisCard } from "./ai-analysis-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { CriticalActionDialog } from "@/components/shared/critical-action-dialog";
-import { MensagemClienteComposer } from "@/components/shared/mensagem-cliente-composer";
 import { CentralAnexos } from "@/components/shared/central-anexos";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -772,13 +771,6 @@ export default function OrdemServicoDetalhePage() {
             {abaAtiva === "trabalho" ? (
               <div className="space-y-4">
               <CentralAnexos ordemId={ordem.id} podeExcluir={!isDesenvolvedor} />
-
-              {!isDesenvolvedor ? (
-                <Card>
-                  <CardHeader><CardTitle>Mensagem ao cliente</CardTitle></CardHeader>
-                  <CardContent><MensagemClienteComposer /></CardContent>
-                </Card>
-              ) : null}
 
               <Card>
                 <CardHeader>

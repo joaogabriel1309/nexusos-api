@@ -2,6 +2,7 @@ package com.nexusos.ordemservico;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import com.nexusos.ordemservico.dto.ReaberturaOrdemServicoRequest;
 import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
+import com.nexusos.ordemservico.dto.OrdemServicoRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.UsuarioService;
@@ -61,6 +63,39 @@ class OrdemServicoServiceTest {
     @AfterEach
     void limparContexto() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void criaTicketComRelacionamentosNosDoisSentidos() {
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var relacionado = OrdemServico.builder().id(UUID.randomUUID()).codigo(9L)
+                .titulo("Relacionado").descricao("Descricao").cliente(cliente)
+                .status(StatusOS.EM_ANALISE).prioridade(PrioridadeOS.MEDIA).build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setPermitirSemResponsavel(true);
+        configuracao.setPrioridadePadrao(PrioridadeOS.MEDIA);
+        configuracao.setStatusInicial(StatusOS.RECEBIDA);
+        var prazo = LocalDate.now().plusDays(3);
+        var request = new OrdemServicoRequest("Novo ticket", "Descricao", cliente.getId(), null, null,
+                PrioridadeOS.ALTA, prazo, null, Set.of(relacionado.getId()));
+
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
+        when(clienteService.buscarEntidade(cliente.getId())).thenReturn(cliente);
+        when(ordemServicoRepository.proximoCodigo()).thenReturn(10L);
+        when(ordemServicoRepository.findAllById(Set.of(relacionado.getId()))).thenReturn(List.of(relacionado));
+        when(ordemServicoRepository.save(any(OrdemServico.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        var resposta = ordemServicoService.criar(request);
+
+        assertThat(resposta.ordensVinculadas()).singleElement().satisfies(vinculo -> {
+            assertThat(vinculo.id()).isEqualTo(relacionado.getId());
+            assertThat(vinculo.codigo()).isEqualTo(9L);
+        });
+        assertThat(relacionado.getOrdensVinculadas()).hasSize(1);
+        verify(ordemServicoRepository).save(relacionado);
+        verify(auditoriaService).registrar(any(OrdemServico.class), any(), org.mockito.ArgumentMatchers.eq("VINCULOS"),
+                org.mockito.ArgumentMatchers.eq("Tickets relacionados adicionados durante o cadastro."),
+                org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(StatusOS.RECEBIDA));
     }
 
     @Test

@@ -53,8 +53,11 @@ export const ordemServicoService = {
     return data;
   },
 
-  async criar(payload: OrdemServicoFormData) {
-    const { data } = await api.post<OrdemServico>("/ordens-servico", toRequest(payload));
+  async criar(payload: OrdemServicoFormData, ordemServicoIds: string[] = []) {
+    const { data } = await api.post<OrdemServico>("/ordens-servico", {
+      ...toRequest(payload),
+      ordemServicoIds
+    });
     return data;
   },
 
