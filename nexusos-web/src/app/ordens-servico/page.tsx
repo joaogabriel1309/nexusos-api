@@ -70,11 +70,11 @@ function PagamentoBadge({ paga }: { paga?: boolean }) {
   return (
     <Badge
       variant="outline"
-      className={
+      className={`shrink-0 whitespace-nowrap ${
         paga
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
           : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-      }
+      }`}
     >
       {paga ? "Paga" : "Pendente"}
     </Badge>
@@ -115,49 +115,73 @@ function baixarArquivo(nome: string, conteudo: string, tipo: string) {
 
 function OrdensTableSkeleton() {
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Ticket</TableHead>
-            <TableHead>Cliente / Projeto</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Pagamento</TableHead>
-            <TableHead>Prazo</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 6 }).map((_, index) => (
-            <TableRow key={index}>
-              <TableCell>
-                <Skeleton className="h-5 w-52" />
-                <Skeleton className="mt-2 h-4 w-72" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="mt-2 h-4 w-32" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-7 w-32" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-7 w-24" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-7 w-28" />
-              </TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Skeleton className="h-9 w-9" />
-                  <Skeleton className="h-9 w-9" />
-                </div>
-              </TableCell>
+    <>
+      <div className="grid gap-3 xl:hidden">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="rounded-md border bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="mt-2 h-4 w-full" />
+              </div>
+              <Skeleton className="h-7 w-24 shrink-0" />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto xl:block">
+        <Table className="min-w-[1000px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Ticket</TableHead>
+              <TableHead>Cliente / Projeto</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Pagamento</TableHead>
+              <TableHead>Prazo</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-5 w-52" />
+                  <Skeleton className="mt-2 h-4 w-72" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="mt-2 h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-7 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-7 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-7 w-28" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-9 w-9" />
+                    <Skeleton className="h-9 w-9" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }
 
@@ -828,7 +852,7 @@ function OrdensServicoPageContent() {
               </div>
               </div>
             ) : <>
-              <div className="grid gap-3 md:hidden">
+              <div className="grid gap-3 xl:hidden">
                 {ordensPaginadas.map((ordem) => (
                   <div
                     key={ordem.id}
@@ -852,7 +876,7 @@ function OrdensServicoPageContent() {
                           {ordem.descricao}
                         </div>
                       </div>
-                      <Badge variant="outline" className={`shrink-0 ${statusBadgeClasses[ordem.status]}`}>
+                      <Badge variant="outline" className={`shrink-0 whitespace-nowrap ${statusBadgeClasses[ordem.status]}`}>
                         {statusLabels[ordem.status]}
                       </Badge>
                     </div>
@@ -872,7 +896,7 @@ function OrdensServicoPageContent() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <PagamentoBadge paga={ordem.paga} />
-                        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
+                        <span className={`inline-flex shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
                           {formatarDataPrazo(ordem.prazo)}
                         </span>
                       </div>
@@ -908,15 +932,15 @@ function OrdensServicoPageContent() {
                 ))}
               </div>
 
-              <div className="hidden overflow-x-auto md:block">
-                <Table>
+              <div className="hidden overflow-x-auto xl:block">
+                <Table className="min-w-[1000px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-0">ticket</TableHead>
                     <TableHead>Cliente / Projeto</TableHead>
-                    <TableHead className="w-[190px]">Status</TableHead>
-                    <TableHead className="w-[140px]">Pagamento</TableHead>
-                    <TableHead className="w-[160px]">Prazo</TableHead>
+                    <TableHead className="w-[190px] whitespace-nowrap">Status</TableHead>
+                    <TableHead className="w-[140px] whitespace-nowrap">Pagamento</TableHead>
+                    <TableHead className="w-[160px] whitespace-nowrap">Prazo</TableHead>
                     <TableHead className="w-[120px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -947,16 +971,16 @@ function OrdensServicoPageContent() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={statusBadgeClasses[ordem.status]}>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline" className={`whitespace-nowrap ${statusBadgeClasses[ordem.status]}`}>
                           {statusLabels[ordem.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <PagamentoBadge paga={ordem.paga} />
                       </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
+                      <TableCell className="whitespace-nowrap">
+                        <span className={`inline-flex whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-semibold ${prazoClasses(ordem.prazo)}`}>
                           {formatarDataPrazo(ordem.prazo)}
                         </span>
                       </TableCell>
