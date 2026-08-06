@@ -6,12 +6,14 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { getActiveNavigationHref, getMobilePrimaryItems } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { useSolicitacoesPendentes } from "@/hooks/use-solicitacoes-pendentes";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { usuario } = useAuth();
   const activeHref = getActiveNavigationHref(pathname);
   const items = getMobilePrimaryItems(usuario?.perfil);
+  const solicitacoesPendentes = useSolicitacoesPendentes(usuario?.perfil === "ADMIN").data?.pendentes ?? 0;
 
   return (
     <nav
@@ -31,7 +33,14 @@ export function MobileBottomNav() {
               active && "bg-secondary text-foreground"
             )}
           >
-            <Icon className="h-5 w-5" />
+            <span className="relative">
+              <Icon className="h-5 w-5" />
+              {item.href === "/solicitacoes" && solicitacoesPendentes > 0 ? (
+                <span className="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {solicitacoesPendentes > 99 ? "99+" : solicitacoesPendentes}
+                </span>
+              ) : null}
+            </span>
             <span className="max-w-full truncate">{item.title}</span>
           </Link>
         );

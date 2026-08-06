@@ -1,6 +1,7 @@
 package com.nexusos.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "Parametro invalido.", request,
                 List.of(new ErroResponse.CampoErro(ex.getName(), "Valor em formato invalido.")));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErroResponse> handleConstraintViolation(ConstraintViolationException ex,
+            HttpServletRequest request) {
+        var campos = ex.getConstraintViolations().stream()
+                .map(violacao -> new ErroResponse.CampoErro(
+                        violacao.getPropertyPath().toString(), violacao.getMessage()))
+                .toList();
+        return build(HttpStatus.BAD_REQUEST, "Requisicao invalida.", request, campos);
     }
 
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class, HttpMediaTypeNotSupportedException.class})

@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { CentralAnexos } from "@/components/shared/central-anexos";
+import { PortalNavigation } from "@/components/portal/portal-navigation";
 import { statusBadgeClasses } from "@/lib/os-labels";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
@@ -341,6 +342,16 @@ export default function PortalClientePage() {
     setPaginaAtual((pagina) => Math.min(pagina, totalPaginas));
   }, [totalPaginas]);
 
+  useEffect(() => {
+    const ticketId = searchParams.get("ticket");
+    if (!ticketId || !portalQuery.data) return;
+    const ticket = portalQuery.data.ordens.find((ordem) => ordem.id === ticketId);
+    if (ticket) {
+      setOrdemSelecionada(ticket);
+      router.replace(`/portal/cliente/${token}`);
+    }
+  }, [portalQuery.data, router, searchParams, token]);
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-background px-4 py-8">
       <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6">
@@ -351,6 +362,8 @@ export default function PortalClientePage() {
             Veja o andamento dos seus pedidos, saiba quando precisa agir e acompanhe pagamentos em um só lugar.
           </p>
         </header>
+
+        <PortalNavigation token={token} active="tickets" />
 
         {ordemSelecionada ? (
           <Card className="min-w-0 max-w-full overflow-hidden">

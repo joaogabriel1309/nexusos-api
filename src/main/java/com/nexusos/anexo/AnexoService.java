@@ -7,6 +7,7 @@ import com.nexusos.ordemservico.OrdemServicoService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.Locale;
@@ -60,10 +61,7 @@ public class AnexoService {
 
     @Transactional
     public AnexoResponse salvar(UUID ordemServicoId, MultipartFile arquivo, String descricao, boolean enviadoPeloCliente) {
-        if (arquivo.isEmpty()) {
-            throw new RegraNegocioException("Arquivo nao pode estar vazio.");
-        }
-        validarArquivo(arquivo);
+        var nomeOriginal = validarParaUpload(arquivo);
         if (anexoRepository.countByOrdemServicoId(ordemServicoId) >= QUANTIDADE_MAXIMA) {
             throw new RegraNegocioException("O ticket atingiu o limite de 20 anexos.");
         }
@@ -75,7 +73,6 @@ public class AnexoService {
                 throw new RegraNegocioException("Caminho de upload invalido.");
             }
             Files.createDirectories(dir);
-            var nomeOriginal = sanitizarNomeArquivo(arquivo.getOriginalFilename());
             var nomeSeguro = UUID.randomUUID() + "-" + nomeOriginal;
             var destino = dir.resolve(nomeSeguro).normalize();
             if (!destino.startsWith(dir)) {
@@ -95,6 +92,40 @@ public class AnexoService {
             return AnexoResponse.from(salvo);
         } catch (IOException ex) {
             throw new RegraNegocioException("Falha ao salvar anexo.");
+        }
+    }
+
+    @Transactional
+    public AnexoResponse copiarArquivoExistente(UUID ordemServicoId, Path origem, String nomeArquivo,
+            String tipoArquivo, long tamanho, boolean enviadoPeloCliente) {
+        if (anexoRepository.countByOrdemServicoId(ordemServicoId) >= QUANTIDADE_MAXIMA) {
+            throw new RegraNegocioException("O ticket atingiu o limite de 20 anexos.");
+        }
+        try {
+            var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
+            var baseDir = Path.of(uploadsPath).toAbsolutePath().normalize();
+            var origemSegura = origem.toAbsolutePath().normalize();
+            if (!origemSegura.startsWith(baseDir) || !Files.isRegularFile(origemSegura)) {
+                throw new RegraNegocioException("Arquivo de origem nao encontrado.");
+            }
+            var dir = baseDir.resolve(ordemServicoId.toString()).normalize();
+            Files.createDirectories(dir);
+            var nomeOriginal = sanitizarNomeArquivo(nomeArquivo);
+            var destino = dir.resolve(UUID.randomUUID() + "-" + nomeOriginal).normalize();
+            if (!destino.startsWith(dir)) {
+                throw new RegraNegocioException("Nome de arquivo invalido.");
+            }
+            Files.copy(origemSegura, destino, StandardCopyOption.REPLACE_EXISTING);
+            var anexo = new Anexo();
+            anexo.setOrdemServico(ordemServico);
+            anexo.setNomeArquivo(nomeOriginal);
+            anexo.setTipoArquivo(tipoArquivo);
+            anexo.setTamanho(tamanho);
+            anexo.setCaminho(destino.toString());
+            anexo.setEnviadoPeloCliente(enviadoPeloCliente);
+            return AnexoResponse.from(anexoRepository.save(anexo));
+        } catch (IOException ex) {
+            throw new RegraNegocioException("Falha ao copiar anexo para o ticket.");
         }
     }
 
@@ -134,7 +165,10 @@ public class AnexoService {
                 .orElseThrow(() -> new com.nexusos.exception.RecursoNaoEncontradoException("Anexo nao encontrado."));
     }
 
-    private void validarArquivo(MultipartFile arquivo) {
+    public String validarParaUpload(MultipartFile arquivo) {
+        if (arquivo.isEmpty()) {
+            throw new RegraNegocioException("Arquivo nao pode estar vazio.");
+        }
         if (arquivo.getSize() > TAMANHO_MAXIMO_BYTES) {
             throw new RegraNegocioException("Arquivo excede o tamanho maximo de 10MB.");
         }
@@ -152,6 +186,7 @@ public class AnexoService {
             throw new RegraNegocioException("MIME type do arquivo nao permitido.");
         }
         validarAssinatura(arquivo, extensao);
+        return nome;
     }
 
     private void validarAssinatura(MultipartFile arquivo, String extensao) {

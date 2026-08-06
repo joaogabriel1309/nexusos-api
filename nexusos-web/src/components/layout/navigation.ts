@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Code2,
   FolderKanban,
+  Inbox,
   Settings,
   Users
 } from "lucide-react";
@@ -31,6 +32,7 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       { title: "Visão geral", href: "/dashboard", icon: BarChart3, roles: ["ADMIN"] },
       { title: "Pendências", href: "/pendencias", icon: AlertTriangle, roles: ["ADMIN"] },
+      { title: "Solicitações", href: "/solicitacoes", icon: Inbox, roles: ["ADMIN"] },
       { title: "Filas da equipe", developerTitle: "Meu trabalho", href: "/minhas-os", icon: Code2 },
       { title: "Tickets", href: "/ordens-servico", icon: ClipboardList },
       { title: "Agenda", href: "/calendario", icon: CalendarDays }
@@ -112,7 +114,7 @@ export function getNavigationGroups(perfil?: PerfilUsuario | null) {
 export function getMobilePrimaryItems(perfil?: PerfilUsuario | null) {
   const preferred = perfil === "DESENVOLVEDOR"
     ? ["/minhas-os", "/ordens-servico", "/calendario", "/notificacoes"]
-    : ["/dashboard", "/pendencias", "/ordens-servico", "/calendario"];
+    : ["/dashboard", "/solicitacoes", "/ordens-servico", "/pendencias"];
   const items = getNavigationItems(perfil);
 
   return preferred

@@ -66,13 +66,15 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   const naoLidas = notificacoesQuery.data?.naoLidas ?? 0;
   const avatarFallback = usuario?.email?.slice(0, 2).toUpperCase() ?? "NX";
 
-  function abrirNotificacao(id?: string, ordemServicoId?: string) {
+  function abrirNotificacao(id?: string, ordemServicoId?: string, solicitacaoId?: string) {
     if (id) {
       marcarComoLidaMutation.mutate(id);
     }
 
     if (ordemServicoId) {
       router.push(`/ordens-servico/${ordemServicoId}`);
+    } else if (solicitacaoId) {
+      router.push(`/solicitacoes/${solicitacaoId}`);
     }
   }
 
@@ -219,7 +221,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                   <button
                     key={notificacao.id}
                     type="button"
-                    onClick={() => abrirNotificacao(notificacao.id, notificacao.ordemServicoId)}
+                    onClick={() => abrirNotificacao(notificacao.id, notificacao.ordemServicoId, notificacao.solicitacaoId)}
                     className="flex w-full flex-col gap-1 border-b px-4 py-3 text-left transition-colors hover:bg-secondary"
                   >
                     <div className="flex items-start justify-between gap-3">

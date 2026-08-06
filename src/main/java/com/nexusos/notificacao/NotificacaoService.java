@@ -11,6 +11,7 @@ import com.nexusos.notificacao.dto.PreferenciasNotificacaoResponse;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
 import com.nexusos.ordemservico.StatusOS;
+import com.nexusos.solicitacao.Solicitacao;
 import com.nexusos.usuario.PerfilUsuario;
 import com.nexusos.usuario.Usuario;
 import com.nexusos.usuario.UsuarioRepository;
@@ -56,6 +57,8 @@ public class NotificacaoService {
     private static final String TIPO_CLIENTE = "CLIENTE";
     private static final String TIPO_PROJETO = "PROJETO";
     private static final String TIPO_REABERTURA = "REABERTURA";
+    private static final String TIPO_SOLICITACAO_NOVA = "SOLICITACAO_NOVA";
+    private static final String TIPO_SOLICITACAO_RESPOSTA = "SOLICITACAO_RESPOSTA";
 
     private final NotificacaoRepository notificacaoRepository;
     private final PreferenciaNotificacaoRepository preferenciaNotificacaoRepository;
@@ -389,6 +392,34 @@ public class NotificacaoService {
                 "Cliente desativado",
                 "O cliente " + nomeCliente + " foi desativado."
         );
+    }
+
+    @Transactional
+    public void notificarSolicitacaoNova(Solicitacao solicitacao) {
+        for (var admin : adminsAtivos()) {
+            salvarSeHabilitada(Notificacao.builder()
+                    .usuario(admin)
+                    .solicitacao(solicitacao)
+                    .tipo(TIPO_SOLICITACAO_NOVA)
+                    .titulo("Nova solicitacao recebida")
+                    .mensagem("A solicitacao SOL-" + String.format("%06d", solicitacao.getCodigo())
+                            + " foi enviada por " + solicitacao.getCliente().getNome() + ".")
+                    .build());
+        }
+    }
+
+    @Transactional
+    public void notificarRespostaSolicitacao(Solicitacao solicitacao) {
+        for (var admin : adminsAtivos()) {
+            salvarSeHabilitada(Notificacao.builder()
+                    .usuario(admin)
+                    .solicitacao(solicitacao)
+                    .tipo(TIPO_SOLICITACAO_RESPOSTA)
+                    .titulo("Cliente respondeu a solicitacao")
+                    .mensagem("A solicitacao SOL-" + String.format("%06d", solicitacao.getCodigo())
+                            + " voltou para analise.")
+                    .build());
+        }
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 package com.nexusos.notificacao;
 
 import com.nexusos.ordemservico.OrdemServico;
+import com.nexusos.solicitacao.Solicitacao;
 import com.nexusos.usuario.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +39,10 @@ public class Notificacao {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordem_servico_id")
     private OrdemServico ordemServico;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "solicitacao_id")
+    private Solicitacao solicitacao;
 
     @Column(nullable = false)
     private String tipo;

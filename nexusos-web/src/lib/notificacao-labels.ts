@@ -21,7 +21,9 @@ const notificacaoTipoLabels: Record<string, string> = {
   INTEGRACAO_FALHA: "Falha de integracao",
   USUARIO: "Usuário",
   CLIENTE: "Cliente",
-  PROJETO: "Projeto"
+  PROJETO: "Projeto",
+  SOLICITACAO_NOVA: "Nova solicitação",
+  SOLICITACAO_RESPOSTA: "Resposta em solicitação"
 };
 
 export function getNotificacaoTipoLabel(tipo: string) {
@@ -46,6 +48,7 @@ export function getNotificacaoTipoVariant(tipo: string): "default" | "warning" |
     case "CHECKLIST":
     case "ANEXO":
     case "APONTAMENTO":
+    case "SOLICITACAO_RESPOSTA":
       return "secondary";
     default:
       return "default";
@@ -54,5 +57,8 @@ export function getNotificacaoTipoVariant(tipo: string): "default" | "warning" |
 
 export function getResumoNotificacao(notificacao: Notificacao) {
   const osPrefixo = notificacao.ordemServicoCodigo ? `Ticket ${notificacao.ordemServicoCodigo} • ` : "";
-  return `${osPrefixo}${getNotificacaoTipoLabel(notificacao.tipo)}`;
+  const solicitacaoPrefixo = notificacao.solicitacaoCodigo
+    ? `SOL-${String(notificacao.solicitacaoCodigo).padStart(6, "0")} • `
+    : "";
+  return `${osPrefixo}${solicitacaoPrefixo}${getNotificacaoTipoLabel(notificacao.tipo)}`;
 }

@@ -8,12 +8,14 @@ import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/s
 import { getActiveNavigationHref, getNavigationGroups } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { useSolicitacoesPendentes } from "@/hooks/use-solicitacoes-pendentes";
 
 export function MobileNav({ triggerClassName }: { triggerClassName?: string }) {
   const pathname = usePathname();
   const { usuario } = useAuth();
   const activeHref = getActiveNavigationHref(pathname);
   const navigationGroups = getNavigationGroups(usuario?.perfil);
+  const solicitacoesPendentes = useSolicitacoesPendentes(usuario?.perfil === "ADMIN").data?.pendentes ?? 0;
 
   return (
     <Sheet>
@@ -51,7 +53,12 @@ export function MobileNav({ triggerClassName }: { triggerClassName?: string }) {
                       )}
                     >
                       <Icon className="h-4 w-4" />
-                      {item.title}
+                      <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                      {item.href === "/solicitacoes" && solicitacoesPendentes > 0 ? (
+                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                          {solicitacoesPendentes > 99 ? "99+" : solicitacoesPendentes}
+                        </span>
+                      ) : null}
                     </Link>
                   </SheetClose>
                 );

@@ -22,6 +22,22 @@ export type StatusOS =
 
 export type PrioridadeOS = "BAIXA" | "MEDIA" | "ALTA" | "CRITICA";
 
+export type StatusSolicitacao =
+  | "NOVA"
+  | "EM_ANALISE"
+  | "AGUARDANDO_CLIENTE"
+  | "REJEITADA"
+  | "CONVERTIDA_EM_TICKET";
+
+export type OrigemSolicitacao = "CLIENTE" | "EQUIPE" | "SISTEMA";
+
+export type MotivoRejeicaoSolicitacao =
+  | "FORA_ESCOPO"
+  | "FUNCIONALIDADE_EXISTENTE"
+  | "INFORMACOES_INSUFICIENTES"
+  | "DUPLICADA"
+  | "OUTRO";
+
 export type AnaliseIA = {
   resumoTecnico: string;
   descricaoCliente: string;
@@ -169,6 +185,62 @@ export type PortalCliente = {
   ordens: PortalOrdemServico[];
 };
 
+export type SolicitacaoResumo = {
+  id: string;
+  codigo: number;
+  titulo: string;
+  descricao: string;
+  clienteId: string;
+  clienteNome: string;
+  responsavelId?: string;
+  responsavelNome?: string;
+  prioridade?: PrioridadeOS;
+  status: StatusSolicitacao;
+  ticketId?: string;
+  ticketCodigo?: number;
+  criadoEm: string;
+  atualizadoEm: string;
+};
+
+export type SolicitacaoInteracao = {
+  id: string;
+  origem: OrigemSolicitacao;
+  autorNome: string;
+  mensagem: string;
+  criadoEm: string;
+};
+
+export type SolicitacaoAnexo = {
+  id: string;
+  interacaoId?: string;
+  nomeArquivo: string;
+  tipoArquivo: string;
+  tamanho: number;
+  enviadoPeloCliente: boolean;
+  criadoEm: string;
+};
+
+export type AuditoriaSolicitacao = {
+  id: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  origem: OrigemSolicitacao;
+  tipoEvento: string;
+  descricao: string;
+  statusAnterior?: StatusSolicitacao;
+  statusNovo?: StatusSolicitacao;
+  criadoEm: string;
+};
+
+export type SolicitacaoDetalhe = {
+  solicitacao: SolicitacaoResumo;
+  motivoRejeicao?: MotivoRejeicaoSolicitacao;
+  detalheRejeicao?: string;
+  interacoes: SolicitacaoInteracao[];
+  anexos: SolicitacaoAnexo[];
+  auditoria: AuditoriaSolicitacao[];
+};
+
 export type Anexo = {
   id: string;
   ordemServicoId: string;
@@ -197,6 +269,8 @@ export type Notificacao = {
   id: string;
   ordemServicoId?: string;
   ordemServicoCodigo?: number;
+  solicitacaoId?: string;
+  solicitacaoCodigo?: number;
   tipo: string;
   titulo: string;
   mensagem: string;

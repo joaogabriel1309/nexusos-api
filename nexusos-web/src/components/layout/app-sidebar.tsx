@@ -6,6 +6,7 @@ import { ClipboardCheck } from "lucide-react";
 import { getActiveNavigationHref, getNavigationGroups } from "@/components/layout/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
+import { useSolicitacoesPendentes } from "@/hooks/use-solicitacoes-pendentes";
 
 type AppSidebarProps = {
   collapsed?: boolean;
@@ -16,6 +17,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
   const { usuario } = useAuth();
   const activeHref = getActiveNavigationHref(pathname);
   const navigationGroups = getNavigationGroups(usuario?.perfil);
+  const solicitacoesPendentes = useSolicitacoesPendentes(usuario?.perfil === "ADMIN").data?.pendentes ?? 0;
 
   return (
     <aside className={cn("sticky top-0 hidden h-screen shrink-0 overflow-y-auto border-r bg-card transition-all lg:block", collapsed ? "w-20" : "w-64")}>
@@ -43,13 +45,24 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                   title={collapsed ? item.title : undefined}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                    "relative flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
                     collapsed && "justify-center px-0",
                     active && "bg-secondary text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className={cn(collapsed && "sr-only")}>{item.title}</span>
+                  <span className={cn("min-w-0 flex-1 truncate", collapsed && "sr-only")}>{item.title}</span>
+                  {item.href === "/solicitacoes" && solicitacoesPendentes > 0 ? (
+                    <span
+                      className={cn(
+                        "inline-flex min-w-6 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground",
+                        collapsed && "absolute ml-7 -mt-7 min-w-5 px-1 text-[10px]"
+                      )}
+                      aria-label={`${solicitacoesPendentes} solicitações pendentes`}
+                    >
+                      {solicitacoesPendentes > 99 ? "99+" : solicitacoesPendentes}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

@@ -90,13 +90,15 @@ export default function NotificacoesPage() {
   const tiposDisponiveis = resposta?.tiposDisponiveis ?? [];
   const naoLidas = resposta?.naoLidas ?? 0;
 
-  function abrirNotificacao(id: string, ordemServicoId?: string) {
+  function abrirNotificacao(id: string, ordemServicoId?: string, solicitacaoId?: string) {
     if (!marcarComoLidaMutation.isPending) {
       marcarComoLidaMutation.mutate(id);
     }
 
     if (ordemServicoId) {
       router.push(`/ordens-servico/${ordemServicoId}`);
+    } else if (solicitacaoId) {
+      router.push(`/solicitacoes/${solicitacaoId}`);
     }
   }
 
@@ -246,6 +248,12 @@ export default function NotificacoesPage() {
                           <Button size="sm" onClick={() => abrirNotificacao(notificacao.id, notificacao.ordemServicoId)}>
                             <ExternalLink className="h-4 w-4" />
                             Abrir ticket
+                          </Button>
+                        ) : null}
+                        {notificacao.solicitacaoId ? (
+                          <Button size="sm" onClick={() => abrirNotificacao(notificacao.id, undefined, notificacao.solicitacaoId)}>
+                            <ExternalLink className="h-4 w-4" />
+                            Abrir solicitação
                           </Button>
                         ) : null}
                       </div>
