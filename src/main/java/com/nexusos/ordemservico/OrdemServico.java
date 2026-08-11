@@ -71,6 +71,10 @@ public class OrdemServico {
 
     private LocalDate prazo;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean prazoIndefinido = Boolean.FALSE;
+
     private Long sequenciaExecucao;
 
     @Column(columnDefinition = "text")
@@ -144,6 +148,7 @@ public class OrdemServico {
     void prePersist() {
         id = id == null ? UUID.randomUUID() : id;
         status = status == null ? StatusOS.RECEBIDA : status;
+        prazoIndefinido = prazoIndefinido == null ? Boolean.FALSE : prazoIndefinido;
         cobrar = cobrar == null ? Boolean.TRUE : cobrar;
         paga = paga == null ? Boolean.FALSE : paga;
         criadoEm = OffsetDateTime.now();

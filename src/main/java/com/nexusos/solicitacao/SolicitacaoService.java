@@ -208,7 +208,8 @@ public class SolicitacaoService {
         var prioridade = request.prioridade() != null ? request.prioridade() : solicitacao.getPrioridade();
         var ticket = ordemServicoService.criar(new OrdemServicoRequest(
                 request.titulo().trim(), request.descricao().trim(), solicitacao.getCliente().getId(),
-                request.responsavelId(), request.projetoId(), prioridade, request.prazo(), null, Set.of()));
+                request.responsavelId(), request.projetoId(), prioridade, request.prazo(),
+                request.prazoIndefinido(), null, Set.of()));
         anexoService.copiarParaTicket(solicitacao.getId(), ticket.id());
 
         var anterior = solicitacao.getStatus();

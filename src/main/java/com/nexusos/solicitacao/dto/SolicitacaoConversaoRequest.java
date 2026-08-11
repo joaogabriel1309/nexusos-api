@@ -12,6 +12,7 @@ public record SolicitacaoConversaoRequest(
         UUID projetoId,
         UUID responsavelId,
         PrioridadeOS prioridade,
-        LocalDate prazo
+        LocalDate prazo,
+        boolean prazoIndefinido
 ) {
 }

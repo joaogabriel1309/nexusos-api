@@ -18,6 +18,7 @@ public record OrdemServicoRequest(
         UUID projetoId,
         PrioridadeOS prioridade,
         LocalDate prazo,
+        boolean prazoIndefinido,
         @PositiveOrZero BigDecimal estimativaHoras,
         @Size(max = 50) Set<UUID> ordemServicoIds
 ) {

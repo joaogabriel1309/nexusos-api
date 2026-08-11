@@ -127,7 +127,10 @@ public class OrdemServicoService {
                 .projeto(projeto)
                 .status(configuracao.getStatusInicial())
                 .prioridade(prioridade)
-                .prazo(request.prazo() != null ? request.prazo() : configuracaoOSService.calcularPrazo(prioridade))
+                .prazo(request.prazoIndefinido()
+                        ? null
+                        : request.prazo() != null ? request.prazo() : configuracaoOSService.calcularPrazo(prioridade))
+                .prazoIndefinido(request.prazoIndefinido())
                 .estimativaHoras(request.estimativaHoras())
                 .cobrar(Boolean.TRUE)
                 .paga(Boolean.FALSE)
@@ -168,11 +171,10 @@ public class OrdemServicoService {
         validarProjetoDoCliente(projeto, os.getCliente().getId());
         os.setProjeto(projeto);
         os.setPrioridade(request.prioridade());
-        os.setPrazo(request.prazo() != null
-                ? request.prazo()
-                : prioridadeAnterior != request.prioridade() && prazoAnterior == null
-                        ? slaPrioridadeService.calcularPrazo(request.prioridade())
-                        : null);
+        os.setPrazo(request.prazoIndefinido()
+                ? null
+                : request.prazo() != null ? request.prazo() : slaPrioridadeService.calcularPrazo(request.prioridade()));
+        os.setPrazoIndefinido(request.prazoIndefinido());
         os.setEntendimento(request.entendimento());
         os.setImpacto(request.impacto());
         os.setRiscos(request.riscos());
@@ -443,7 +445,9 @@ public class OrdemServicoService {
         var os = buscarEntidade(id);
         var prioridadeAnterior = os.getPrioridade();
         os.setPrioridade(request.prioridade());
-        if (os.getPrazo() == null && prioridadeAnterior != request.prioridade()) {
+        if (!Boolean.TRUE.equals(os.getPrazoIndefinido())
+                && os.getPrazo() == null
+                && prioridadeAnterior != request.prioridade()) {
             os.setPrazo(slaPrioridadeService.calcularPrazo(request.prioridade()));
         }
         var salva = ordemServicoRepository.save(os);

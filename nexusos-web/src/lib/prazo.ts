@@ -2,7 +2,7 @@ export type PrazoSituacao = "sem-prazo" | "vence-hoje" | "proximo" | "tranquilo"
 
 export function formatarDataPrazo(data?: string) {
   if (!data) {
-    return "-";
+    return "Prazo indefinido";
   }
 
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${data}T00:00:00`));

@@ -45,6 +45,7 @@ export const solicitacaoService = {
     responsavelId?: string;
     prioridade?: PrioridadeOS;
     prazo?: string;
+    prazoIndefinido: boolean;
   }) {
     return (await api.post<SolicitacaoDetalhe>(`/solicitacoes/${id}/converter`, dados)).data;
   },

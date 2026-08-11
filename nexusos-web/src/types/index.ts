@@ -106,6 +106,7 @@ export type OrdemServico = {
   status: StatusOS;
   prioridade: PrioridadeOS;
   prazo?: string;
+  prazoIndefinido: boolean;
   sequenciaExecucao?: number;
   entendimento?: string;
   impacto?: string;

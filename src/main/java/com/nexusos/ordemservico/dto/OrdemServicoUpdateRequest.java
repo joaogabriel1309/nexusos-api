@@ -17,6 +17,7 @@ public record OrdemServicoUpdateRequest(
         UUID projetoId,
         @NotNull PrioridadeOS prioridade,
         LocalDate prazo,
+        boolean prazoIndefinido,
         @Size(max = 10000) String entendimento,
         @Size(max = 10000) String impacto,
         @Size(max = 10000) String riscos,

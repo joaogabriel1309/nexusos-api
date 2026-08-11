@@ -9,7 +9,8 @@ export const ordemServicoSchema = z.object({
   prioridade: z.enum(["BAIXA", "MEDIA", "ALTA", "CRITICA"], {
     required_error: "Selecione a prioridade"
   }),
-  prazo: z.string().optional()
+  prazo: z.string().optional(),
+  prazoIndefinido: z.boolean()
 });
 
 export type OrdemServicoFormData = z.infer<typeof ordemServicoSchema>;

@@ -36,6 +36,7 @@ export default function ConverterSolicitacaoPage() {
   const [projetoId, setProjetoId] = useState(nenhum);
   const [prioridade, setPrioridade] = useState<PrioridadeOS>("MEDIA");
   const [prazo, setPrazo] = useState("");
+  const [prazoIndefinido, setPrazoIndefinido] = useState(false);
   const [preenchido, setPreenchido] = useState(false);
 
   useEffect(() => {
@@ -54,7 +55,8 @@ export default function ConverterSolicitacaoPage() {
       responsavelId: responsavelId === nenhum ? undefined : responsavelId,
       projetoId: projetoId === nenhum ? undefined : projetoId,
       prioridade,
-      prazo: prazo || undefined
+      prazo: prazo || undefined,
+      prazoIndefinido
     }),
     onSuccess: (dados) => {
       queryClient.setQueryData(["solicitacoes", id], dados);
@@ -92,7 +94,13 @@ export default function ConverterSolicitacaoPage() {
               <div className="space-y-2"><label className="text-sm font-medium">Responsável</label><Select value={responsavelId} onValueChange={setResponsavelId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value={nenhum}>Usar configuração padrão</SelectItem>{(usuariosQuery.data ?? []).filter((usuario) => usuario.ativo).map((usuario) => <SelectItem key={usuario.id} value={usuario.id}>{usuario.nome}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2"><label className="text-sm font-medium">Projeto</label><Select value={projetoId} onValueChange={setProjetoId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value={nenhum}>Sem projeto</SelectItem>{projetos.map((projeto) => <SelectItem key={projeto.id} value={projeto.id}>{projeto.nome}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2"><label className="text-sm font-medium">Prioridade interna</label><Select value={prioridade} onValueChange={(value) => setPrioridade(value as PrioridadeOS)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{prioridadeOptions.map((item) => <SelectItem key={item} value={item}>{prioridadeLabels[item]}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-2"><label htmlFor="prazo-ticket" className="text-sm font-medium">Prazo opcional</label><Input id="prazo-ticket" type="date" value={prazo} onChange={(event) => setPrazo(event.target.value)} /></div>
+              <div className="space-y-3">
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2">
+                  <input type="checkbox" className="h-5 w-5 accent-primary" checked={prazoIndefinido} onChange={(event) => setPrazoIndefinido(event.target.checked)} />
+                  <span><span className="block text-sm font-medium">Sem prazo definido</span><span className="block text-xs text-muted-foreground">Não incluir nos alertas de vencimento.</span></span>
+                </label>
+                <div className="space-y-2"><label htmlFor="prazo-ticket" className="text-sm font-medium">Data do prazo</label><Input id="prazo-ticket" type="date" disabled={prazoIndefinido} value={prazo} onChange={(event) => setPrazo(event.target.value)} /><p className="text-xs text-muted-foreground">{prazoIndefinido ? "O ticket ficará aberto sem vencimento." : "Deixe vazio para aplicar o SLA automático."}</p></div>
+              </div>
             </div>
           </CardContent>
         </Card>

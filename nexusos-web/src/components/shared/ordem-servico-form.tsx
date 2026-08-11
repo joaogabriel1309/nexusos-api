@@ -61,10 +61,12 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ticketsRela
       responsavelId: "",
       projetoId: "",
       prioridade: prioridadePadrao,
-      prazo: ""
+      prazo: "",
+      prazoIndefinido: false
     }
   });
   const clienteId = form.watch("clienteId");
+  const prazoIndefinido = form.watch("prazoIndefinido");
   const projetosDoCliente = useMemo(() => {
     return projetos.filter((projeto) => !projeto.clienteId || projeto.clienteId === clienteId);
   }, [clienteId, projetos]);
@@ -112,7 +114,8 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ticketsRela
       responsavelId: ordem?.responsavelId ?? responsavelPadraoId ?? "",
       projetoId: ordem?.projetoId ?? "",
       prioridade: ordem?.prioridade ?? prioridadePadrao,
-      prazo: ordem?.prazo ?? ""
+      prazo: ordem?.prazo ?? "",
+      prazoIndefinido: ordem ? ordem.prazoIndefinido || !ordem.prazo : false
     });
   }, [form, ordem, prioridadePadrao, responsavelPadraoId]);
 
@@ -244,19 +247,47 @@ export function OrdemServicoForm({ clientes, responsaveis, projetos, ticketsRela
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="prazo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Prazo</FormLabel>
-                <FormControl>
-                  <Input aria-label="Prazo" type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="prazoIndefinido"
+              render={({ field }) => (
+                <FormItem>
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 shrink-0 accent-primary"
+                      checked={field.value}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">Sem prazo definido</span>
+                      <span className="block text-xs text-muted-foreground">Mantenha o ticket aberto sem data de vencimento.</span>
+                    </span>
+                  </label>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="prazo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data do prazo</FormLabel>
+                  <FormControl>
+                    <Input aria-label="Data do prazo" type="date" disabled={prazoIndefinido} {...field} />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    {prazoIndefinido
+                      ? "Este ticket não aparecerá como vencido ou próximo do prazo."
+                      : "Deixe vazio para aplicar automaticamente o SLA da prioridade."}
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="descricao"

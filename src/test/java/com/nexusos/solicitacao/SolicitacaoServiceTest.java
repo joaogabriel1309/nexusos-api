@@ -123,7 +123,7 @@ class SolicitacaoServiceTest {
         when(ordemServicoService.buscarEntidade(ticket.getId())).thenReturn(ticket);
 
         var resposta = service.converter(solicitacao.getId(), new SolicitacaoConversaoRequest(
-                "Ticket", "Descricao", null, null, PrioridadeOS.MEDIA, null));
+                "Ticket", "Descricao", null, null, PrioridadeOS.MEDIA, null, false));
 
         assertThat(resposta.solicitacao().status()).isEqualTo(StatusSolicitacao.CONVERTIDA_EM_TICKET);
         assertThat(resposta.solicitacao().ticketCodigo()).isEqualTo(45L);
@@ -140,7 +140,7 @@ class SolicitacaoServiceTest {
         when(repository.buscarParaAtualizacao(solicitacao.getId())).thenReturn(Optional.of(solicitacao));
 
         var resposta = service.converter(solicitacao.getId(), new SolicitacaoConversaoRequest(
-                "Ticket", "Descricao", null, null, PrioridadeOS.MEDIA, null));
+                "Ticket", "Descricao", null, null, PrioridadeOS.MEDIA, null, false));
 
         assertThat(resposta.solicitacao().ticketCodigo()).isEqualTo(45L);
         verify(ordemServicoService, never()).criar(any());

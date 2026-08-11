@@ -24,6 +24,7 @@ import com.nexusos.ordemservico.dto.StatusUpdateRequest;
 import com.nexusos.ordemservico.dto.SequenciaUpdateRequest;
 import com.nexusos.ordemservico.dto.OrdemServicoResponse;
 import com.nexusos.ordemservico.dto.OrdemServicoRequest;
+import com.nexusos.ordemservico.dto.OrdemServicoUpdateRequest;
 import com.nexusos.ordemservico.dto.VinculosUpdateRequest;
 import com.nexusos.projeto.ProjetoService;
 import com.nexusos.usuario.UsuarioService;
@@ -77,7 +78,7 @@ class OrdemServicoServiceTest {
         configuracao.setStatusInicial(StatusOS.RECEBIDA);
         var prazo = LocalDate.now().plusDays(3);
         var request = new OrdemServicoRequest("Novo ticket", "Descricao", cliente.getId(), null, null,
-                PrioridadeOS.ALTA, prazo, null, Set.of(relacionado.getId()));
+                PrioridadeOS.ALTA, prazo, false, null, Set.of(relacionado.getId()));
 
         when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
         when(clienteService.buscarEntidade(cliente.getId())).thenReturn(cliente);
@@ -96,6 +97,53 @@ class OrdemServicoServiceTest {
         verify(auditoriaService).registrar(any(OrdemServico.class), any(), org.mockito.ArgumentMatchers.eq("VINCULOS"),
                 org.mockito.ArgumentMatchers.eq("Tickets relacionados adicionados durante o cadastro."),
                 org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(StatusOS.RECEBIDA));
+    }
+
+    @Test
+    void criaTicketComPrazoIndefinidoSemAplicarSla() {
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setPermitirSemResponsavel(true);
+        configuracao.setPrioridadePadrao(PrioridadeOS.MEDIA);
+        configuracao.setStatusInicial(StatusOS.RECEBIDA);
+        var request = new OrdemServicoRequest("Ticket de analise", "Descricao da analise", cliente.getId(),
+                null, null, PrioridadeOS.MEDIA, null, true, null, Set.of());
+
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
+        when(clienteService.buscarEntidade(cliente.getId())).thenReturn(cliente);
+        when(ordemServicoRepository.proximoCodigo()).thenReturn(11L);
+        when(ordemServicoRepository.save(any(OrdemServico.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        var resposta = ordemServicoService.criar(request);
+
+        assertThat(resposta.prazo()).isNull();
+        assertThat(resposta.prazoIndefinido()).isTrue();
+        verify(configuracaoOSService, never()).calcularPrazo(any(PrioridadeOS.class));
+    }
+
+    @Test
+    void edicaoRemovePrazoVencidoERegistraComoIndefinido() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder().id(UUID.randomUUID()).codigo(12L).titulo("Ticket")
+                .descricao("Descricao").cliente(cliente).status(StatusOS.RECEBIDA)
+                .prioridade(PrioridadeOS.MEDIA).prazo(LocalDate.now().minusDays(2))
+                .prazoIndefinido(false).build();
+        var configuracao = new ConfiguracaoOS();
+        configuracao.setPermitirSemResponsavel(true);
+        when(ordemServicoRepository.findById(ordem.getId())).thenReturn(Optional.of(ordem));
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
+        when(clienteService.buscarEntidade(cliente.getId())).thenReturn(cliente);
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        var resposta = ordemServicoService.atualizar(ordem.getId(), new OrdemServicoUpdateRequest(
+                "Ticket", "Descricao", cliente.getId(), null, null, PrioridadeOS.MEDIA,
+                null, true, null, null, null, null));
+
+        assertThat(resposta.prazo()).isNull();
+        assertThat(resposta.prazoIndefinido()).isTrue();
+        verify(slaPrioridadeService, never()).calcularPrazo(any(PrioridadeOS.class));
+        verify(notificacaoService).notificarPrazoAlterado(ordem);
     }
 
     @Test
@@ -273,6 +321,26 @@ class OrdemServicoServiceTest {
 
         assertThat(resposta.prioridade()).isEqualTo(PrioridadeOS.CRITICA);
         assertThat(resposta.prazo()).isEqualTo(prazo);
+        verify(notificacaoService).notificarPrioridadeAlterada(ordem);
+    }
+
+    @Test
+    void atualizaPrioridadeSemCriarPrazoParaTicketIndefinido() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder()
+                .id(id).codigo(13L).titulo("Ticket").descricao("Descricao").cliente(cliente)
+                .status(StatusOS.RECEBIDA).prioridade(PrioridadeOS.BAIXA)
+                .prazoIndefinido(true).build();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        var resposta = ordemServicoService.atualizarPrioridade(id, new PrioridadeUpdateRequest(PrioridadeOS.CRITICA));
+
+        assertThat(resposta.prazo()).isNull();
+        assertThat(resposta.prazoIndefinido()).isTrue();
+        verify(slaPrioridadeService, never()).calcularPrazo(any(PrioridadeOS.class));
         verify(notificacaoService).notificarPrioridadeAlterada(ordem);
     }
 
