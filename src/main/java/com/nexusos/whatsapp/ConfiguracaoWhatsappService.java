@@ -2,6 +2,7 @@ package com.nexusos.whatsapp;
 
 import com.nexusos.exception.RecursoNaoEncontradoException;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.integration.ExternalHttpRequestFactory;
 import com.nexusos.whatsapp.dto.ConfiguracaoWhatsappRequest;
 import com.nexusos.whatsapp.dto.ConfiguracaoWhatsappResponse;
 import lombok.RequiredArgsConstructor;
@@ -71,12 +72,12 @@ public class ConfiguracaoWhatsappService {
         var credencial = credentialCipher.decrypt(configuracao.getCredencialCifrada());
         try {
             if (configuracao.getProvedor() == WhatsappProvider.CALLMEBOT) {
-                RestClient.builder().baseUrl(callmebotApiUrl).build().get()
+                restClient(callmebotApiUrl).get()
                         .uri(builder -> builder.path("/whatsapp.php").queryParam("phone", destino)
                                 .queryParam("text", conteudo).queryParam("apikey", credencial).build())
                         .retrieve().toBodilessEntity();
             } else {
-                RestClient.builder().baseUrl(metaApiUrl).build().post()
+                restClient(metaApiUrl).post()
                         .uri("/{phoneNumberId}/messages", configuracao.getMetaPhoneNumberId())
                         .header("Authorization", "Bearer " + credencial)
                         .body(new WhatsappMessageRequest("whatsapp", destino, "text",
@@ -97,6 +98,13 @@ public class ConfiguracaoWhatsappService {
         return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
+    private RestClient restClient(String baseUrl) {
+        return RestClient.builder()
+                .requestFactory(ExternalHttpRequestFactory.create())
+                .baseUrl(baseUrl)
+                .build();
+    }
+
     private String normalizarTelefone(String telefone, boolean incluirMais) {
         var digitos = telefone == null ? "" : telefone.replaceAll("\\D", "");
         if ((digitos.length() == 10 || digitos.length() == 11) && defaultCountryCode != null) {
@@ -108,4 +116,3 @@ public class ConfiguracaoWhatsappService {
     private record WhatsappMessageRequest(String messaging_product, String to, String type, WhatsappTextRequest text) {}
     private record WhatsappTextRequest(boolean preview_url, String body) {}
 }
-

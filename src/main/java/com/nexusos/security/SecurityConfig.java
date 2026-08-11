@@ -31,6 +31,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CookieCsrfOriginFilter cookieCsrfOriginFilter;
     private final UserDetailsService userDetailsService;
     private final Environment environment;
 
@@ -56,7 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/portal/clientes/**").permitAll()
-                        .requestMatchers("/api/v1/pagamentos/mercado-pago/**").permitAll()
+                        .requestMatchers("/api/v1/pagamentos/mercado-pago/webhook").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
                         .access((authentication,
                                 context) -> new org.springframework.security.authorization.AuthorizationDecision(
@@ -64,6 +65,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(cookieCsrfOriginFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 

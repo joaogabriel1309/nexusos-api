@@ -2,14 +2,13 @@ package com.nexusos.ordemservico.dto;
 
 import com.nexusos.ordemservico.StatusOS;
 import jakarta.validation.constraints.NotNull;
-import java.util.UUID;
+import jakarta.validation.constraints.Size;
 
 public record StatusUpdateRequest(
         @NotNull StatusOS status,
-        UUID usuarioId,
-        String descricao,
-        String commitsFinalizacao,
-        String branchFinalizacao,
-        String arquivosAlteradosFinalizacao
+        @Size(max = 10000) String descricao,
+        @Size(max = 5000) String commitsFinalizacao,
+        @Size(max = 255) String branchFinalizacao,
+        @Size(max = 10000) String arquivosAlteradosFinalizacao
 ) {
 }

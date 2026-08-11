@@ -45,7 +45,7 @@ nexusos:
       same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
     jwt:
       secret: ${JWT_SECRET:}
-      access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:60}
+      access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:15}
       refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
   storage:
     uploads-path: ${UPLOADS_PATH:uploads}
@@ -58,6 +58,7 @@ nexusos:
     critica-dias: ${SLA_CRITICA_DIAS:1}
   mercado-pago:
     access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+    webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
     encryption-key: ${PAGAMENTO_ENCRYPTION_KEY:${JWT_SECRET:}}
     api-url: ${MERCADO_PAGO_API_URL:https://api.mercadopago.com}
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}

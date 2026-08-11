@@ -34,7 +34,7 @@ public class ApontamentoTempoService {
         }
         var apontamento = new ApontamentoTempo();
         var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
-        var usuario = usuarioService.buscarEntidade(request.usuarioId());
+        var usuario = usuarioService.buscarAutenticado();
         apontamento.setOrdemServico(ordemServico);
         apontamento.setUsuario(usuario);
         apontamento.setDescricao(request.descricao());

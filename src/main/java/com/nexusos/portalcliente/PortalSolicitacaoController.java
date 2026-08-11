@@ -81,14 +81,6 @@ public class PortalSolicitacaoController {
     }
 
     private String ipCliente(HttpServletRequest request) {
-        var cloudflare = request.getHeader("CF-Connecting-IP");
-        if (cloudflare != null && !cloudflare.isBlank()) {
-            return cloudflare.trim();
-        }
-        var encaminhado = request.getHeader("X-Forwarded-For");
-        if (encaminhado != null && !encaminhado.isBlank()) {
-            return encaminhado.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 }

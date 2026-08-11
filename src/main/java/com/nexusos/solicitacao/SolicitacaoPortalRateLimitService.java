@@ -19,6 +19,7 @@ public class SolicitacaoPortalRateLimitService {
     private static final int MAXIMO_CRIACOES = 5;
     private static final int MAXIMO_RESPOSTAS = 30;
     private static final int MAXIMO_CHAVES = 10_000;
+    private static final int MULTIPLICADOR_LIMITE_IP = 100;
     private final Map<String, Contador> contadores = new ConcurrentHashMap<>();
     private final AtomicLong operacoes = new AtomicLong();
 
@@ -36,7 +37,7 @@ public class SolicitacaoPortalRateLimitService {
             removerExpirados(agora);
         }
         registrar(acao + "|token|" + resumir(token), limite, agora);
-        registrar(acao + "|ip|" + resumir(ip), limite * 5, agora);
+        registrar(acao + "|ip|" + resumir(ip), limite * MULTIPLICADOR_LIMITE_IP, agora);
     }
 
     private void registrar(String chave, int limite, Instant agora) {

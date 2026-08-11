@@ -30,7 +30,7 @@ public class ComentarioService {
     public ComentarioResponse criar(UUID ordemServicoId, ComentarioRequest request) {
         var comentario = new Comentario();
         var ordemServico = ordemServicoService.buscarEntidade(ordemServicoId);
-        var usuario = usuarioService.buscarEntidade(request.usuarioId());
+        var usuario = usuarioService.buscarAutenticado();
         comentario.setOrdemServico(ordemServico);
         comentario.setUsuario(usuario);
         comentario.setMensagem(request.mensagem());

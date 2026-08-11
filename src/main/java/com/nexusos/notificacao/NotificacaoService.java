@@ -84,7 +84,7 @@ public class NotificacaoService {
     public NotificacaoPaginaResponse listarHistorico(int pagina, int tamanho, Boolean lida, String tipo) {
         var usuario = usuarioService.buscarAutenticado();
         var paginaAjustada = Math.max(pagina, 1);
-        var tamanhoAjustado = Math.max(tamanho, 1);
+        var tamanhoAjustado = Math.min(Math.max(tamanho, 1), 100);
         var pageable = PageRequest.of(paginaAjustada - 1, tamanhoAjustado, Sort.by(Sort.Direction.DESC, "criadoEm"));
         var tipoNormalizado = tipo != null && !tipo.isBlank() ? tipo.trim() : null;
 

@@ -76,7 +76,7 @@ class AuthServicePasswordResetTest {
         var usuario = usuarioAtivo();
         var token = PasswordResetToken.builder().usuario(usuario).tokenHash("hash")
                 .expiraEm(OffsetDateTime.now().plusMinutes(30)).build();
-        when(passwordResetTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findForUpdateByTokenHash(any())).thenReturn(Optional.of(token));
         when(passwordEncoder.encode("NovaSenha1")).thenReturn("senha-codificada");
 
         service.redefinirSenha("token-valido", "NovaSenha1");
@@ -90,7 +90,7 @@ class AuthServicePasswordResetTest {
     void rejeitaTokenExpirado() {
         var token = PasswordResetToken.builder().usuario(usuarioAtivo()).tokenHash("hash")
                 .expiraEm(OffsetDateTime.now().minusMinutes(1)).build();
-        when(passwordResetTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findForUpdateByTokenHash(any())).thenReturn(Optional.of(token));
 
         assertThrows(ResponseStatusException.class,
                 () -> service.redefinirSenha("token-expirado", "NovaSenha1"));

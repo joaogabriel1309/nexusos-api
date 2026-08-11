@@ -96,13 +96,13 @@ public class WhatsappService {
         var telefone = os.getCliente().getTelefone();
         var configuracao = configuracaoWhatsappService.buscarParaEnvio();
         if (!configuracao.isHabilitado() || !configuracao.configurado()) {
-            log.info("Envio de WhatsApp desabilitado. Mensagem para '{}' nao enviada.", telefone);
+            log.info("Envio de WhatsApp desabilitado. Mensagem nao enviada.");
             return;
         }
         try {
             configuracaoWhatsappService.enviar(configuracao, telefone, conteudo);
         } catch (RuntimeException ex) {
-            log.warn("Falha ao enviar WhatsApp para '{}': {}", telefone, ex.getClass().getSimpleName());
+            log.warn("Falha ao enviar WhatsApp: {}", ex.getClass().getSimpleName());
             notificacaoService.notificarFalhaIntegracao(os, "WhatsApp", "Falha no provedor de WhatsApp");
         }
     }

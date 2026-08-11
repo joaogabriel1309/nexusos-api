@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -66,6 +67,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class, HttpMediaTypeNotSupportedException.class})
     public ResponseEntity<ErroResponse> handleUnsupported(Exception ex, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "Requisicao invalida.", request, List.of());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex,
+            HttpServletRequest request) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "O arquivo excede o limite permitido.", request, List.of());
     }
 
     @ExceptionHandler(ResponseStatusException.class)

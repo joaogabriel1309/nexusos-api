@@ -18,4 +18,13 @@ class SolicitacaoPortalRateLimitServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("429 TOO_MANY_REQUESTS");
     }
+
+    @Test
+    void proxyCompartilhadoNaoBloqueiaClientesDiferentesPrematuramente() {
+        var service = new SolicitacaoPortalRateLimitService();
+
+        for (int indice = 0; indice < 30; indice++) {
+            service.registrarCriacao("token-do-cliente-" + indice, "10.0.0.10");
+        }
+    }
 }

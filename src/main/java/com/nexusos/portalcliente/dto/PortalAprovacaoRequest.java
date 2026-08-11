@@ -1,4 +1,6 @@
 package com.nexusos.portalcliente.dto;
 
-public record PortalAprovacaoRequest(String observacao) {
+import jakarta.validation.constraints.Size;
+
+public record PortalAprovacaoRequest(@Size(max = 2000) String observacao) {
 }

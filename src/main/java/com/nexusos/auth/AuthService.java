@@ -18,11 +18,13 @@ import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.Base64;
 import java.util.Locale;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,23 +62,35 @@ public class AuthService {
 
         var refreshToken = request.refreshToken();
         var tokenHash = hashToken(refreshToken);
-        var tokenSalvo = refreshTokenRepository.findByTokenHash(tokenHash)
+        var tokenSalvo = refreshTokenRepository.findForUpdateByTokenHash(tokenHash)
                 .orElseThrow(() -> new BadCredentialsException("Refresh token invalido."));
 
-        if (!tokenSalvo.estaAtivo(OffsetDateTime.now())) {
+        var agora = OffsetDateTime.now();
+        if (tokenSalvo.getRevogadoEm() != null) {
+            refreshTokenRepository.revogarDoUsuario(tokenSalvo.getUsuario(), agora);
+            throw new BadCredentialsException("Refresh token expirado ou revogado.");
+        }
+        if (!tokenSalvo.estaAtivo(agora)) {
             throw new BadCredentialsException("Refresh token expirado ou revogado.");
         }
 
-        var username = jwtService.extrairUsername(refreshToken);
-        var userDetails = userDetailsService.loadUserByUsername(username);
-        if (!jwtService.tokenValido(refreshToken, userDetails)) {
-            tokenSalvo.setRevogadoEm(OffsetDateTime.now());
+        org.springframework.security.core.userdetails.UserDetails userDetails;
+        try {
+            var username = jwtService.extrairUsername(refreshToken);
+            userDetails = userDetailsService.loadUserByUsername(username);
+            if (!jwtService.refreshTokenValido(refreshToken, userDetails)) {
+                tokenSalvo.setRevogadoEm(agora);
+                refreshTokenRepository.save(tokenSalvo);
+                throw new BadCredentialsException("Refresh token invalido.");
+            }
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
+            tokenSalvo.setRevogadoEm(agora);
             refreshTokenRepository.save(tokenSalvo);
             throw new BadCredentialsException("Refresh token invalido.");
         }
 
         var novoToken = tokens(userDetails);
-        tokenSalvo.setRevogadoEm(OffsetDateTime.now());
+        tokenSalvo.setRevogadoEm(agora);
         tokenSalvo.setSubstituidoPorHash(hashToken(novoToken.refreshToken()));
         refreshTokenRepository.save(tokenSalvo);
         return novoToken;
@@ -116,7 +130,7 @@ public class AuthService {
     @Transactional
     public void redefinirSenha(String token, String novaSenha) {
         var agora = OffsetDateTime.now();
-        var resetToken = passwordResetTokenRepository.findByTokenHash(hashToken(token))
+        var resetToken = passwordResetTokenRepository.findForUpdateByTokenHash(hashToken(token))
                 .filter(item -> item.estaAtivo(agora))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Link de recuperacao invalido ou expirado."));

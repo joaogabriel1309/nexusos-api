@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record ProjetoRequest(
         @NotBlank @Size(max = 160) String nome,
-        String descricao,
+        @Size(max = 5000) String descricao,
         @NotNull UUID clienteId
 ) {
 }

@@ -11,15 +11,15 @@ import java.util.UUID;
 
 public record OrdemServicoUpdateRequest(
         @NotBlank @Size(max = 180) String titulo,
-        @NotBlank String descricao,
+        @NotBlank @Size(max = 10000) String descricao,
         @NotNull UUID clienteId,
         UUID responsavelId,
         UUID projetoId,
         @NotNull PrioridadeOS prioridade,
         LocalDate prazo,
-        String entendimento,
-        String impacto,
-        String riscos,
+        @Size(max = 10000) String entendimento,
+        @Size(max = 10000) String impacto,
+        @Size(max = 10000) String riscos,
         @PositiveOrZero BigDecimal estimativaHoras
 ) {
 }

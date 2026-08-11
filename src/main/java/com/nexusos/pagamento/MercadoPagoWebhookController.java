@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,11 +17,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class MercadoPagoWebhookController {
 
     private final MercadoPagoService mercadoPagoService;
+    private final MercadoPagoWebhookSignatureValidator signatureValidator;
 
     @Operation(summary = "Recebe notificacoes de pagamento do Mercado Pago")
     @PostMapping("/webhook")
-    public ResponseEntity<Void> receberNotificacao(@RequestParam Map<String, String> params,
+    public ResponseEntity<Void> receberNotificacao(
+            @RequestHeader(value = "x-signature", required = false) String xSignature,
+            @RequestHeader(value = "x-request-id", required = false) String xRequestId,
+            @RequestParam Map<String, String> params,
             @RequestBody(required = false) Map<String, Object> body) {
+        signatureValidator.validar(xSignature, xRequestId, params.get("data.id"));
         var paymentId = extrairPaymentId(params, body);
         mercadoPagoService.processarNotificacaoPagamento(paymentId);
         return ResponseEntity.ok().build();

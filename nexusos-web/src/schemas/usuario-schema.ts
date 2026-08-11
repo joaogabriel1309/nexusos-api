@@ -5,8 +5,12 @@ export const perfisUsuario = ["ADMIN", "DESENVOLVEDOR"] as [PerfilUsuario, ...Pe
 
 const senhaSchema = z
   .string()
+  .max(120, "A senha deve ter no maximo 120 caracteres")
   .optional()
-  .refine((value) => !value || value.length >= 6, "A senha deve ter pelo menos 6 caracteres");
+  .refine(
+    (value) => !value || /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(value),
+    "Use ao menos 8 caracteres, com maiuscula, minuscula e numero"
+  );
 
 export const usuarioSchema = z.object({
   nome: z.string().min(3, "Informe um nome com pelo menos 3 caracteres").max(120, "Informe no maximo 120 caracteres"),

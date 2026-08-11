@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
+    private static final String TOKEN_TYPE_CLAIM = "token_type";
+    private static final String ACCESS_TOKEN_TYPE = "access";
+    private static final String REFRESH_TOKEN_TYPE = "refresh";
 
     private final SecretKey key;
     private final long accessExpirationMinutes;
@@ -34,15 +37,21 @@ public class JwtService {
     }
 
     public String gerarAccessToken(UserDetails userDetails) {
-        return gerarToken(userDetails, Instant.now().plus(accessExpirationMinutes, ChronoUnit.MINUTES));
+        return gerarToken(userDetails, Instant.now().plus(accessExpirationMinutes, ChronoUnit.MINUTES),
+                ACCESS_TOKEN_TYPE);
     }
 
     public String gerarRefreshToken(UserDetails userDetails) {
-        return gerarToken(userDetails, Instant.now().plus(refreshExpirationDays, ChronoUnit.DAYS));
+        return gerarToken(userDetails, Instant.now().plus(refreshExpirationDays, ChronoUnit.DAYS),
+                REFRESH_TOKEN_TYPE);
     }
 
-    public boolean tokenValido(String token, UserDetails userDetails) {
-        return extrairUsername(token).equals(userDetails.getUsername()) && !isExpirado(token);
+    public boolean accessTokenValido(String token, UserDetails userDetails) {
+        return tokenValido(token, userDetails, ACCESS_TOKEN_TYPE);
+    }
+
+    public boolean refreshTokenValido(String token, UserDetails userDetails) {
+        return tokenValido(token, userDetails, REFRESH_TOKEN_TYPE);
     }
 
     public String extrairUsername(String token) {
@@ -53,9 +62,10 @@ public class JwtService {
         return extrairClaims(token).getExpiration().toInstant();
     }
 
-    private String gerarToken(UserDetails userDetails, Instant expiresAt) {
+    private String gerarToken(UserDetails userDetails, Instant expiresAt, String tokenType) {
         var now = Instant.now();
         var claims = new HashMap<String, Object>();
+        claims.put(TOKEN_TYPE_CLAIM, tokenType);
 
         if (userDetails instanceof Usuario usuario) {
             claims.put("perfil", usuario.getPerfil().name());
@@ -70,8 +80,15 @@ public class JwtService {
                 .compact();
     }
 
-    private boolean isExpirado(String token) {
-        return extrairClaims(token).getExpiration().before(new Date());
+    private boolean tokenValido(String token, UserDetails userDetails, String tokenTypeEsperado) {
+        var claims = extrairClaims(token);
+        return claims.getSubject().equals(userDetails.getUsername())
+                && tokenTypeEsperado.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))
+                && claims.getExpiration().after(new Date())
+                && userDetails.isEnabled()
+                && userDetails.isAccountNonExpired()
+                && userDetails.isAccountNonLocked()
+                && userDetails.isCredentialsNonExpired();
     }
 
     private Claims extrairClaims(String token) {

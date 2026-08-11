@@ -13,8 +13,63 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  checks:
+    name: Validar aplicacao
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nexusos
+          POSTGRES_USER: nexusos
+          POSTGRES_PASSWORD: nexusos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexusos -d nexusos"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Testar backend
+        shell: bash
+        run: |
+          chmod +x ./mvnw
+          ./mvnw -B test
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: nexusos-web/package-lock.json
+
+      - name: Instalar frontend
+        working-directory: nexusos-web
+        run: npm ci
+
+      - name: Validar tipos do frontend
+        working-directory: nexusos-web
+        run: npm run typecheck
+
+      - name: Gerar build do frontend
+        working-directory: nexusos-web
+        run: npm run build
+
   deploy:
     name: Deploy na VPS
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
@@ -23,6 +78,7 @@ jobs:
       VPS_USER: ${{ secrets.VPS_USER }}
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_SSH_HOST_KEY: ${{ secrets.VPS_SSH_HOST_KEY }}
 
     steps:
       - name: Validar secrets obrigatorios
@@ -30,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           missing=()
-          for name in VPS_HOST VPS_USER VPS_PORT VPS_SSH_KEY; do
+          for name in VPS_HOST VPS_USER VPS_PORT VPS_SSH_KEY VPS_SSH_HOST_KEY; do
             if [[ -z "${!name:-}" ]]; then
               missing+=("$name")
             fi
@@ -54,10 +110,7 @@ jobs:
           printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
 
-          if ! ssh-keyscan -T 10 -p "$VPS_PORT" -H "$VPS_HOST" > "$HOME/.ssh/known_hosts"; then
-            echo "::error::Nao foi possivel obter a chave publica SSH da VPS."
-            exit 1
-          fi
+          printf '%s\n' "$VPS_SSH_HOST_KEY" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Atualizar aplicacao e containers

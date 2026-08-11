@@ -7,8 +7,7 @@ export const clienteSchema = z.object({
   telefone: z.string().optional(),
   valorHora: z.coerce.number().min(0, "Informe um valor por hora valido"),
   enviarEmail: z.boolean(),
-  enviarWhatsapp: z.boolean(),
-  whatsappApiKey: z.string().max(80, "Informe no maximo 80 caracteres").optional()
+  enviarWhatsapp: z.boolean()
 });
 
 export type ClienteFormData = z.infer<typeof clienteSchema>;

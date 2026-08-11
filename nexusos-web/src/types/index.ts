@@ -74,7 +74,6 @@ export type Cliente = {
   valorHora: number;
   enviarEmail: boolean;
   enviarWhatsapp: boolean;
-  whatsappApiKey?: string;
   tokenAcesso?: string;
   tokenAcessoExpiraEm?: string;
   ativo: boolean;

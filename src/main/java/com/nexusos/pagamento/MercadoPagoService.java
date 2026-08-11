@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.integration.ExternalHttpRequestFactory;
 import com.nexusos.notificacao.NotificacaoService;
 import com.nexusos.ordemservico.OrdemServico;
 import com.nexusos.ordemservico.OrdemServicoRepository;
@@ -357,6 +358,7 @@ public class MercadoPagoService {
 
     private RestClient restClient() {
         return RestClient.builder()
+                .requestFactory(ExternalHttpRequestFactory.create())
                 .baseUrl(apiUrl)
                 .defaultHeader("Authorization", "Bearer " + configuracaoPagamentoService.buscarAccessToken())
                 .defaultHeader("Content-Type", "application/json")

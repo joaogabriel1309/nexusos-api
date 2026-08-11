@@ -23,7 +23,8 @@ class JwtServiceTest {
         var token = service.gerarAccessToken(user);
 
         assertThat(service.extrairUsername(token)).isEqualTo("admin@nexusos.com");
-        assertThat(service.tokenValido(token, user)).isTrue();
+        assertThat(service.accessTokenValido(token, user)).isTrue();
+        assertThat(service.refreshTokenValido(token, user)).isFalse();
     }
 
     @Test
@@ -31,8 +32,32 @@ class JwtServiceTest {
         var service = new JwtService(SECRET, 60, 7);
         var user = new User("admin@nexusos.com", "senha", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
 
-        assertThatThrownBy(() -> service.tokenValido("token-invalido", user))
+        assertThatThrownBy(() -> service.accessTokenValido("token-invalido", user))
                 .isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    void naoAceitaRefreshTokenComoAccessToken() {
+        var service = new JwtService(SECRET, 60, 7);
+        var user = new User("admin@nexusos.com", "senha", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+
+        var refreshToken = service.gerarRefreshToken(user);
+
+        assertThat(service.refreshTokenValido(refreshToken, user)).isTrue();
+        assertThat(service.accessTokenValido(refreshToken, user)).isFalse();
+    }
+
+    @Test
+    void rejeitaTokenDeUsuarioInativo() {
+        var service = new JwtService(SECRET, 60, 7);
+        var ativo = new User("admin@nexusos.com", "senha", true, true, true, true,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        var inativo = new User("admin@nexusos.com", "senha", false, true, true, true,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+
+        var token = service.gerarAccessToken(ativo);
+
+        assertThat(service.accessTokenValido(token, inativo)).isFalse();
     }
 
     @Test

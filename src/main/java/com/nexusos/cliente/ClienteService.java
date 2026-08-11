@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
+    private static final Pattern TOKEN_ACESSO_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{64}$");
 
     private final ClienteRepository clienteRepository;
     private final NotificacaoService notificacaoService;
@@ -58,8 +60,12 @@ public class ClienteService {
 
     @Transactional(readOnly = true)
     public Cliente buscarPorTokenAcesso(String tokenAcesso) {
+        if (tokenAcesso == null || !TOKEN_ACESSO_PATTERN.matcher(tokenAcesso).matches()) {
+            throw new RecursoNaoEncontradoException("Link de acesso invalido.");
+        }
         return clienteRepository.findByTokenAcesso(tokenAcesso)
                 .filter(Cliente::isAtivo)
+                .filter(cliente -> cliente.getTokenAcessoExpiraEm() != null)
                 .filter(cliente -> cliente.getTokenAcessoExpiraEm().isAfter(OffsetDateTime.now()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Link de acesso invalido."));
     }
@@ -75,7 +81,6 @@ public class ClienteService {
                 .valorHora(request.valorHora())
                 .enviarEmail(Boolean.TRUE.equals(request.enviarEmail()))
                 .enviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()))
-                .whatsappApiKey(normalizarTexto(request.whatsappApiKey()))
                 .build();
         renovarTokenAcesso(cliente);
         return ClienteResponse.from(clienteRepository.save(cliente));
@@ -93,7 +98,6 @@ public class ClienteService {
         cliente.setValorHora(request.valorHora());
         cliente.setEnviarEmail(Boolean.TRUE.equals(request.enviarEmail()));
         cliente.setEnviarWhatsapp(Boolean.TRUE.equals(request.enviarWhatsapp()));
-        cliente.setWhatsappApiKey(normalizarTexto(request.whatsappApiKey()));
         cliente.setAtivo(request.ativo());
         var salvo = clienteRepository.save(cliente);
         if (estavaAtivo && !salvo.isAtivo()) {
@@ -122,10 +126,6 @@ public class ClienteService {
                 .ifPresent(cliente -> {
                     throw new RegraNegocioException("Documento ja cadastrado.");
                 });
-    }
-
-    private String normalizarTexto(String valor) {
-        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     private void renovarTokenAcesso(Cliente cliente) {

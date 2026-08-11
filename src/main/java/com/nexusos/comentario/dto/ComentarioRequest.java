@@ -1,8 +1,9 @@
 package com.nexusos.comentario.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.util.UUID;
+import jakarta.validation.constraints.Size;
 
-public record ComentarioRequest(@NotNull UUID usuarioId, @NotBlank String mensagem) {
+public record ComentarioRequest(
+        @NotBlank @Size(max = 5000) String mensagem
+) {
 }

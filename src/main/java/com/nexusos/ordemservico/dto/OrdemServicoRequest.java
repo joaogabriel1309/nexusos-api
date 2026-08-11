@@ -12,13 +12,13 @@ import java.util.UUID;
 
 public record OrdemServicoRequest(
         @NotBlank @Size(max = 180) String titulo,
-        @NotBlank String descricao,
+        @NotBlank @Size(max = 10000) String descricao,
         @NotNull UUID clienteId,
         UUID responsavelId,
         UUID projetoId,
         PrioridadeOS prioridade,
         LocalDate prazo,
         @PositiveOrZero BigDecimal estimativaHoras,
-        Set<UUID> ordemServicoIds
+        @Size(max = 50) Set<UUID> ordemServicoIds
 ) {
 }

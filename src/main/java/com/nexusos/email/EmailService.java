@@ -115,13 +115,13 @@ public class EmailService {
     private void enviar(OrdemServico os, String destinatario, String assunto, String conteudo) {
         var configuracao = configuracaoEmailService.buscarParaEnvio();
         if (!configuracao.isHabilitado() || !configuracao.configurado()) {
-            log.info("Envio de e-mail desabilitado. Assunto '{}' para '{}' nao enviado.", assunto, destinatario);
+            log.info("Envio de e-mail desabilitado. Mensagem nao enviada.");
             return;
         }
         try {
             configuracaoEmailService.enviar(configuracao, destinatario, assunto, conteudo);
         } catch (RuntimeException ex) {
-            log.warn("Falha ao enviar e-mail '{}' para '{}': {}", assunto, destinatario, ex.getClass().getSimpleName());
+            log.warn("Falha ao enviar e-mail: {}", ex.getClass().getSimpleName());
             notificacaoService.notificarFalhaIntegracao(os, "e-mail", "Falha no envio SMTP");
         }
     }

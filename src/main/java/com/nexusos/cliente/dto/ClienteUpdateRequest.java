@@ -15,7 +15,6 @@ public record ClienteUpdateRequest(
         @NotNull @PositiveOrZero BigDecimal valorHora,
         Boolean enviarEmail,
         Boolean enviarWhatsapp,
-        @Size(max = 80) String whatsappApiKey,
         @NotNull Boolean ativo
 ) {
 }

@@ -1,6 +1,7 @@
 package com.nexusos.auditoria;
 
 import com.nexusos.auditoria.dto.AuditoriaOSResponse;
+import com.nexusos.ordemservico.OrdemServicoService;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.UUID;
@@ -17,10 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuditoriaController {
 
     private final AuditoriaService auditoriaService;
+    private final OrdemServicoService ordemServicoService;
 
     @Operation(summary = "Lista auditoria de um ticket")
     @GetMapping("/ordens-servico/{id}")
     public ResponseEntity<List<AuditoriaOSResponse>> listarPorOrdemServico(@PathVariable UUID id) {
+        ordemServicoService.buscarEntidade(id);
         return ResponseEntity.ok(auditoriaService.listarPorOrdemServico(id));
     }
 }

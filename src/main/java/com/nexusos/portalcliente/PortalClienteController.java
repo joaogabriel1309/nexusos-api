@@ -11,6 +11,8 @@ import com.nexusos.anexo.AnexoService;
 import com.nexusos.anexo.dto.AnexoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +29,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/api/v1/portal/clientes/{token}")
 @RequiredArgsConstructor
 @PreAuthorize("permitAll()") // A autorizacao do portal e feita pelo token do cliente e pelo vinculo do ticket.
@@ -38,6 +42,7 @@ public class PortalClienteController {
 
     private final PortalClienteService portalClienteService;
     private final AnexoService anexoService;
+    private final PortalClienteRateLimitService rateLimitService;
 
     @Operation(summary = "Listo ticket do cliente pelo token publico")
     @GetMapping("/ordens-servico")
@@ -49,30 +54,36 @@ public class PortalClienteController {
     @PatchMapping("/ordens-servico/{ordemServicoId}/aprovar")
     public ResponseEntity<PortalOrdemServicoResponse> aprovar(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
-            @RequestBody(required = false) PortalAprovacaoRequest request) {
+            @RequestBody(required = false) @Valid PortalAprovacaoRequest body,
+            HttpServletRequest request) {
+        rateLimitService.registrarAcao(token, request.getRemoteAddr());
         return ResponseEntity.ok(portalClienteService.aprovar(token, ordemServicoId,
-                request != null ? request.observacao() : null));
+                body != null ? body.observacao() : null));
     }
 
     @Operation(summary = "Reprovo ticket pelo portal do cliente")
     @PatchMapping("/ordens-servico/{ordemServicoId}/reprovar")
     public ResponseEntity<PortalOrdemServicoResponse> reprovar(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
-            @RequestBody @Valid PortalReprovacaoRequest request) {
-        return ResponseEntity.ok(portalClienteService.reprovar(token, ordemServicoId, request.observacao()));
+            @RequestBody @Valid PortalReprovacaoRequest body,
+            HttpServletRequest request) {
+        rateLimitService.registrarAcao(token, request.getRemoteAddr());
+        return ResponseEntity.ok(portalClienteService.reprovar(token, ordemServicoId, body.observacao()));
     }
 
     @Operation(summary = "Inicia pagamento do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento")
     public ResponseEntity<PagamentoCheckoutResponse> iniciarPagamento(@PathVariable String token,
-            @PathVariable UUID ordemServicoId) {
+            @PathVariable UUID ordemServicoId, HttpServletRequest request) {
+        rateLimitService.registrarPagamento(token, request.getRemoteAddr());
         return ResponseEntity.ok(portalClienteService.iniciarPagamento(token, ordemServicoId));
     }
 
     @Operation(summary = "Gera pagamento Pix do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/pix")
     public ResponseEntity<PagamentoPixResponse> gerarPix(@PathVariable String token,
-            @PathVariable UUID ordemServicoId) {
+            @PathVariable UUID ordemServicoId, HttpServletRequest request) {
+        rateLimitService.registrarPagamento(token, request.getRemoteAddr());
         return ResponseEntity.ok(portalClienteService.gerarPix(token, ordemServicoId));
     }
 
@@ -80,14 +91,17 @@ public class PortalClienteController {
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/confirmar")
     public ResponseEntity<PortalOrdemServicoResponse> confirmarPagamento(@PathVariable String token,
             @PathVariable UUID ordemServicoId,
-            @RequestBody @Valid PortalPagamentoConfirmacaoRequest request) {
-        return ResponseEntity.ok(portalClienteService.confirmarPagamento(token, ordemServicoId, request.paymentId()));
+            @RequestBody @Valid PortalPagamentoConfirmacaoRequest body,
+            HttpServletRequest request) {
+        rateLimitService.registrarPagamento(token, request.getRemoteAddr());
+        return ResponseEntity.ok(portalClienteService.confirmarPagamento(token, ordemServicoId, body.paymentId()));
     }
 
     @Operation(summary = "Verifica pagamento aprovado do ticket no Mercado Pago")
     @PostMapping("/ordens-servico/{ordemServicoId}/pagamento/verificar")
     public ResponseEntity<PortalOrdemServicoResponse> verificarPagamento(@PathVariable String token,
-            @PathVariable UUID ordemServicoId) {
+            @PathVariable UUID ordemServicoId, HttpServletRequest request) {
+        rateLimitService.registrarPagamento(token, request.getRemoteAddr());
         return ResponseEntity.ok(portalClienteService.verificarPagamento(token, ordemServicoId));
     }
 
@@ -101,7 +115,9 @@ public class PortalClienteController {
     @PostMapping(value = "/ordens-servico/{ordemServicoId}/anexos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AnexoResponse> salvarAnexo(@PathVariable String token, @PathVariable UUID ordemServicoId,
             @RequestParam("arquivo") MultipartFile arquivo,
-            @RequestParam(value = "descricao", required = false) String descricao) {
+            @RequestParam(value = "descricao", required = false) @Size(max = 1000) String descricao,
+            HttpServletRequest request) {
+        rateLimitService.registrarUpload(token, request.getRemoteAddr());
         portalClienteService.validarAcesso(token, ordemServicoId);
         return ResponseEntity.ok(anexoService.salvar(ordemServicoId, arquivo, descricao, true));
     }

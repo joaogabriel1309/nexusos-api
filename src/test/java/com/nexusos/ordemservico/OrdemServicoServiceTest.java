@@ -359,11 +359,32 @@ class OrdemServicoServiceTest {
         when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
 
         assertThatThrownBy(() -> ordemServicoService.atualizarStatus(id,
-                new StatusUpdateRequest(StatusOS.AGUARDANDO_APROVACAO, null, null, null, null, null)))
+                new StatusUpdateRequest(StatusOS.AGUARDANDO_APROVACAO, null, null, null, null)))
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("administrador");
 
         verify(ordemServicoRepository, never()).save(ordem);
+    }
+
+    @Test
+    void registraUsuarioAutenticadoComoAutorDaMudancaDeStatus() {
+        autenticar("admin@nexusos.com", "ROLE_ADMIN");
+        var id = UUID.randomUUID();
+        var administrador = com.nexusos.usuario.Usuario.builder().id(UUID.randomUUID()).build();
+        var cliente = Cliente.builder().id(UUID.randomUUID()).nome("Cliente").build();
+        var ordem = OrdemServico.builder().id(id).codigo(14L).titulo("Ticket").descricao("Descricao")
+                .cliente(cliente).status(StatusOS.RECEBIDA).build();
+        var configuracao = new ConfiguracaoOS();
+        when(ordemServicoRepository.findById(id)).thenReturn(Optional.of(ordem));
+        when(configuracaoOSService.buscarEntidade()).thenReturn(configuracao);
+        when(usuarioService.buscarAutenticado()).thenReturn(administrador);
+        when(ordemServicoRepository.save(ordem)).thenReturn(ordem);
+
+        ordemServicoService.atualizarStatus(id,
+                new StatusUpdateRequest(StatusOS.EM_ANALISE, "Analise iniciada", null, null, null));
+
+        verify(auditoriaService).registrar(ordem, administrador, "ALTERACAO_STATUS", "Analise iniciada",
+                StatusOS.RECEBIDA, StatusOS.EM_ANALISE);
     }
 
     @Test

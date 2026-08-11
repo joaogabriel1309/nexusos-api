@@ -2,6 +2,7 @@ package com.nexusos.github;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.nexusos.exception.RegraNegocioException;
+import com.nexusos.integration.ExternalHttpRequestFactory;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,8 @@ import org.springframework.web.client.*;
 public class GithubApiClient {
     private final RestClient client;
     public GithubApiClient(RestClient.Builder builder, @Value("${nexusos.github.api-url:https://api.github.com}") String apiUrl) {
-        client = builder.baseUrl(apiUrl).defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
+        client = builder.requestFactory(ExternalHttpRequestFactory.create())
+                .baseUrl(apiUrl).defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")
                 .defaultHeader("X-GitHub-Api-Version", "2022-11-28").build();
     }
     public void testar(String owner, String repo, String token) { get("/repos/{o}/{r}", token, owner, repo); }

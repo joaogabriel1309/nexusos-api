@@ -62,7 +62,9 @@ public class AuthController {
 
     @Operation(summary = "Solicita um link de recuperacao de senha")
     @PostMapping("/forgot-password")
-    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        loginRateLimitService.registrarRecuperacao(request.email(), extrairIp(httpRequest));
         authService.solicitarRecuperacaoSenha(request.email());
         return ResponseEntity.noContent().build();
     }
@@ -88,10 +90,6 @@ public class AuthController {
     }
 
     private String extrairIp(HttpServletRequest request) {
-        var forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
         return request.getRemoteAddr();
     }
 }

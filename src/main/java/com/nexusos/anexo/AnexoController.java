@@ -17,11 +17,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.constraints.Size;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.HttpHeaders;
 import java.nio.charset.StandardCharsets;
 import org.springframework.web.util.UriUtils;
 
 @RestController
+@Validated
 @RequestMapping("/api/v1/ordens-servico/{ordemServicoId}/anexos")
 @RequiredArgsConstructor
 public class AnexoController {
@@ -38,7 +41,7 @@ public class AnexoController {
     @PreAuthorize("hasAnyRole('ADMIN','DESENVOLVEDOR')")
     public ResponseEntity<AnexoResponse> salvar(@PathVariable UUID ordemServicoId,
             @RequestParam("arquivo") MultipartFile arquivo,
-            @RequestParam(value = "descricao", required = false) String descricao) {
+            @RequestParam(value = "descricao", required = false) @Size(max = 1000) String descricao) {
         var response = anexoService.salvar(ordemServicoId, arquivo, descricao);
         return ResponseEntity.created(URI.create("/api/v1/ordens-servico/" + ordemServicoId + "/anexos"))
                 .body(response);

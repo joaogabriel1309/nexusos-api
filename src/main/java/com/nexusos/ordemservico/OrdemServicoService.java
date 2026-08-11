@@ -248,7 +248,7 @@ public class OrdemServicoService {
             os.setBranchFinalizacao(null);
             os.setArquivosAlteradosFinalizacao(null);
         }
-        var usuario = request.usuarioId() != null ? usuarioService.buscarEntidade(request.usuarioId()) : null;
+        var usuario = usuarioService.buscarAutenticado();
         var salva = ordemServicoRepository.save(os);
         auditoriaService.registrar(salva, usuario, "ALTERACAO_STATUS",
                 request.descricao() != null ? request.descricao() : "Status do ticket alterado.",

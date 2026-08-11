@@ -1,0 +1,13 @@
+.git
+.github
+.agents
+.codex
+.env
+.env.*
+!.env.example
+target
+tmp
+uploads
+nexusos-web
+*.log
+SECURITY_AUDIT.md
