@@ -1,0 +1,50 @@
+{
+  "name": "nexusos-nest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API NexusOS migrada de Spring Boot para NestJS",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "start:dev": "tsc-watch --onSuccess \"node dist/main.js\"",
+    "start:prod": "node dist/main.js",
+    "migration:run": "tsx src/migrate.ts",
+    "user:create": "tsx src/create-user.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.2.0",
+    "bcryptjs": "^3.0.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.6",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.0.0",
+    "@types/nodemailer": "^7.0.1",
+    "@types/pdfkit": "^0.17.2",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "tsc-watch": "^7.2.0"
+  }
+}
