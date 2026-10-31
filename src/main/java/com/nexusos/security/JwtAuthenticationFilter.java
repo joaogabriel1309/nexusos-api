@@ -41,25 +41,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // Token invalido ou expirado nao encerra a requisicao: ela segue anonima e as regras de
+        // autorizacao decidem. Assim rotas publicas (portal do cliente, webhook) continuam
+        // acessiveis mesmo quando o navegador ainda envia um cookie de sessao antigo.
         try {
             var username = jwtService.extrairUsername(token);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userDetails = userDetailsService.loadUserByUsername(username);
-                if (!jwtService.accessTokenValido(token, userDetails)) {
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token invalido.");
-                    return;
+                if (jwtService.accessTokenValido(token, userDetails)) {
+                    var authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-                var authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token invalido.");
-            return;
         }
         filterChain.doFilter(request, response);
     }
