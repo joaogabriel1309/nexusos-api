@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Inbox, RefreshCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PortalNavigation } from "@/components/portal/portal-navigation";
+import { linkPortalInvalido, mensagemLinkPortalInvalido, repetirConsultaPortal } from "@/lib/portal-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,7 +32,8 @@ export default function MinhasSolicitacoesPage() {
   const query = useQuery({
     queryKey: ["portal-solicitacoes", token],
     queryFn: () => portalSolicitacaoService.listar(token),
-    refetchInterval: 15_000
+    refetchInterval: (consulta) => (linkPortalInvalido(consulta.state.error) ? false : 15_000),
+    retry: repetirConsultaPortal
   });
   const itens = useMemo(() => (query.data ?? []).filter((item) => status === todos || item.status === status), [query.data, status]);
 
@@ -43,7 +45,9 @@ export default function MinhasSolicitacoesPage() {
 
         <div className="flex justify-end"><Select value={status} onValueChange={(value) => setStatus(value as StatusSolicitacao | typeof todos)}><SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Filtrar por etapa" /></SelectTrigger><SelectContent><SelectItem value={todos}>Todas as etapas</SelectItem>{(Object.keys(solicitacaoStatusClienteLabels) as StatusSolicitacao[]).map((item) => <SelectItem key={item} value={item}>{solicitacaoStatusClienteLabels[item]}</SelectItem>)}</SelectContent></Select></div>
 
-        {query.isLoading ? <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, indice) => <Skeleton key={indice} className="h-44" />)}</div> : query.isError ? (
+        {query.isLoading ? <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, indice) => <Skeleton key={indice} className="h-44" />)}</div> : query.isError && linkPortalInvalido(query.error) ? (
+          <Card><CardContent className="p-10 text-center text-sm text-muted-foreground">{mensagemLinkPortalInvalido}</CardContent></Card>
+        ) : query.isError ? (
           <Card><CardContent className="flex flex-col items-center gap-4 p-10 text-center"><p>Não foi possível carregar suas solicitações.</p><Button variant="outline" onClick={() => query.refetch()}><RefreshCcw className="h-4 w-4" />Tentar novamente</Button></CardContent></Card>
         ) : itens.length === 0 ? (
           <Card><CardContent className="p-10 text-center"><Inbox className="mx-auto h-10 w-10 text-muted-foreground" /><p className="mt-3 font-medium">Nenhuma solicitação encontrada</p><p className="mt-1 text-sm text-muted-foreground">Quando você enviar uma solicitação, ela aparecerá aqui.</p></CardContent></Card>

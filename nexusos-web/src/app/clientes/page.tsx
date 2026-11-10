@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { tokenAcessoExpirado } from "@/lib/portal-link";
 import { clienteSchema, type ClienteFormData } from "@/schemas/cliente-schema";
 import { clienteService } from "@/services/cliente-service";
 import type { Cliente } from "@/types";
@@ -123,7 +124,8 @@ export default function ClientesPage() {
   }
 
   async function copiarLinkCliente(cliente: Cliente) {
-    if (!cliente.tokenAcesso) {
+    // Link expirado seria recusado pelo portal; gera um novo token antes de copiar.
+    if (!cliente.tokenAcesso || tokenAcessoExpirado(cliente.tokenAcessoExpiraEm)) {
       gerarTokenMutation.mutate(cliente.id);
       return;
     }
