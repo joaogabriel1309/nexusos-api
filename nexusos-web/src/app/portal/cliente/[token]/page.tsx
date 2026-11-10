@@ -20,6 +20,7 @@ import { TablePagination } from "@/components/shared/table-pagination";
 import { CentralAnexos } from "@/components/shared/central-anexos";
 import { PortalNavigation } from "@/components/portal/portal-navigation";
 import { statusBadgeClasses } from "@/lib/os-labels";
+import { linkPortalInvalido, mensagemLinkPortalInvalido, repetirConsultaPortal } from "@/lib/portal-link";
 import { portalClienteService } from "@/services/portal-cliente-service";
 import type { PagamentoPixResponse, PortalOrdemServico, StatusOS } from "@/types";
 
@@ -186,7 +187,8 @@ export default function PortalClientePage() {
   const portalQuery = useQuery({
     queryKey,
     queryFn: () => portalClienteService.listarOrdens(token),
-    enabled: Boolean(token)
+    enabled: Boolean(token),
+    retry: repetirConsultaPortal
   });
 
   const decisaoMutation = useMutation({
@@ -527,6 +529,8 @@ export default function PortalClientePage() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
+            ) : portalQuery.isError && linkPortalInvalido(portalQuery.error) ? (
+              <p className="text-sm text-muted-foreground">{mensagemLinkPortalInvalido}</p>
             ) : portalQuery.isError ? (
               <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>Não foi possível abrir este portal. Confira o link ou tente novamente.</span>
